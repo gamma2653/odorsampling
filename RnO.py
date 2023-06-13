@@ -10,10 +10,8 @@ Index of document:
 4. Experiments/Simulations utilizing objects"""
 
 import math
-import cells
 import random
 import layers
-import os
 #import matplotlib
 #matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
@@ -25,7 +23,6 @@ import copy
 import time
 
 #from matplotlib import mlab, cm
-from matplotlib import patches
 from matplotlib.patches import Ellipse
 import numpy.random as rnd
 
@@ -594,7 +591,7 @@ def ActivateGL_QSpace(epith, odorscene, gl, fixed=True, c=1, sel="avg"):
             #Now convert gaussian aff to kda
             
             aff = 10**((aff * (peak_affinity - minimum_affinity)) + minimum_affinity) ##peak_affinity etc. are global variables
-            #print "aff is " + str(aff)
+            #print("aff is " + str(aff))
             odor.setAff(float(aff))
             
             if fixed:
@@ -603,7 +600,7 @@ def ActivateGL_QSpace(epith, odorscene, gl, fixed=True, c=1, sel="avg"):
                 eff = mvn.pdf(odor.getLoc(), rec.getMean(), rec.getCovE())
                 eff = float(eff) / effScale #Scales it from 0 to 1
                 odor.setEff(eff)
-                #print "eff is " + str(eff)
+                #print("eff is " + str(eff))
             odors.append(odor)
             df += odor.getConc()/odor._aff
         
@@ -612,15 +609,15 @@ def ActivateGL_QSpace(epith, odorscene, gl, fixed=True, c=1, sel="avg"):
             odor.setOcc( (1) / (1 + ( (odor._aff/odor.getConc()) * (1 + df - (odor.getConc() / odor._aff ) ) ) **m) ) #m=1
             activ += odor._eff * odor._occ
             
-            #print "Occ is: " + str(odor._occ)
-            #print str(i) + " activation due to odorscene 1: " + str(activ_1)
+            #print("Occ is: " + str(odor._occ))
+            #print(str(i) + " activation due to odorscene 1: " + str(activ_1))
             i += 1
-        #print "activ level for rec " + str(activ)
+        #print("activ level for rec " + str(activ))
         rec.setActiv(activ)
         gl[rec.getId()].setActiv(activ)
         
     if c != 1:
-        glomRecConnNew(epithelium.getRecs(), gl, c)
+        glomRecConnNew(epith.getRecs(), gl, c)
 
 #######Loading and Saving objecsts using CSV files
 
@@ -944,7 +941,7 @@ def sumOfSquares(epithelium, odorscene, dn, fixed=False, c=1, gl=[]):
             #Now convert gaussian aff to kda
             aff = 10**((aff * (peak_affinity - minimum_affinity)) + minimum_affinity) ##peak_affinity etc. are global variables
             
-            #print "aff is " + str(aff)
+            #print("aff is " + str(aff))
             odor.setAff(float(aff))
             if fixed:
                 odor.setEff(1.0)
@@ -967,7 +964,7 @@ def sumOfSquares(epithelium, odorscene, dn, fixed=False, c=1, gl=[]):
             aff2 = mvn.pdf(newLoc, rec.getMean(), rec.getCovA())
             aff2 = aff2 / rec.getScale() #Scales it from 0 to 1
             aff2 = 10**((aff2 * (peak_affinity - minimum_affinity)) + minimum_affinity)
-            #print "aff2 is " + str(aff2)
+            #print("aff2 is " + str(aff2))
             newOdor.setAff(float(aff2))
             if fixed:
                 newOdor.setEff(1.0)
@@ -984,7 +981,7 @@ def sumOfSquares(epithelium, odorscene, dn, fixed=False, c=1, gl=[]):
             activ_1 += odor._eff * odor._occ
             rec._occ += odor._occ #Solely for printing individual receptor activations in experiments
             rec._odoAmt += adjOdors(rec, odor)
-            #print str(i) + " activation due to odorscene 1: " + str(activ_1)
+            #print(str(i) + " activation due to odorscene 1: " + str(activ_1))
             i += 1
         i = 1
         
@@ -993,20 +990,20 @@ def sumOfSquares(epithelium, odorscene, dn, fixed=False, c=1, gl=[]):
         for odor2 in odors2:
             odor2.setOcc( (1) / (1 + ( (odor2._aff/odor2.getConc()) * (1 + df2 - (odor2.getConc() / odor2._aff ) ) ) **m) ) #m=1
             activ_2 += odor2._eff * odor2._occ
-            #print str(i) + " activation due to odorscene 2: " + str(activ_2)
+            #print(str(i) + " activation due to odorscene 2: " + str(activ_2))
             i += 1
         
         recs2[counter].setActiv(activ_2)
         
-        #print "activ_1 is " + str(activ_1)
-        #print "activ_2 is " + str(activ_2)
+        #print("activ_1 is " + str(activ_1))
+        #print("activ_2 is " + str(activ_2))
         dPhi = (activ_1 - activ_2) #########(Maximum value will be 1 or -1 = make sure this is true)
         dPsi += dPhi**2
         
         
         counter += 1
     
-    #print "rec dPsi is: " + str(math.sqrt(dPsi))
+    #print("rec dPsi is: " + str(math.sqrt(dPsi))
     
     if c != 1:
         
@@ -1019,11 +1016,11 @@ def sumOfSquares(epithelium, odorscene, dn, fixed=False, c=1, gl=[]):
         dPsi = 0
         while count < len(gl):
             dPhi = (gl[count].getActiv() - gl2[count].getActiv())
-            #print "gl 1 activ is " + str(gl[count].getActiv())
-            #print "gl 2 activ is " + str(gl2[count].getActiv())
+            # print("gl 1 activ is " + str(gl[count].getActiv()))
+            # print("gl 2 activ is " + str(gl2[count].getActiv()))
             dPsi += dPhi**2
             count += 1
-        #print "dPsi is " + str(math.sqrt(dPsi))
+        #print("dPsi is " + str(math.sqrt(dPsi)))
         return math.sqrt(dPsi)
     else:
         return math.sqrt(dPsi)
@@ -1040,7 +1037,7 @@ def sumOfSquares(epithelium, odorscene, dn, fixed=False, c=1, gl=[]):
 
 def sumOfSquaresVectorized(epithelium, odorscene, dn, repIndex, fixed=False, c=1, gl=[]): 
     
-    #print "CALLED AGAIN!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+    #print("CALLED AGAIN!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
     """Calculates differentiation between epithelium activation of odorscene before
     and after dn using sum of squares. Returns dpsi of the epithelium.
     If fixed=true, then efficacy will be fixed at 1 (only agonists)
@@ -1054,7 +1051,7 @@ def sumOfSquaresVectorized(epithelium, odorscene, dn, repIndex, fixed=False, c=1
     layers.clearGLactiv(gl) #Sets gl activations and recConn back to 0.0
     
     
-    #print "before loop levl 1:" + str(time.time())
+    #print("before loop levl 1:" + str(time.time()))
     counter = 0 #for storing info in rec2
     for rec in epithelium.getRecs():
         
@@ -1071,12 +1068,12 @@ def sumOfSquaresVectorized(epithelium, odorscene, dn, repIndex, fixed=False, c=1
         df2 = 0
         dphi = 0
         
-        #print "getMean=" + str(rec.getMean()) + "TIME:"+ str(time.time())
-        #print "getCovE=" + str(rec.getCovE()) + "TIME:"+ str(time.time())
+        #print("getMean=" + str(rec.getMean()) + "TIME:"+ str(time.time()))
+        #print("getCovE=" + str(rec.getCovE()) + "TIME:"+ str(time.time()))
         
         #effScale = float(mvn.pdf(rec.getMean(), rec.getMean(), rec.getCovE())  )
         effScale = rec.getEffScale()
-        #print "effScal=" + str(effScale) + "TIME:"+ str(time.time())
+        #print("effScal=" + str(effScale) + "TIME:"+ str(time.time()))
         
         '''
         affs = rec.getAffs()
@@ -1101,7 +1098,7 @@ def sumOfSquaresVectorized(epithelium, odorscene, dn, repIndex, fixed=False, c=1
             #df += prepareOdor(odor, rec, fixed, odors, effScale) 
             odors.append(odor)
             df += odor.getConc()/odor._aff
-            #print "time elapsed prepareOdor:"+ str((time.time() - startTime))
+            #print("time elapsed prepareOdor:"+ str((time.time() - startTime)))
             
             #Second Odorscene
             '''
@@ -1129,13 +1126,13 @@ def sumOfSquaresVectorized(epithelium, odorscene, dn, repIndex, fixed=False, c=1
         #for odor in odorscene.getOdors():    
             #startTime = time.time()
             odor.setOcc( (1) / (1 + ( (odor._aff/odor.getConc()) * (1 + df - (odor.getConc() / odor._aff ) ) ) **m) ) #m=1
-            #print "time elapsed odor setOcc:"+ str((time.time() - startTime))
+            # print("time elapsed odor setOcc:"+ str((time.time() - startTime)))
             activ_1 += odor._eff * odor._occ
             rec._occ += odor._occ #Solely for printing individual receptor activations in experiments
             #startTime = time.time()
             rec._odoAmt += adjOdors(rec, odor)
-            #print "time elapsed adjOdors:"+ str((time.time() - startTime))
-            #print str(i) + " activation due to odorscene 1: " + str(activ_1)
+            #print("time elapsed adjOdors:"+ str((time.time() - startTime)))
+            #print(str(i) + " activation due to odorscene 1: " + str(activ_1))
             #i += 1
         #i = 1
         
@@ -1144,24 +1141,24 @@ def sumOfSquaresVectorized(epithelium, odorscene, dn, repIndex, fixed=False, c=1
         for odor2 in odors2:
             #startTime = time.time()
             odor2.setOcc( (1) / (1 + ( (odor2._aff/odor2.getConc()) * (1 + df2 - (odor2.getConc() / odor2._aff ) ) ) **m) ) #m=1
-            #print "time elapsed odor2 setOcc:"+ str((time.time() - startTime))
+            #print("time elapsed odor2 setOcc:"+ str((time.time() - startTime)))
             activ_2 += odor2._eff * odor2._occ
-            #print str(i) + " activation due to odorscene 2: " + str(activ_2)
+            #print(str(i) + " activation due to odorscene 2: " + str(activ_2))
             #i += 1
         
         recs2[counter].setActiv(activ_2)
         
-        #print "activ_1 is " + str(activ_1)
-        #print "activ_2 is " + str(activ_2)
+        #print("activ_1 is " + str(activ_1))
+        #print("activ_2 is " + str(activ_2))
         dPhi = (activ_1 - activ_2) #########(Maximum value will be 1 or -1 = make sure this is true)
         dPsi += dPhi**2
         
         
         counter += 1
-        #print "counter is:" + str(counter) + ":::"+ str(time.time())
+        #print("counter is:" + str(counter) + ":::"+ str(time.time()))
     
-    #print "after loop levl 1:" + str(time.time())
-    #print "rec dPsi is: " + str(math.sqrt(dPsi))
+    #print("after loop levl 1:" + str(time.time()))
+    #print("rec dPsi is: " + str(math.sqrt(dPsi)))
     
     if c != 1:
         
@@ -1177,28 +1174,28 @@ def sumOfSquaresVectorized(epithelium, odorscene, dn, repIndex, fixed=False, c=1
             #dPhi = (gl[count].getActiv() - gl2[count].getActiv())
             dPhi = (glItem.getActiv() - gl2[count].getActiv())
 
-            #print "gl 1 activ is " + str(gl[count].getActiv())
-            #print "gl 2 activ is " + str(gl2[count].getActiv())
+            #print("gl 1 activ is " + str(gl[count].getActiv()))
+            #print("gl 2 activ is " + str(gl2[count].getActiv()))
             dPsi += dPhi**2
             #count += 1
-        #print "dPsi is " + str(math.sqrt(dPsi))
-        #print "END OF sumOfSquares:" + str(time.time())
+        #print("dPsi is " + str(math.sqrt(dPsi)))
+        #print("END OF sumOfSquares:" + str(time.time()))
         #return math.sqrt(dPsi)
     #else:
-    #print "END OF sumOfSquares:" + str(time.time())
+    #print("END OF sumOfSquares:" + str(time.time()))
     return math.sqrt(dPsi)
 
 
 def prepareOdor(odor, rec, fixed, odors, effScale): 
     
     aff = mvn.pdf(odor.getLoc(), rec.getMean(), rec.getCovA())
-    #print "time elapsed odor pdf:"+ str((time.time() - startTime))
+    #print("time elapsed odor pdf:"+ str((time.time() - startTime)))
     aff = aff / rec.getScale() #Scales it from 0 to 1
     #Now convert gaussian aff to kda
     #startTime = time.time()
     aff = 10**((aff * (peak_affinity - minimum_affinity)) + minimum_affinity) ##peak_affinity etc. are global variables
-    #print "time elapsed odor aff:"+ str((time.time() - startTime))           
-    #print "aff is " + str(aff)
+    #print("time elapsed odor aff:"+ str((time.time() - startTime)))        
+    #print("aff is " + str(aff))
     odor.setAff(float(aff))
     if fixed:
         odor.setEff(1.0)
@@ -1231,8 +1228,8 @@ def adjOdors(rec, odor):
         num += (float(rec._mean[index]) - float(odor.getLoc()[index]))**2
         index += 1
     num = math.sqrt(num)
-    #print "euc dist is " + str(num)
-    #print "avg aff is " + str(avg)
+    #print("euc dist is " + str(num))
+    #print("avg aff is " + str(avg))
     if num <= (2.0*avg):
         return 1
     else:
@@ -1383,7 +1380,7 @@ def dPsiBarCalcAngles(epithelium, odorscene, r, fixed=False, text=None, c=1, gl=
     changes location by the same amplitude r but "rep" different directions based on
     randomized angles."""
 
-    #print "start of dPsiBarCalcAngles"
+    #print("start of dPsiBarCalcAngles")
 
     
     #rep = 10.0
@@ -1397,23 +1394,23 @@ def dPsiBarCalcAngles(epithelium, odorscene, r, fixed=False, text=None, c=1, gl=
     while amtOfDir < rep:
         '''
         startTime = time.time()
-        print "start of a rep:" + str(startTime)
+        print("start of a rep:" + str(startTime))
 
         #Create randomized list of angles
         angles = []
         for i in range(dim-1):
-            #print "start of first for:" + str(i) +":"+ str(time.time())
+            #print("start of first for:" + str(i) +":"+ str(time.time()))
 
             if i == dim-2: #if last angle
                 angles.append(random.uniform(0,(2*math.pi)))
             else:
                 angles.append(random.uniform(0, math.pi))
         #Create dn = amount of change (length of line in each dim given vector r)
-            #print "end of first for:" + str(i) +":"+ str(time.time())
+            #print("end of first for:" + str(i) +":"+ str(time.time()))
 
         dn = []
         for i in range(dim):
-            #print "start of 2nd for:" + str(i) +":"+ str(time.time())
+            #print("start of 2nd for:" + str(i) +":"+ str(time.time()))
 
             dn.append(r)
             if i == dim-1: #if last angle
@@ -1426,18 +1423,18 @@ def dPsiBarCalcAngles(epithelium, odorscene, r, fixed=False, text=None, c=1, gl=
                     j+=1
                 dn[i] *= math.cos(angles[i])
                 
-            #print "end of 2nd for:" + str(i) +":"+ str(time.time())
+            #print("end of 2nd for:" + str(i) +":"+ str(time.time()))
         '''    
         dn = []
 
-        #print "bfore sumOfSquares:" +str(amtOfDir) + ":"+ str(time.time())
+        #print("bfore sumOfSquares:" +str(amtOfDir) + ":"+ str(time.time()))
         totalDpsi += sumOfSquaresVectorized(epithelium, odorscene, dn, amtOfDir, fixed, c, gl)
-        #print "after sumOfSquares:" +str(amtOfDir) + ":"+ str(time.time())
+        #print("after sumOfSquares:" +str(amtOfDir) + ":"+ str(time.time()))
        
         amtOfDir += 1
         
-        #print "end of a rep:" + str(time.time())
-        #print "time elapsed a rep:" + str(time.time() - startTime) 
+        #print("end of a rep:" + str(time.time()))
+        #print("time elapsed a rep:" + str(time.time() - startTime))
         
     if text != None:
         recToText(epithelium, gl, c, text)
@@ -1501,9 +1498,9 @@ def colorMapSumOfSquares(epithelium, odorscenes, r, qspace):
             x += 1
         graph.append(row)
         y += 1
-    print graph
-    print "before \n"
-    print len(odorscenes)
+    print(graph)
+    print("before \n")
+    print(len(odorscenes))
     ##Similar code to above - calc individual dPsi for ligands
     for odorscene in odorscenes:
 
@@ -1512,13 +1509,12 @@ def colorMapSumOfSquares(epithelium, odorscenes, r, qspace):
         
         # eff = 1
         dPsiBar = dPsiBarCalcAnglesOrig(epithelium, odorscene, r, True) 
-
-       	print odorscene.getOdors()[0].getLoc()
+        print(odorscene.getOdors()[0].getLoc())
 
         graph[int(params.PIXEL_PER_Q_UNIT*(odorscene.getOdors()[0].getLoc()[1]))][int(params.PIXEL_PER_Q_UNIT*(odorscene.getOdors()[0].getLoc()[0]))] = dPsiBar
     
-    print "-----------------------------"
-    print graph
+    print("-----------------------------")
+    print(graph)
 
 
     #     #TESTING FOR RECEPTOR ELLIPSE ADD-ON
@@ -1531,14 +1527,14 @@ def colorMapSumOfSquares(epithelium, odorscenes, r, qspace):
             else:
                 ii= params.RECEPTOR_INDEX      
             if i == ii:   
-                print "rec" + str(rec.getId()) + ":"
-                print "Mean:" + str(rec.getMean()) 
-                print "SdA:" + str(rec.getSdA()) 
-                # print "eff: "
+                print("rec" + str(rec.getId()) + ":")
+                print("Mean:" + str(rec.getMean()))
+                print("SdA:" + str(rec.getSdA()))
+                # print("eff: ")
                 # for e in rec.getEffs():
-                #     print e
-                # print "aff: " + str(rec.getAffs)
-                print "Qspace size is " + str(qspace.getSize()[1][1])
+                #     print(e)
+                # print("aff: " + str(rec.getAffs))
+                print("Qspace size is " + str(qspace.getSize()[1][1]))
         
                 qspaceBoundary = qspace.getSize()[1][1]
                 # ang = rnd.rand()*360
@@ -1560,8 +1556,8 @@ def colorMapSumOfSquares(epithelium, odorscenes, r, qspace):
 
                     # ***************** UNCOMMENT HERE TO PLOT RECEPTORS IN TORUS **************************
                     # newMeanLeft = [rec.getMean()[0]-qspaceBoundary, rec.getMean()[1]]
-                    # print "newMeanLeft = " + str(newMeanLeft)
-                    # print "newMeanLeft x value is " + str(rec.getMean()[0] - qspaceBoundary) + "!!!!! mean is " + str(rec.getMean()) + "!!!!! qspace boundary is " + str(qspaceBoundary)
+                    # print("newMeanLeft = " + str(newMeanLeft))
+                    # print("newMeanLeft x value is " + str(rec.getMean()[0] - qspaceBoundary) + "!!!!! mean is " + str(rec.getMean()) + "!!!!! qspace boundary is " + str(qspaceBoundary))
                     # ells_sda.append(Ellipse(xy=newMeanLeft, width=rec.getSdA()[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.getSdA()[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
                     # newMeanRight = [rec.getMean()[0] + qspaceBoundary, rec.getMean()[1]]
                     # ells_sda.append(Ellipse(xy=newMeanRight, width=rec.getSdA()[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.getSdA()[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
@@ -1633,7 +1629,7 @@ def colorMapSumOfSquares(epithelium, odorscenes, r, qspace):
 
     if params.SHOW_SDA_ELLIPSE:
         for e in ells_sda:
-            print "The center is " + str(e.center)
+            print("The center is " + str(e.center))
             ax.add_artist(e)
             e.set_clip_box(ax.bbox)
             #e.set_alpha(rnd.rand())
@@ -1661,7 +1657,7 @@ def colorMapSumOfSquares(epithelium, odorscenes, r, qspace):
             e.set_label("SDE")
             e.set_linewidth (params.LINE_WIDTH)
 
-        print qspace.getSize()[0]
+        print(qspace.getSize()[0])
         ax.set_xlim(qspace.getSize()[0])
         ax.set_ylim(qspace.getSize()[0])
 
@@ -1706,7 +1702,7 @@ def dPsiBarCalcDns(odorscene, r, rep):
     changes location by the same amplitude r but "rep" different directions based on
     randomized angles."""
 
-    #print "start of dPsiBarCalcDns"
+    #print("start of dPsiBarCalcDns")
 
     
     #rep = 10.0
@@ -1720,23 +1716,23 @@ def dPsiBarCalcDns(odorscene, r, rep):
     while amtOfDir < rep:
         
         #startTime = time.time()
-        #print "start of a rep:" + str(startTime)
+        #print("start of a rep:" + str(startTime))
 
         #Create randomized list of angles
         angles = []
         for i in range(dim-1):
-            #print "start of first for:" + str(i) +":"+ str(time.time())
+            #print("start of first for:" + str(i) +":"+ str(time.time()))
 
             if i == dim-2: #if last angle
                 angles.append(random.uniform(0,(2*math.pi)))
             else:
                 angles.append(random.uniform(0, math.pi))
         #Create dn = amount of change (length of line in each dim given vector r)
-            #print "end of first for:" + str(i) +":"+ str(time.time())
+            #print("end of first for:" + str(i) +":"+ str(time.time()))
 
         dn = []
         for i in range(dim):
-            #print "start of 2nd for:" + str(i) +":"+ str(time.time())
+            #print("start of 2nd for:" + str(i) +":"+ str(time.time()))
 
             dn.append(r)
             if i == dim-1: #if last angle
@@ -1749,7 +1745,7 @@ def dPsiBarCalcDns(odorscene, r, rep):
                     j+=1
                 dn[i] *= math.cos(angles[i])
                 
-            #print "end of 2nd for:" + str(i) +":"+ str(time.time())
+            #print("end of 2nd for:" + str(i) +":"+ str(time.time()))
         
        
         amtOfDir += 1
@@ -1765,7 +1761,7 @@ def dPsiBarSaturation(epithelium, r, qspace, pdfName, labelName, excelName, fixe
     precondition: c = integer, fixed and close = Boolean"""
     
     startTime = time.time()
-    print "start of dPsiBarSaturation:" + str(startTime)
+    print("start of dPsiBarSaturation:" + str(startTime))
 
     size = ODOR_REPETITIONS #amount of odorscenes we want to avg out
     #conc = 1e-5
@@ -1859,7 +1855,7 @@ def dPsiBarSaturation(epithelium, r, qspace, pdfName, labelName, excelName, fixe
     xaxis = [1,2,3,4,5,7,10,15,20,25,30,35,40,45,50,60,70,80,90,100,120,140,160,200,250,300,350,400] #If change here, change xAxis in expFromRnO
     yaxis = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
     
-    odorscenesArray = [[]*size for x in xrange(len(xaxis))]
+    odorscenesArray = [[]*size for x in range(len(xaxis))]
     #odorscenesArray = [[]]
     pdfOdorLocsInput = []
     affs = np.array([])
@@ -1881,7 +1877,7 @@ def dPsiBarSaturation(epithelium, r, qspace, pdfName, labelName, excelName, fixe
     #creating ligand  and odorscene lists
     #i = 0
     #while i < size:
-    for i in xrange(size):    
+    for i in range(size):    
         #k = 0
         #while k < len(xaxis):
             #j = xaxis[k]
@@ -1928,8 +1924,8 @@ def dPsiBarSaturation(epithelium, r, qspace, pdfName, labelName, excelName, fixe
     drawEllipseGraph(qspace, epithelium, odorscenesArray, useMockData=False)
     
 
-    #print "locsInput size=:" + str(len(pdfOdorLocsInput))
-    #print "locsInput2 size=:" + str(len(pdfOdorLocsInput2))
+    #print("locsInput size=:" + str(len(pdfOdorLocsInput)))
+    #print("locsInput2 size=:" + str(len(pdfOdorLocsInput2)))
     ##############################################################
     #'''
     for rec in epithelium.getRecs():
@@ -1939,8 +1935,8 @@ def dPsiBarSaturation(epithelium, r, qspace, pdfName, labelName, excelName, fixe
         #Now convert gaussian aff to kda
         #startTime = time.time()
         affs_rec = 10**((affs_rec * (peak_affinity - minimum_affinity)) + minimum_affinity) ##peak_affinity etc. are global variables
-        #print "time elapsed odor aff:"+ str((time.time() - startTime))           
-        #print "aff is " + str(aff)
+        #print("time elapsed odor aff:"+ str((time.time() - startTime)))
+        #print("aff is " + str(aff))
         
         rec.setAffs(affs_rec)
         affs = np.append(affs,affs_rec)
@@ -1967,8 +1963,8 @@ def dPsiBarSaturation(epithelium, r, qspace, pdfName, labelName, excelName, fixe
         #Now convert gaussian aff to kda
         #startTime = time.time()
         affs_rec2 = 10**((affs_rec2 * (peak_affinity - minimum_affinity)) + minimum_affinity) ##peak_affinity etc. are global variables
-        #print "time elapsed odor aff:"+ str((time.time() - startTime))           
-        #print "aff is " + str(aff)
+        #print("time elapsed odor aff:"+ str((time.time() - startTime)))
+        #print("aff is " + str(aff))
         
         #rec.setAffs(affs_rec2)
         affs2 = np.append(affs2,affs_rec2)
@@ -1988,11 +1984,11 @@ def dPsiBarSaturation(epithelium, r, qspace, pdfName, labelName, excelName, fixe
 
         #rec.setEffs(effs_rec)
            
-    #print "affs size=:" + str(affs.size)
-    #print "effs size=:" + str(effs.size)
+    #print("affs size=:" + str(affs.size))
+    #print("effs size=:" + str(effs.size))
 
-    #print "affs2 size=:" + str(affs2.size)
-    #print "effs2 size=:" + str(effs2.size)
+    #print("affs2 size=:" + str(affs2.size))
+    #print("effs2 size=:" + str(effs2.size))
             
             #effs = np.asarray(effs,dtype=np.float) / rec.getEffScale() #Scales it from 0 to 1
     #affs = np.asarray(affs,dtype=np.float)
@@ -2006,7 +2002,7 @@ def dPsiBarSaturation(epithelium, r, qspace, pdfName, labelName, excelName, fixe
 
     vi = 0
     vi2 = 0
-    for i in xrange(size):
+    for i in range(size):
         for k, j in enumerate(xaxis):
             #saveOdorscene(odorscenesArray[k][i], "Saved Odors" + str(qspace.getSize()[0]) + purp)
 
@@ -2028,9 +2024,9 @@ def dPsiBarSaturation(epithelium, r, qspace, pdfName, labelName, excelName, fixe
 
             #n = 0
             #while n < j: 
-                #print "vi=" + str(vi)
-                #print "affs size," + str(affs[vi])
-                #print "effs size," + str(effs[vi])
+                #print("vi=" + str(vi))
+                #print("affs size," + str(affs[vi]))
+                #print("effs size," + str(effs[vi]))
                 for rec in epithelium.getRecs():
                     
                     odor.appendToAffs(float(affs[vi]))
@@ -2094,34 +2090,34 @@ def dPsiBarSaturation(epithelium, r, qspace, pdfName, labelName, excelName, fixe
     #Calculate averages of dPsiBar
     i = 0
     while i < size:
-        print "bebinning of " + str(i)
+        print("bebinning of " + str(i))
 
         text._st += "Odorscene1"
         yaxis[0] += dPsiBarCalcAngles(epithelium, odorscenes1[i], r, fixed, text, c, gl)
-        print "after " + str(yaxis[0])
+        print("after " + str(yaxis[0]))
 
         text._st += "Odorscene2"
         yaxis[1] += dPsiBarCalcAngles(epithelium, odorscenes2[i], r, fixed, text, c, gl)
-        print "after " + str(yaxis[1])
+        print("after " + str(yaxis[1]))
 
 
         text._st += "Odorscene3"
         yaxis[2] += dPsiBarCalcAngles(epithelium, odorscenes3[i], r, fixed, text, c, gl)
-        print "after " + str(yaxis[2])
+        print("after " + str(yaxis[2]))
 
         text._st += "Odorscene4"
         yaxis[3] += dPsiBarCalcAngles(epithelium, odorscenes4[i], r, fixed, text, c, gl)
-        print "after " + str(yaxis[3])
+        print("after " + str(yaxis[3]))
 
         text._st += "Odorscene5"
         yaxis[4] += dPsiBarCalcAngles(epithelium, odorscenes5[i], r, fixed, text, c, gl)
         text._st += "Odorscene7"
         yaxis[5] += dPsiBarCalcAngles(epithelium, odorscenes7[i], r, fixed, text, c, gl)
-        print "after " + str(yaxis[5])
+        print("after " + str(yaxis[5]))
         
         text._st += "Odorscene10"
         d = dPsiBarCalcAngles(epithelium, odorscenes10[i], r, fixed, text, c, gl)
-        print "dPsi for odorscene10: " + str(d)
+        print("dPsi for odorscene10: " + str(d))
         yaxis[6] += d
         text._st += "Odorscene15"
         yaxis[7] += dPsiBarCalcAngles(epithelium, odorscenes15[i], r, fixed, text, c, gl)
@@ -2143,7 +2139,7 @@ def dPsiBarSaturation(epithelium, r, qspace, pdfName, labelName, excelName, fixe
         yaxis[15] += dPsiBarCalcAngles(epithelium, odorscenes60[i], r, fixed, text, c, gl)
         text._st += "Odorscene70"
         yaxis[16] += dPsiBarCalcAngles(epithelium, odorscenes70[i], r, fixed, text, c, gl)
-        print "after " + str(yaxis[16])
+        print("after " + str(yaxis[16]))
         
         text._st += "Odorscene80"
         yaxis[17] += dPsiBarCalcAngles(epithelium, odorscenes80[i], r, fixed, text, c, gl)
@@ -2159,7 +2155,7 @@ def dPsiBarSaturation(epithelium, r, qspace, pdfName, labelName, excelName, fixe
         yaxis[22] += dPsiBarCalcAngles(epithelium, odorscenes160[i], r, fixed, text, c, gl)
         text._st += "Odorscene200"
         yaxis[23] += dPsiBarCalcAngles(epithelium, odorscenes200[i], r, fixed, text, c, gl)
-        print "after " + str(yaxis[23])
+        print("after " + str(yaxis[23]))
         
         text._st += "Odorscene250"
         yaxis[24] += dPsiBarCalcAngles(epithelium, odorscenes250[i], r, fixed, text, c, gl)
@@ -2169,14 +2165,14 @@ def dPsiBarSaturation(epithelium, r, qspace, pdfName, labelName, excelName, fixe
         yaxis[26] += dPsiBarCalcAngles(epithelium, odorscenes350[i], r, fixed, text, c, gl)
         text._st += "Odorscene400"
         yaxis[27] += dPsiBarCalcAngles(epithelium, odorscenes400[i], r, fixed, text, c, gl)
-        print "i is " + str(i)
+        print("i is " + str(i))
         i += 1
         '''
     count = 0
     while count < len(yaxis):
         yaxis[count] = yaxis[count]/float(size)
         count += 1
-    print yaxis
+    print(yaxis)
     
     #Saving Activated Epithelium data in excel
     test = open(excelName + ".csv", "w")
@@ -2231,7 +2227,7 @@ def dPsiBarSaturation(epithelium, r, qspace, pdfName, labelName, excelName, fixe
 
     ##########################################
     #'''
-    print "time elapsed each qspace:"+ str((time.time() - startTime)) 
+    print("time elapsed each qspace:"+ str((time.time() - startTime)))
 
 def createLoc(qspace):
     """Given a qspace, return a list of randomized numbers (len=dim) within the qspace"""
@@ -2301,11 +2297,11 @@ def drawContourGraph(qspace):
 
 
 def runReceptorOdorGraphToolStandAlone():
-    print 'need to convert mock arrays data into obj of qspace, epitheliumm, odorscenesArray so we can call the method below'
+    print('need to convert mock arrays data into obj of qspace, epitheliumm, odorscenesArray so we can call the method below')
     drawEllipseGraph('', '', '', True)
 
 def drawEllipseGraph(qspace, epithelium, odorscenesArray, useMockData=False):
-    #print "odorscene 2nd dim len = " + str(len(odorscenesArray[0]))
+    #print("odorscene 2nd dim len = " + str(len(odorscenesArray[0])))
     assert params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION > 0, "Standard Deviation number must be greater than 0"
     if useMockData == False and params.USE_MOCK_ODORS_EVEN_WHEN_RUNNING_CALCS == False:
         assert params.ODORSCENE_INDEX >= 0 and params.ODORSCENE_INDEX < len(odorscenesArray), "Odorscene index must be within the range of xaxis"
@@ -2315,10 +2311,10 @@ def drawEllipseGraph(qspace, epithelium, odorscenesArray, useMockData=False):
     ells_sde = []
 
     """
-    print "xy=" + str(rnd.rand(2)*10)
-    print "width=" + str(rnd.rand())
-    print "height=" + str(rnd.rand())
-    print "angle=" + str(rnd.rand()*360)
+    print("xy=" + str(rnd.rand(2)*10))
+    print("width=" + str(rnd.rand()))
+    print("height=" + str(rnd.rand()))
+    print("angle=" + str(rnd.rand()*360))
     """
     # ang = rnd.rand()*360            
     # ang1 = rnd.rand()*360
@@ -2334,8 +2330,8 @@ def drawEllipseGraph(qspace, epithelium, odorscenesArray, useMockData=False):
             ells_sda.append(Ellipse(xy=params.MOCK_RECEPTOR_MEAN2, width=params.MOCK_RECEPTOR_SDA2[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=params.MOCK_RECEPTOR_SDA2[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang2))
         
         #if params.MOCK_RECEPTOR_MEAN[0] + params.MOCK_RECEPTOR_SDA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION > params.MOCK_QSPACE_DIMENSION[1]:
-            print "xy=" + str(params.MOCK_RECEPTOR_MEAN[0] + params.MOCK_RECEPTOR_SDA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION )
-            print "dim=" + str(params.MOCK_QSPACE_DIMENSION[1])
+            print("xy=" + str(params.MOCK_RECEPTOR_MEAN[0] + params.MOCK_RECEPTOR_SDA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION ))
+            print("dim=" + str(params.MOCK_QSPACE_DIMENSION[1]))
 
             # # left side
             # newMean=[(params.MOCK_QSPACE_DIMENSION[1]-params.MOCK_RECEPTOR_MEAN[0])*-1,params.MOCK_RECEPTOR_MEAN[1]]
@@ -2457,10 +2453,10 @@ def drawEllipseGraph(qspace, epithelium, odorscenesArray, useMockData=False):
             else:
                 ii= params.RECEPTOR_INDEX      
             if i == ii:   
-                print "rec" + str(rec.getId()) + ":"
-                print "Mean:" + str(rec.getMean()) 
-                print "SdA:" + str(rec.getSdA()) 
-                print "Qspace size is " + str(qspace.getSize()[1][1])
+                print("rec" + str(rec.getId()) + ":")
+                print("Mean:" + str(rec.getMean()))
+                print("SdA:" + str(rec.getSdA()))
+                print("Qspace size is " + str(qspace.getSize()[1][1]))
         
                 qspaceBoundary = qspace.getSize()[1][1]
                 # ang = rnd.rand()*360
@@ -2474,8 +2470,8 @@ def drawEllipseGraph(qspace, epithelium, odorscenesArray, useMockData=False):
                     ells_sda.append(Ellipse(xy=rec.getMean(), width=rec.getSdA()[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.getSdA()[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
                     
                     # newMeanLeft = [rec.getMean()[0]-qspaceBoundary, rec.getMean()[1]]
-                    # print "newMeanLeft = " + str(newMeanLeft)
-                    # print "newMeanLeft x value is " + str(rec.getMean()[0] - qspaceBoundary) + "!!!!! mean is " + str(rec.getMean()) + "!!!!! qspace boundary is " + str(qspaceBoundary)
+                    # print("newMeanLeft = " + str(newMeanLeft))
+                    # print("newMeanLeft x value is " + str(rec.getMean()[0] - qspaceBoundary) + "!!!!! mean is " + str(rec.getMean()) + "!!!!! qspace boundary is " + str(qspaceBoundary))
                     # ells_sda.append(Ellipse(xy=newMeanLeft, width=rec.getSdA()[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.getSdA()[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
                     # newMeanRight = [rec.getMean()[0] + qspaceBoundary, rec.getMean()[1]]
                     # ells_sda.append(Ellipse(xy=newMeanRight, width=rec.getSdA()[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.getSdA()[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
@@ -2536,7 +2532,7 @@ def drawEllipseGraph(qspace, epithelium, odorscenesArray, useMockData=False):
 
     if params.SHOW_SDA_ELLIPSE:
         for e in ells_sda:
-            print "The center is " + str(e.center)
+            print("The center is " + str(e.center))
             ax.add_artist(e)
             e.set_clip_box(ax.bbox)
             #e.set_alpha(rnd.rand())
@@ -2591,8 +2587,8 @@ def drawEllipseGraph(qspace, epithelium, odorscenesArray, useMockData=False):
         #locYaxis = params.MOCK_ODORS_Y
 
         for li, loc in enumerate(params.MOCK_ODORS):
-                #print 'odor conc = ' + str(odor.getConc())
-                #print 'odor size = ' + str((math.log10(odor.getConc())+10)*10)
+                #print('odor conc = ' + str(odor.getConc()))
+                #print('odor size = ' + str((math.log10(odor.getConc())+10)*10))
 
                 locXaxis.append(loc[0])
                 locYaxis.append(loc[1])
@@ -2601,8 +2597,8 @@ def drawEllipseGraph(qspace, epithelium, odorscenesArray, useMockData=False):
         for odor in odorscenesArray[params.ODORSCENE_INDEX][params.ODORSCENE_REP_NUMBER].getOdors(): #odorscenesArray[k][i].getOdors()
             for li, loc in enumerate(odor.getLoc()):
                 locSizes.append((math.log10(odor.getConc())+10)*10)
-                #print 'odor conc = ' + str(odor.getConc())
-                #print 'odor size = ' + str((math.log10(odor.getConc())+10)*10)
+                #print('odor conc = ' + str(odor.getConc()))
+                #print('odor size = ' + str((math.log10(odor.getConc())+10)*10))
 
                 if li == 0:
                     locXaxis.append(loc)
@@ -2665,7 +2661,7 @@ def graphFromExcel(name, xaxis, numRecs, labelName, titleName, pdfName, toggle, 
 
     text.close()
     
-    print activ
+    print(activ)
     
     plt.plot(xaxis,activ, label=labelName)
     plt.legend()
@@ -2841,7 +2837,7 @@ def recDensityDpsiGraph(r, qspace, odorscene, dim, name, labelName, excelName, s
         receptors.append(i**2)
         i -= 1
 
-    print receptors
+    print(receptors)
     text = Text("Receptors, Activ_Lvl, Occ, Num_Odo" + '\n', "exp2")
     
     #Calculate values for graph for each qspace
@@ -2856,7 +2852,7 @@ def recDensityDpsiGraph(r, qspace, odorscene, dim, name, labelName, excelName, s
         dPsibar = dPsiBarCalcAngles(epi, odorscene, r, fixed, text)
         recDist.append(dist)
         dPsiValues.append(dPsibar)
-        print amt
+        print(amt)
         amt += 1
     
     #Store data in csv file
@@ -2973,8 +2969,8 @@ def recInQspace(n, dimen, qspace, sd=.5):
         recs.append(Receptor(i, loc, aff, aff))
         i += 1
     
-    #print coord
-    #print avgDist
+    #print(coord)
+    #print(avgDist)
     return [Epithelium(recs), avgDist]
 
 def recDensityDpsiGraphRandomized(r, qspace, odorscene, dim, name, fixed=False):
@@ -3005,7 +3001,7 @@ def recDensityDpsiGraphRandomized(r, qspace, odorscene, dim, name, fixed=False):
     while i < len(receptorNum):
         dPsi.append(0)
         i+=1
-    print receptorNum
+    print(receptorNum)
 
     repeats = 0
     text = Text("Receptors, Activ_Lvl, Occ, Num_Odo" + '\n', "exp2")
@@ -3016,8 +3012,8 @@ def recDensityDpsiGraphRandomized(r, qspace, odorscene, dim, name, fixed=False):
             epi = createEpithelium(receptorNum[num], dim, qspace, scale=[.5,1.5])
             dPsi[num] += dPsiBarCalcAngles(epi, odorscene, r, fixed, text)
             num+=1
-            print num
-        print repeats
+            print(num)
+        print(repeats)
         text._st += "Repeat again" + "\n"
         repeats += 1
     #Average the dPsi calculations
@@ -3081,9 +3077,9 @@ def glomRecConnNew(recs, gl, c=9, conn=[]):
         activ = 0.0
         for rec in glom._recConn.keys():
             activ += float(rec._activ )* float(glom._recConn[rec]) #rec Activ * weight of conn
-            #print "rec id: " + str(float(rec._id )) + " weight is: " + str(float(glom._recConn[rec]))
+            #print("rec id: " + str(float(rec._id )) + " weight is: " + str(float(glom._recConn[rec])))
         glom.setActiv(min(activ, 1.0))
-        #print "ACTIV IS:" + str(min(activ, 1.0))
+        #print("ACTIV IS:" + str(min(activ, 1.0)))
     
     return conn
 

@@ -107,42 +107,42 @@ def testMapBuidling():
     """Tests createMCLSamplingMap()"""
     gl = createGL(5)
     mcl = createMCL(5)
-    print '\n' + "Testing a fixed simple sampling map with cr=3" + '\n'
+    print('\n' + "Testing a fixed simple sampling map with cr=3" + '\n')
     Map = createMCLSamplingMap(gl, mcl, 3, True, "simple")
     for elem in Map:
-        print "Mitral: " + str(elem[0]) + " Glom: " + str(elem[1]) + " Weight: " + str(elem[2])
+        print("Mitral: " + str(elem[0]) + " Glom: " + str(elem[1]) + " Weight: " + str(elem[2]))
 
-    print '\n' + "Testing an unfixed simple sampling map with cr=3, sd=2" '\n'
+    print('\n' + "Testing an unfixed simple sampling map with cr=3, sd=2" '\n')
     Map = createMCLSamplingMap(gl, mcl, 3, False, "simple", 2, "lin")
     for elem in Map:
-        print "Mitral: " + str(elem[0]) + " Glom: " + str(elem[1]) + " Weight: " + str(elem[2])
+        print("Mitral: " + str(elem[0]) + " Glom: " + str(elem[1]) + " Weight: " + str(elem[2]))
     
-    print '\n' + "Testing a fixed bias linear sampling map with cr=3" + '\n'
+    print('\n' + "Testing a fixed bias linear sampling map with cr=3" + '\n')
     Map = createMCLSamplingMap(gl, mcl, 3, True, "bias", 2, "lin")
     for elem in Map:
-        print "Mitral: " + str(elem[0]) + " Glom: " + str(elem[1]) + " Weight: " + str(elem[2])
+        print("Mitral: " + str(elem[0]) + " Glom: " + str(elem[1]) + " Weight: " + str(elem[2]))
     
-    print '\n' + "Testing an unfixed bias linear sampling map with cr=3, sd=2" + '\n'
+    print('\n' + "Testing an unfixed bias linear sampling map with cr=3, sd=2" + '\n')
     Map = createMCLSamplingMap(gl, mcl, 3, False, "bias", 2, "lin")
     for elem in Map:
-        print "Mitral: " + str(elem[0]) + " Glom: " + str(elem[1]) + " Weight: " + str(elem[2])
+        print("Mitral: " + str(elem[0]) + " Glom: " + str(elem[1]) + " Weight: " + str(elem[2]))
         
-    print '\n' + "Testing a fixed bias exp sampling map with cr=3" + '\n'
+    print('\n' + "Testing a fixed bias exp sampling map with cr=3" + '\n')
     Map = createMCLSamplingMap(gl, mcl, 3, True, "bias", 2, "exp")
     for elem in Map:
-        print "Mitral: " + str(elem[0]) + " Glom: " + str(elem[1]) + " Weight: " + str(elem[2])
+        print("Mitral: " + str(elem[0]) + " Glom: " + str(elem[1]) + " Weight: " + str(elem[2]))
         
-    print '\n' + "Testing an unfixed bias exp sampling map with cr=3, sd=2" + '\n'
+    print('\n' + "Testing an unfixed bias exp sampling map with cr=3, sd=2" + '\n')
     Map = createMCLSamplingMap(gl, mcl, 3, False, "bias", 2, "exp")
     for elem in Map:
-        print "Mitral: " + str(elem[0]) + " Glom: " + str(elem[1]) + " Weight: " + str(elem[2])
+        print("Mitral: " + str(elem[0]) + " Glom: " + str(elem[1]) + " Weight: " + str(elem[2]))
 
 
 def testCreateandLoadFile():
     """Tests createMCLSamplingMap() and loadMCLSamplingMap()"""
     
     #commented out so only MCL load and store is tested
-    """print "Testing GL store and load"
+    """print("Testing GL store and load")
     gl = createGL(5)
     activateGL_Random(gl, "u")
     saveGL(gl, "test")
@@ -155,9 +155,9 @@ def testCreateandLoadFile():
         if gl[inc].getConn() != gl2[inc].getConn() or gl[inc].getLoc()[0] != gl2[inc].getLoc()[0]:
             Bool = False
         inc+=1
-    print str(Bool)
+    print(str(Bool))
     
-    print "Testing Map store and load"
+    print("Testing Map store and load")
     gl = createGL(5)
     mcl = createMCL(3)
     Map = createMCLSamplingMap(gl, mcl, 3, True, "simple")
@@ -168,27 +168,27 @@ def testCreateandLoadFile():
     while inc < len(Map):
         if Map[inc][0] != Map2[inc][0]:
             Same = False
-            print "MCL not equal"
+            print("MCL not equal")
         if Map[inc][1] != Map2[inc][1]:
             Same = False
-            print "GL not equal"
+            print("GL not equal")
         ####Weights not checked due to rounding issues
         inc+=1
-    print str(Same)"""
+    print(str(Same))"""
 
-    print "Testing MCL store and load"
+    print("Testing MCL store and load")
     gl = createGL(10)
     mcl = createMCL(6)
     Map = createMCLSamplingMap(gl, mcl, 4, True, "simple")
     ActivateMCLfromGL(gl, mcl, "add", Map)
     saveMCL(mcl, "testmcl")
     mcl2 = loadMCL("testmcl.mcl")
-    print "mcl1:"
+    print("mcl1:")
     for m in mcl:
-        print m
-    print "mcl2:"
+        print(m)
+    print("mcl2:")
     for m in mcl2:
-        print m
+        print(m)
     
     
 
@@ -198,19 +198,19 @@ def testApplyMCLSamplingMap():
     activateGL_Random(gl, "u")
     mcl = createMCL(5)
     Map = createMCLSamplingMap(gl, mcl, 4, True, "simple")
-    #print Map
+    #print(Map)
     for elem in Map:
-        print "Mitral: " + str(elem[0]) + " Glom: " + str(elem[1]) + " Weight: " + str(elem[2])
+        print("Mitral: " + str(elem[0]) + " Glom: " + str(elem[1]) + " Weight: " + str(elem[2]))
     ApplyMCLSamplingMap(gl,mcl,Map)
     for mitral in mcl:
-        print mitral
+        print(mitral)
     for glom in gl:
-        print str(glom) + " # of connections: " + str(glom.getConn())
-    print "items returns: " + str(mcl[0].getGlom().items())
-    print "items returns: " + str(mcl[1].getGlom().items())
-    print "items returns: " + str(mcl[2].getGlom().items())
-    print "items returns: " + str(mcl[3].getGlom().items())
-    print "items returns: " + str(mcl[4].getGlom().items())
+        print(str(glom) + " # of connections: " + str(glom.getConn()))
+    print("items returns: " + str(mcl[0].getGlom().items()))
+    print("items returns: " + str(mcl[1].getGlom().items()))
+    print("items returns: " + str(mcl[2].getGlom().items()))
+    print("items returns: " + str(mcl[3].getGlom().items()))
+    print("items returns: " + str(mcl[4].getGlom().items()))
     
 
 def testApplyMCLSamplingMapBalanced():
@@ -219,24 +219,24 @@ def testApplyMCLSamplingMapBalanced():
     activateGL_Random(gl, "u")
     mcl = createMCL(8)
     Map = createMCLSamplingMap(gl, mcl, 4, True, "balanced")
-    #print Map
+    #print(Map)
     for elem in Map:
-        print "Mitral: " + str(elem[0]) + " Glom: " + str(elem[1]) + " Weight: " + str(elem[2])
+        print("Mitral: " + str(elem[0]) + " Glom: " + str(elem[1]) + " Weight: " + str(elem[2]))
     ApplyMCLSamplingMap(gl,mcl,Map)
     for mitral in mcl:
-        print mitral
-        print mitral.getLoc()
+        print(mitral)
+        print(mitral.getLoc())
     for glom in gl:
-        print str(glom) + " # of connections: " + str(glom.getConn())
-        print glom.getLoc()
-    print "items returns: " + str(mcl[0].getGlom().items())
-    print "items returns: " + str(mcl[1].getGlom().items())
-    print "items returns: " + str(mcl[2].getGlom().items())
-    print "items returns: " + str(mcl[3].getGlom().items())
-    print "items returns: " + str(mcl[4].getGlom().items())
-    print "items returns: " + str(mcl[5].getGlom().items())
-    print "items returns: " + str(mcl[6].getGlom().items())
-    print "items returns: " + str(mcl[7].getGlom().items())
+        print(str(glom) + " # of connections: " + str(glom.getConn()))
+        print(glom.getLoc())
+    print("items returns: " + str(mcl[0].getGlom().items()))
+    print("items returns: " + str(mcl[1].getGlom().items()))
+    print("items returns: " + str(mcl[2].getGlom().items()))
+    print("items returns: " + str(mcl[3].getGlom().items()))
+    print("items returns: " + str(mcl[4].getGlom().items()))
+    print("items returns: " + str(mcl[5].getGlom().items()))
+    print("items returns: " + str(mcl[6].getGlom().items()))
+    print("items returns: " + str(mcl[7].getGlom().items()))
 
 def testApplyMCLSamplingMapLocation():
     """Tests building the connections btwn MCL and GL (created with dimensions) given a map using LOCATION"""
@@ -244,26 +244,26 @@ def testApplyMCLSamplingMapLocation():
     activateGL_Random(gl, "u")
     mcl = createMCL(4)
     Map = createMCLSamplingMap(gl, mcl, 10, True, "location")
-    #print Map
+    #print(Map)
     for elem in Map:
-        print "Mitral: " + str(elem[0]) + " Glom: " + str(elem[1]) + " Weight: " + str(elem[2])
+        print("Mitral: " + str(elem[0]) + " Glom: " + str(elem[1]) + " Weight: " + str(elem[2]))
     ApplyMCLSamplingMap(gl,mcl,Map)
     ActivateMCLfromGL(gl, mcl, "add", Map, "None")
     for mitral in mcl:
-        print mitral
-        print mitral.getLoc()
+        print(mitral)
+        print(mitral.getLoc())
     for glom in gl:
-        print str(glom) + " # of connections: " + str(glom.getConn())
-        print glom.getLoc()
-    print "items returns: " + str(mcl[0].getGlom().items())
-    print "items returns: " + str(mcl[1].getGlom().items())
-    print "items returns: " + str(mcl[2].getGlom().items())
-    print "items returns: " + str(mcl[3].getGlom().items())
-    # print "items returns: " + str(mcl[4].getGlom().items())
-    # print "items returns: " + str(mcl[5].getGlom().items())
-    # print "items returns: " + str(mcl[6].getGlom().items())
-    # print "items returns: " + str(mcl[7].getGlom().items())
-    print "\ndone"
+        print(str(glom) + " # of connections: " + str(glom.getConn()))
+        print(glom.getLoc())
+    print("items returns: " + str(mcl[0].getGlom().items()))
+    print("items returns: " + str(mcl[1].getGlom().items()))
+    print("items returns: " + str(mcl[2].getGlom().items()))
+    print("items returns: " + str(mcl[3].getGlom().items()))
+    # print("items returns: " + str(mcl[4].getGlom().items()))
+    # print("items returns: " + str(mcl[5].getGlom().items()))
+    # print("items returns: " + str(mcl[6].getGlom().items()))
+    # print("items returns: " + str(mcl[7].getGlom().items()))
+    print("\ndone")
 
 def testGraphGlomActivation():
     """ """
@@ -277,17 +277,17 @@ def testGraphMitralActivation():
     activateGL_Random(gl, "u")
     mcl = createMCL(10)
     Map = createMCLSamplingMap(gl, mcl, 10, True, "location")
-    #print Map
+    #print(Map)
     for elem in Map:
-        print "Mitral: " + str(elem[0]) + " Glom: " + str(elem[1]) + " Weight: " + str(elem[2])
+        print("Mitral: " + str(elem[0]) + " Glom: " + str(elem[1]) + " Weight: " + str(elem[2]))
     ApplyMCLSamplingMap(gl,mcl,Map)
     ActivateMCLfromGL(gl, mcl, "add", Map, "None")
     for mitral in mcl:
-        print mitral
-        print mitral.getLoc()
+        print(mitral)
+        print(mitral.getLoc())
     for glom in gl:
-        print str(glom) + " # of connections: " + str(glom.getConn())
-        print glom.getLoc()
+        print(str(glom) + " # of connections: " + str(glom.getConn()))
+        print(glom.getLoc())
     
     GraphMitralActivation(gl, mcl, 4, 4)
 
@@ -298,34 +298,34 @@ def testActivateMCLfromGL():
     mcl = createMCL(6)
     Map = createMCLSamplingMap(gl, mcl, 3, True, "simple")
     for elem in Map:
-        print "Mitral: " + str(elem[0]) + " Glom: " + str(elem[1]) + " Weight: " + str(elem[2])
-    print "\n testing add:" + '\n'
+        print("Mitral: " + str(elem[0]) + " Glom: " + str(elem[1]) + " Weight: " + str(elem[2]))
+    print("\n testing add:" + '\n')
     ActivateMCLfromGL(gl, mcl, "add", Map, "None")
-    print "glom: "
+    print("glom: ")
     for glom in gl:
-        print glom
-        # print "OH HELLO " + str(glom.getLoc()[0])
+        print(glom)
+        # print("OH HELLO " + str(glom.getLoc()[0]))
     x = 0
-    #print  '\n' + "map: "
+    #print( '\n' + "map: ")
     #while x<4:
-    #    print Map[x]
+    #    print(Map[x])
     #    x += 1
-    print '\n' + "mitral: "
+    print('\n' + "mitral: ")
     for mitral in mcl:
-        print mitral
-    print "\n testing avg:"
+        print(mitral)
+    print("\n testing avg:")
     ActivateMCLfromGL(gl, mcl, "avg", Map, "u", .01,.01)
-    print '\n' +"glom: "
+    print('\n' +"glom: ")
     for glom in gl:
-        print glom
+        print(glom)
     x = 0
-    #print '\n' + "map: "
+    #print('\n' + "map: ")
     #while x<4:
-    #    print Map[x]
+    #    print(Map[x])
     #    x += 1
-    print '\n' + "mitral: " 
+    print('\n' + "mitral: ")
     for mitral in mcl:
-        print mitral
+        print(mitral)
     
 
 def testNormalization():
@@ -339,7 +339,7 @@ def testNormalization():
     mcl[5]._activ = .5
     mcl = normalize(mcl)
     for m in mcl:
-        print m
+        print(m)
 
 
 def testgraphLayer():
@@ -354,7 +354,7 @@ def testgraphLayer():
     while ind < len(gl):
         st = st + str(ind) + ": " + str(gl[ind].getActiv()) + " "
         ind += 1
-    print st
+    print(st)
     graphLayer(gl, False)
     graphLayer(mcl, True)
     

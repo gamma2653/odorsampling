@@ -19,25 +19,25 @@ def testModifyLoc():
     qspace = QSpace(size)
     
     modifyLoc(o1, qspace, 3)
-    print str(o1)
+    print(str(o1))
     
 def testOdorscene():
     """Testing odorscene objects"""
     size = QSpace([(-5,5), (-4, 2), (-10, 10)])
     od = createOdorscene(3, [.0004,.00003,.00001], [3,4,6], size)
-    print od
+    print(od)
     
 def testCreateRec():
     """Testing createReceptor"""
     qspace = QSpace([(-5,5), (-4, 2), (-10, 10),(-5,5), (-4, 2)])
     rec = createReceptor(5, qspace)
-    print rec
+    print(rec)
 
 def testCreateEpithelium():
     """Testing createEpithelium"""
     qspace = QSpace([(-.5,.5), (-.5, .5), (-.5,.5)])
     epi = createEpithelium(4, 3, qspace)
-    print epi
+    print(epi)
 
 def testActivateGL_QSpace():
     """Testing activation of GL from epithelium and odorscene"""
@@ -54,16 +54,16 @@ def testActivateGL_QSpace():
     epith = createEpithelium(3, 2, qspace) #amt, dim    **amt = len(gl) and dim = dim of odorscene
     
     #Print out activation before calling activate function
-    print "Before activation: \n"
+    print("Before activation: \n")
     for glom in gl:
-        print str(glom) + "\n"
+        print(str(glom) + "\n")
     
     ActivateGL_QSpace(epith, odorscene, gl, False)
 
     #Print out activation after calling activate function
-    print "\nAfter activation Glomeruli are: \n"
+    print("\nAfter activation Glomeruli are: \n")
     for glom in gl:
-        print str(glom) + "\n"
+        print(str(glom) + "\n")
 
     
 def testSaving():
@@ -82,13 +82,13 @@ def testSaving():
     
     ##Testing Receptor
     #rec = createReceptor(3, qspace)
-    #print rec
+    #print(rec)
     #saveReceptor(rec, "testRec")
     
     ##Testing Epithelium
     epi = createEpithelium(4,3,qspace)
     saveEpithelium(epi, "testEpi")
-    print epi
+    print(epi)
 
 
 def testLoading():
@@ -96,21 +96,21 @@ def testLoading():
     Uncomment whichever saving you want to test"""
     ##Testing ligand
     #ligand = loadLigand("testLigand.csv")
-    #print ligand
+    #print(ligand)
     
     ##Testing Odorscene
     #odorscene = loadOdorscene("testOdorscene.csv")
-    #print odorscene
+    #print(odorscene)
     
     ##Testing Receptor
     #rec = loadReceptor("testRec.csv")
-    #print rec
-    #print "aff is " + str(rec.getSdA())
-    #print "eff is " + str(rec.getSdE())
+    #print(rec)
+    #print("aff is " + str(rec.getSdA()))
+    #print("eff is " + str(rec.getSdE()))
     
     ##Testing Epithelium
     epi = loadEpithelium("testEpi.csv")
-    print epi
+    print(epi)
 
 
 def testSumOfSquares():
@@ -126,11 +126,11 @@ def testSumOfSquares():
     epith = createEpithelium(10, 3, qspace) #amt, dim    **amt = len(gl) and dim = dim of odorscene
     dn = [.6,.7,.8]
     diff = sumOfSquares(epith, odorscene,dn, True)
-    print "big diff is " + str(diff)
+    print("big diff is " + str(diff))
     
     dn = [.0001, .00001, .00003]
     diff = sumOfSquares(epith, odorscene,dn, True)
-    print "small diff is " + str(diff)
+    print("small diff is " + str(diff))
     
 def testSumOfSquares2():
     """Tests sumofSquares2 which measures discriminability btwn two given odorscenes"""
@@ -160,10 +160,10 @@ def testSumOfSquares2():
         i += 1
     epith = createEpithelium(30, 3, qspace) #amt, dim    **amt = len(gl) and dim = dim of odorscene
     diff = sumOfSquares2(epith, Odorscene(0,odors), Odorscene(0, odors2), True)
-    print diff
+    print(diff)
     
     diff = sumOfSquares(epith, Odorscene(0, odors), [.05,.05,.05], True)
-    print diff
+    print(diff)
 
 
 def testSumofSquaresDetails():
@@ -188,22 +188,22 @@ def testSumofSquaresDetails():
     epithelium_big = createEpithelium(30, 2, qspace_big)
 
     
-    #print "comparing different num of ligands"
-    #print "od1: " + str(sumOfSquares(epithelium, od1, [.01, .01], fixed))
-    #print "od2: " + str(sumOfSquares(epithelium, od2, [.01, .01], fixed))
-    #print "od5: " + str(sumOfSquares(epithelium, od5, [.01, .01], fixed))
-    #print "od10: " + str(sumOfSquares(epithelium, od10, [.01, .01], fixed))
-    #print "od20: " + str(sumOfSquares(epithelium, od20, [.01, .01], fixed))
+    #print("comparing different num of ligands")
+    #print("od1: " + str(sumOfSquares(epithelium, od1, [.01, .01], fixed)))
+    #print("od2: " + str(sumOfSquares(epithelium, od2, [.01, .01], fixed)))
+    #print("od5: " + str(sumOfSquares(epithelium, od5, [.01, .01], fixed)))
+    #print("od10: " + str(sumOfSquares(epithelium, od10, [.01, .01], fixed)))
+    #print("od20: " + str(sumOfSquares(epithelium, od20, [.01, .01], fixed)))
     
-    print "SMALL QSPACE VS BIG QSPACE"
-    print "od1: " + str(sumOfSquares(epithelium, od1, [.01, .01], fixed))
-    print "od10: " + str(sumOfSquares(epithelium, od10, [.01, .01], fixed))
-    print "od1big: " + str(sumOfSquares(epithelium_big, od1big, [.01, .01], fixed))
-    print "od10big: " + str(sumOfSquares(epithelium_big, od10big, [.01, .01], fixed))
+    print("SMALL QSPACE VS BIG QSPACE")
+    print("od1: " + str(sumOfSquares(epithelium, od1, [.01, .01], fixed)))
+    print("od10: " + str(sumOfSquares(epithelium, od10, [.01, .01], fixed)))
+    print("od1big: " + str(sumOfSquares(epithelium_big, od1big, [.01, .01], fixed)))
+    print("od10big: " + str(sumOfSquares(epithelium_big, od10big, [.01, .01], fixed)))
     
-    #print "Fixed efficacy vs unfixed"
-    #print "od1 fixed: " + str(sumOfSquares(epithelium, od1, [.01, .01], True))
-    #print "od1 unfixed: " + str(sumOfSquares(epithelium, od1, [.01, .01], False))
+    #print("Fixed efficacy vs unfixed")
+    #print("od1 fixed: " + str(sumOfSquares(epithelium, od1, [.01, .01], True)))
+    #print("od1 unfixed: " + str(sumOfSquares(epithelium, od1, [.01, .01], False)))
 
 
 def increasingRecDistTest():
@@ -224,8 +224,8 @@ def increasingRecDistTest():
         ligands.append(modifyLoc(odo, small_qspace, 2))
     odosmall = Odorscene(0, ligands)
     
-    print "big distance is: " + str(sumOfSquares(epibig, odobig, [.01,01], False))
-    print "small distance is: " + str(sumOfSquares(epismall, odosmall, [.01,01], False))
+    print("big distance is: " + str(sumOfSquares(epibig, odobig, [.01,01], False)))
+    print("small distance is: " + str(sumOfSquares(epismall, odosmall, [.01,01], False)))
 
 def testdPsiBarCalc():
     #Define a 3D Qspace 
@@ -238,13 +238,13 @@ def testdPsiBarCalc():
     epith = createEpithelium(3, 3, qspace) #amt, dim    **amt = len(gl) and dim = dim of odorscene
     dPsibar = dPsiBarCalcDiag(epith, odorscene, 1)
     dPsibar2 = dPsiBarCalcAngles(epith, odorscene, 1)
-    print "Diagnols: dPsibar is " + str(dPsibar)
-    print "Angles: dPsibar is " + str(dPsibar2)
+    print("Diagnols: dPsibar is " + str(dPsibar))
+    print("Angles: dPsibar is " + str(dPsibar2))
 
 def testMultipleLigands():
     """Testing dPsiCalc for multiple ligands"""
     r = .01
-    print "SMALL QSPACE"
+    print("SMALL QSPACE")
     
     fixed = True
     smallQspace = QSpace([(0, 4), (0, 4)])#Both dimensions are between 0 and 4 
@@ -255,12 +255,12 @@ def testMultipleLigands():
     od2 = createOdorscene(2, [.04], [2], smallQspace)
     od10 = createOdorscene(2, [.04], [10], smallQspace)
     od25 = createOdorscene(2, [.04], [25], smallQspace)
-    print "od1 dpsi = " + str(dPsiBarCalcAngles(epithelium, od1, r, fixed))
-    print "od2 dpsi = " + str(dPsiBarCalcAngles(epithelium, od2, r, fixed))
-    print "od10 dpsi = " + str(dPsiBarCalcAngles(epithelium, od10, r, fixed))
-    print "od25 dpsi = " + str(dPsiBarCalcAngles(epithelium, od25, r, fixed))
+    print("od1 dpsi = " + str(dPsiBarCalcAngles(epithelium, od1, r, fixed)))
+    print("od2 dpsi = " + str(dPsiBarCalcAngles(epithelium, od2, r, fixed)))
+    print("od10 dpsi = " + str(dPsiBarCalcAngles(epithelium, od10, r, fixed)))
+    print("od25 dpsi = " + str(dPsiBarCalcAngles(epithelium, od25, r, fixed)))
     
-    print "NOW BIG QSPACE"
+    print("NOW BIG QSPACE")
     
     bigQspace = QSpace([(0,10), (0, 10)])
     
@@ -270,10 +270,10 @@ def testMultipleLigands():
     odo2 = createOdorscene(2, [.04], [2], bigQspace)
     odo10 = createOdorscene(2, [.04], [10], bigQspace)
     odo25 = createOdorscene(2, [.04], [25], bigQspace)
-    print "odo1 dpsi = " + str(dPsiBarCalcAngles(epith2, odo1, r, fixed))
-    print "odo2 dpsi = " + str(dPsiBarCalcAngles(epith2, odo2, r, fixed))
-    print "odo10 dpsi = " + str(dPsiBarCalcAngles(epith2, odo10, r, fixed))
-    print "odo25 dpsi = " + str(dPsiBarCalcAngles(epith2, odo25, r, fixed))
+    print("odo1 dpsi = " + str(dPsiBarCalcAngles(epith2, odo1, r, fixed)))
+    print("odo2 dpsi = " + str(dPsiBarCalcAngles(epith2, odo2, r, fixed)))
+    print("odo10 dpsi = " + str(dPsiBarCalcAngles(epith2, odo10, r, fixed)))
+    print("odo25 dpsi = " + str(dPsiBarCalcAngles(epith2, odo25, r, fixed)))
 
 def testIdentical():
     """In fixed eff, occ=act since eff=1. Therefore, if I run the same
@@ -316,11 +316,11 @@ def testColorMapSumOfSquares():
             # odorscenes.append(Odorscene(x,[Ligand(ID, [2.0*x/3.0 + 2.0/6.0, 2.0*y/3.0 + 2.0/6.0], .004)]))
             odorscenes.append(Odorscene(x,[Ligand(ID, [x/20.0, y/20.0], .004)]))
 
-            #print odorscenes[y].
+            #print(odorscenes[y])
             y += 1
             ID += 1
         x += 1
-    print "Id is " + str(ID)
+    print("Id is " + str(ID))
     
     #Create an epithelium object with 5 receptors (both are 2D)
     epith = createEpithelium(2, 2, qspace)
@@ -334,8 +334,8 @@ def testColorMapSumOfSquares():
     # epith = Epithelium(recs)
 
 
-    print epith #amt, dim    **amt = len(gl) and dim = dim of odorscene
-    #print odorscenes[440].getOdors()[0].getLoc()
+    print(epith) #amt, dim    **amt = len(gl) and dim = dim of odorscene
+    #print(odorscenes[440].getOdors()[0].getLoc()
     
     colorMapSumOfSquares(epith, odorscenes, .3, qspace)
     
@@ -343,11 +343,11 @@ def testSequentialOdorscene():
     qspace = QSpace([[0.0,10.0],[0.0,10.0]]) 
     odorscenes = sequentialOdorscenes(50, 10, 2, .17, qspace)
     #for odorscene in odorscenes:
-    #    print odorscene
+    #    print(odorscene)
     epi = createEpithelium(100, 2, qspace, scale=[.05,1.0])
     simDpsi = sumOfSquares2(epi, odorscenes[0], odorscenes[1])
     difDpsi = sumOfSquares2(epi, odorscenes[0], odorscenes[49])
-    print "simDpsi is " + str(simDpsi) + "\ndiffDpsi is " + str(difDpsi)
+    print("simDpsi is " + str(simDpsi) + "\ndiffDpsi is " + str(difDpsi))
     
     
 def testdPsiBarSaturation():
@@ -428,8 +428,8 @@ def testRecDensityDpsiGraphRandomized():
 
 def testGetLocations():
     """Tests getLocations which is a helper function for the new glomRecConn function"""
-    print getLocations([2,2],6,5) #Answer should be the 8 points surrounding 2,2
-    print getLocations([0,0],6,5) #Because of tourus answer should be the three other corners and other points
+    print(getLocations([2,2],6,5)) #Answer should be the 8 points surrounding 2,2
+    print(getLocations([0,0],6,5)) #Because of tourus answer should be the three other corners and other points
     
 def testGlomRecConnNew():
     """tests new glomRecConn function. Ensures that running the same function
@@ -455,10 +455,10 @@ def testGlomRecConnNew():
     
     i = 0
     while i < len(epi.getRecs()):
-        print "rec1 act: " + str(epi.getRecs()[i].getActiv())
-        print "rec2 act: " + str(epi2.getRecs()[i].getActiv())
-        print "glom1 act: " + str(gl[i].getActiv())
-        print "glom2 act: " + str(gl2[i].getActiv())
+        print("rec1 act: " + str(epi.getRecs()[i].getActiv()))
+        print("rec2 act: " + str(epi2.getRecs()[i].getActiv()))
+        print("glom1 act: " + str(gl[i].getActiv()))
+        print("glom2 act: " + str(gl2[i].getActiv()))
         
         i += 1
 
@@ -480,9 +480,9 @@ def testGlomRecConnNew2():
     i=0
     count = 0
     while i < 4:
-        print i
+        print(i)
         for rec in gl[i]._recConn.keys():
-            print "rec id: " + str(rec._id) + " weight: " + str(gl[i]._recConn[rec])
+            print("rec id: " + str(rec._id) + " weight: " + str(gl[i]._recConn[rec]))
         i += 1
         
 def testGlomRecConnNew3():
@@ -511,17 +511,17 @@ def testGlomRecConnNew3():
     dpsi = 0
     while i < 3:
         dphi=0
-        print i
+        print(i)
         for rec in gl[i]._recConn.keys():
-            print "rec id: " + str(rec._id) + " weight: " + str(gl[i]._recConn[rec]) + " rec activ: " + str(rec._activ)
+            print("rec id: " + str(rec._id) + " weight: " + str(gl[i]._recConn[rec]) + " rec activ: " + str(rec._activ))
         for rec in gl2[i]._recConn.keys():
-            print "rec2 id: " + str(rec._id) + " weight: " + str(gl2[i]._recConn[rec]) + " rec activ: " + str(rec._activ)
-        #print gl[i]._activ
-        #print gl2[i]._activ
+            print("rec2 id: " + str(rec._id) + " weight: " + str(gl2[i]._recConn[rec]) + " rec activ: " + str(rec._activ))
+        #print(gl[i]._activ)
+        #print(gl2[i]._activ)
         dphi = gl2[i]._activ - gl[i]._activ
         dpsi += dphi**2
         i+=1
-    print "dpsi is: " + str(math.sqrt(dpsi))
+    print("dpsi is: " + str(math.sqrt(dpsi)))
 
 def testDPsiGraphFromExcel():
     name1 = "dPsi, qspace=(0, 4), glom_pen=0.68.csv"
