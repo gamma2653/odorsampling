@@ -19,12 +19,13 @@
 
 from __future__ import annotations
 
-import cells
 import random
 import matplotlib.pyplot as plt
 import math
 import matplotlib.pylab
 from matplotlib.backends.backend_pdf import PdfPages
+
+import cells
 
 # Used for asserts
 from numbers import Real
@@ -63,7 +64,7 @@ def createGL(x: Real) -> Iterable[cells.Glom]:
 
     return GL
 
-def createGL_dimensions(x, y):
+def createGL_dimensions(x: Real, y: Real):
     """
     Returns an array of x number of glom objects with activation levels
     and loc set to defaults. ID refers to its index in the array.
@@ -95,7 +96,7 @@ def createGL_dimensions(x, y):
 
     return GL
 
-def clearGLactiv(gl: "Iterable[cells.Glom]"):
+def clearGLactiv(gl: Iterable[cells.Glom]):
     """Given gl, clears all the activation lvls to 0.0"""
     for glom in gl:
         glom.activ = 0.0
@@ -224,7 +225,7 @@ def createMCLSamplingMap(gl: "Sized[cells.Glom]", mcl: "Sized[cells.Mitral]", cr
     #print(unsampledGlom(gl, mcl, Map)               #PRINTING HERE
     return Map
 
-def oneToOneSample(gl: "Sized[cells.Glom]", mcl: "List[cells.Mitral]"):
+def oneToOneSample(gl: "Sized[cells.Glom]", mcl: list[cells.Mitral]):
     """For 1:1 sampling, each mitral cell chooses an unselected glom cell
     Precondition: len of gl >= len of mcl"""
     assert len(gl) >= len(mcl)
@@ -236,7 +237,7 @@ def oneToOneSample(gl: "Sized[cells.Glom]", mcl: "List[cells.Mitral]"):
         Map.append([mitral.id, ind, 1])   #******Changed for weights to always be 1
     return Map
 
-def simpleSample(gl: "List[cells.Glom]", mcl: "List[cells.Mitral]", cr, fix, sd=0):
+def simpleSample(gl: list[cells.Glom], mcl: list[cells.Mitral], cr, fix, sd=0):
     """Builds a map by randomly choosing glomeruli to sample to mitral cells.
     If fix != true, cr serves as mean for # of glom sample to each mitral cell.
     Weights are randomly chosen uniformly.
@@ -268,7 +269,7 @@ def simpleSample(gl: "List[cells.Glom]", mcl: "List[cells.Mitral]", cr, fix, sd=
             counter += 1
     return Map
 
-def simpleSampleRandom(gl: "List[cells.Glom]", mcl: "List[cells.Mitral]", cr, fix, sd=0):
+def simpleSampleRandom(gl: list[cells.Glom], mcl: list[cells.Mitral], cr, fix, sd=0):
     """Builds a map by randomly choosing glomeruli to sample to mitral cells.
     If fix != true, cr serves as mean for # of glom sample to each mitral cell.
     Weights are randomly chosen uniformly.
@@ -307,7 +308,7 @@ def simpleSampleRandom(gl: "List[cells.Glom]", mcl: "List[cells.Mitral]", cr, fi
             counter += 1
     return Map
 
-def simpleSampleBalanced(gl: "List[cells.Glom]", mcl: "List[cells.Mitral]", cr, fix, sd=0):
+def simpleSampleBalanced(gl: list[cells.Glom], mcl: list[cells.Mitral], cr, fix, sd=0):
     """Builds a map by randomly choosing glomeruli to sample to mitral cells.
     If fix != true, cr serves as mean for # of glom sample to each mitral cell.
     Weights are randomly chosen uniformly. Limits number of mitral cells that 
@@ -364,7 +365,7 @@ def simpleSampleBalanced(gl: "List[cells.Glom]", mcl: "List[cells.Mitral]", cr, 
         #     counter += 1
     return Map
 
-def simpleSampleLocation(gl: "List[cells.Glom]", mcl: "List[cells.Mitral]", cr, fix, sd=0):
+def simpleSampleLocation(gl: list[cells.Glom], mcl: list[cells.Mitral], cr, fix, sd=0):
     """Builds a map by randomly choosing glomeruli to sample to mitral cells.
     If fix != true, cr serves as mean for # of glom sample to each mitral cell.
     Weights are randomly chosen uniformly. Glomeruli are drawn randomly from the
@@ -701,7 +702,7 @@ def GraphGlomActivation(gl, n, m):
 
     plt.close()
 
-def GraphMitralActivation(gl: "List[cells.Glom]", mcl: "List[cells.Mitral]", n, m):
+def GraphMitralActivation(gl: list[cells.Glom], mcl: list[cells.Mitral], n, m):
     print("in GraphMitralActivation")
     mitralLocations = {}
     mitralActivations = {}
