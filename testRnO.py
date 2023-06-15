@@ -115,8 +115,8 @@ def testLoading():
     ##Testing Receptor
     #rec = loadReceptor("testRec.csv")
     #print(rec)
-    #print("aff is " + str(rec.getSdA()))
-    #print("eff is " + str(rec.getSdE()))
+    #print("aff is " + str(rec.sdA))
+    #print("eff is " + str(rec.sdE))
     
     ##Testing Epithelium
     epi = loadEpithelium("testEpi.csv")
@@ -460,15 +460,15 @@ def testGlomRecConnNew():
     gl = layers.createGL(30)
     gl2 = copy.deepcopy(gl)
     
-    conn = glomRecConnNew(epi.getRecs(), gl, c=9, conn = [])
-    glomRecConnNew(epi2.getRecs(), gl2, c=9, conn=conn)
+    conn = glomRecConnNew(epi.recs, gl, c=9, conn = [])
+    glomRecConnNew(epi2.recs, gl2, c=9, conn=conn)
     
     i = 0
-    while i < len(epi.getRecs()):
-        print("rec1 act: " + str(epi.getRecs()[i].getActiv()))
-        print("rec2 act: " + str(epi2.getRecs()[i].getActiv()))
-        print("glom1 act: " + str(gl[i].getActiv()))
-        print("glom2 act: " + str(gl2[i].getActiv()))
+    while i < len(epi.recs):
+        print("rec1 act: " + str(epi.recs[i].activ))
+        print("rec2 act: " + str(epi2.recs[i].activ))
+        print("glom1 act: " + str(gl[i].activ))
+        print("glom2 act: " + str(gl2[i].activ))
         
         i += 1
 
@@ -485,7 +485,7 @@ def testGlomRecConnNew2():
     
     gl = layers.createGL(30)
     
-    glomRecConnNew(epi.getRecs(), gl)
+    glomRecConnNew(epi.recs, gl)
     
     i=0
     count = 0
@@ -514,8 +514,8 @@ def testGlomRecConnNew3():
     gl = layers.createGL(numRecs)
     gl2 = copy.deepcopy(gl)
     
-    conn = glomRecConnNew(epi.getRecs(), gl, c)
-    glomRecConnNew(epi2.getRecs(), gl2, c, conn)
+    conn = glomRecConnNew(epi.recs, gl, c)
+    glomRecConnNew(epi2.recs, gl2, c, conn)
     
     i=0
     dpsi = 0
@@ -523,9 +523,9 @@ def testGlomRecConnNew3():
         dphi=0
         print(i)
         for rec in gl[i]._recConn.keys():
-            print("rec id: " + str(rec._id) + " weight: " + str(gl[i]._recConn[rec]) + " rec activ: " + str(rec._activ))
+            print("rec id: " + str(rec.id) + " weight: " + str(gl[i]._recConn[rec]) + " rec activ: " + str(rec._activ))
         for rec in gl2[i]._recConn.keys():
-            print("rec2 id: " + str(rec._id) + " weight: " + str(gl2[i]._recConn[rec]) + " rec activ: " + str(rec._activ))
+            print("rec2 id: " + str(rec.id) + " weight: " + str(gl2[i]._recConn[rec]) + " rec activ: " + str(rec._activ))
         #print(gl[i]._activ)
         #print(gl2[i]._activ)
         dphi = gl2[i]._activ - gl[i]._activ
