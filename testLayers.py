@@ -1,12 +1,19 @@
-#Testing layers.py
-#Mitchell Gronowitz
-#Spring 2015
+# Testing layers.py
+# Mitchell Gronowitz
+# Spring 2015
 
-from layers import *
-import cells
-import random
+# Edited by Christopher De Jesus
+# Summer 2023
+
+from __future__ import annotations
+
+from layers import (
+    createGL, activateGL_Random, createGLArray, euclideanDistance, createMCL,
+    createMCLSamplingMap, ActivateMCLfromGL, saveMCL, loadMCL, ApplyMCLSamplingMap,
+    createGL_dimensions, GraphGlomActivation, GraphMitralActivation, normalize,
+    graphLayer, colorMapWeights
+) 
 import matplotlib.pyplot as plt
-import math
 
 
 

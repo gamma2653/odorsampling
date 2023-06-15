@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from typing import MutableMapping
+    from RnO import Receptor
 
 class Glom:
     """
@@ -117,7 +118,10 @@ class Glom:
         self.loc = loc
         self.dim = dim
         self.conn = conn
-        self._recConn = {}
+        # TODO: Took me some time to track down this type. Would be a circular import,
+        # but possible using PEP 484#forward-references. Still, best to remove potentially
+        # circular import when possible
+        self._recConn: dict['Receptor', float] = {}
 
     def __str__(self):
         """Returns a Glomural object description with activation energy"""

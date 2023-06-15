@@ -1,15 +1,18 @@
-#Running experiments on functions in RnO
-#Mitchell Gronowitz
-#2015-2017
+# Running experiments on functions in RnO
+# Mitchell Gronowitz
+# 2015-2017
 
-# from RnO import *
+# Edited by Christopher De Jesus
+# Summer 2023
+
+from __future__ import annotations
+
 import time
 import math
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from scipy.stats import multivariate_normal as mvn
 import random
-import copy
 
 import layers
 from RnO import (
@@ -18,10 +21,10 @@ from RnO import (
     ActivateGL_QSpace, dPsiOccActGraphFromExcel, peak_affinity, minimum_affinity, m, glom_penetrance
 )
 
-#####Below are two simulations for dPsiBarSaturation Graphs.
-#The first tests different qspaces
-#The second tests different dimensions
-#makeSimilar is a helper function
+# ####Below are two simulations for dPsiBarSaturation Graphs.
+# The first tests different qspaces
+# The second tests different dimensions
+# makeSimilar is a helper function
 
 
 def testdPsiBarSaturation_Qspaces(fixed: bool, aff_sd=None, eff_sd=None, numRecs=30, c=1, dim=2, qspaces=[4,10,30], purpose="standard"):

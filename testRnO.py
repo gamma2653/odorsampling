@@ -1,13 +1,23 @@
-#Testing Ligands, Odorscenes, Receptors, and Epithelium (RnO) to ensure correct functionality
-#Mitchell Gronowitz
-#April and May 2015
+# Testing Ligands, Odorscenes, Receptors, and Epithelium (RnO) to ensure correct functionality
+# Mitchell Gronowitz
+# April and May 2015
 
-from RnO import *
-import random
+# Edited by Christopher De Jesus
+# Summer 2023
+
+from __future__ import annotations
+
+# from RnO import *
+import math
+from RnO import (
+    Ligand, QSpace, Odorscene, createOdorscene, createReceptor, createEpithelium, saveEpithelium,
+    loadEpithelium, ActivateGL_QSpace, sumOfSquares, sumOfSquares2, modifyLoc, colorMapSumOfSquares,
+    sequentialOdorscenes, graphFromExcel, recDensityDpsiGraph, recInQspace,
+    recDensityDpsiGraphRandomized, getLocations, glomRecConnNew, dPsiGraphFromExcel,
+    dPsiOccActGraphFromExcel, dPsiBarCalcAngles, dPsiBarCalcDiag, dPsiBarSaturation
+) 
 import layers
 import copy
-from matplotlib.backends.backend_pdf import PdfPages
-import params
 
 
 def testModifyLoc():
@@ -217,7 +227,7 @@ def increasingRecDistTest():
     epismall = createEpithelium(10, 2, small_qspace, [.5,.5])
     
     odobig = createOdorscene(2, [1e-5], [10], big_qspace)
-    odocopy = copy.deepcopy(odobig.getOdors())
+    odocopy = copy.deepcopy(odobig.odors)
     
     ligands = []
     for odo in odocopy:
@@ -335,7 +345,7 @@ def testColorMapSumOfSquares():
 
 
     print(epith) #amt, dim    **amt = len(gl) and dim = dim of odorscene
-    #print(odorscenes[440].getOdors()[0].getLoc()
+    #print(odorscenes[440].odors[0].loc
     
     colorMapSumOfSquares(epith, odorscenes, .3, qspace)
     
@@ -357,8 +367,8 @@ def testdPsiBarSaturation():
     fixedEff = False
     
     epith = createEpithelium(30, 2, qspace, scale=[.5,1.5], scaleEff=[.05,1.0]) #amt, dim    **amt = len(gl) and dim = dim of odorscene
-    pdfName = "LigandSat with " + str(qspace.getSize()[0]) + " qspace"
-    labelName = str(qspace.getSize()[0]) + " qspace"
+    pdfName = "LigandSat with " + str(qspace.size[0]) + " qspace"
+    labelName = str(qspace.size[0]) + " qspace"
     excelName = pdfName
     plotTitle = "dPsiBarSaturation"
      #epi, dn, qspace, pdfName, labelName, excelName, fixed eff, plotTitle, Close

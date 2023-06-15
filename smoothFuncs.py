@@ -1,6 +1,10 @@
-#Mitchell Gronowitz
-#Running dPsiSaturation with separate excel docs and graph functions
+# Mitchell Gronowitz
+# Running dPsiSaturation with separate excel docs and graph functions
 
+# Edited by Christopher De Jesus
+# Summer 2023
+
+from __future__ import annotations
 
 from RnO import (
     QSpace, Odorscene, Ligand, createEpithelium, saveEpithelium, loadEpithelium,
@@ -44,7 +48,7 @@ def testdPsiBarSat(fixed, aff_sd=None, eff_sd=None, numRecs=30, c=1, dim=2, qspa
     excelNames = []
     end = False
     
-    
+    # FIXME: why
     if __name__ == '__main__':
         jobs = []
     
@@ -58,10 +62,10 @@ def testdPsiBarSat(fixed, aff_sd=None, eff_sd=None, numRecs=30, c=1, dim=2, qspa
                 space.append((0,qspacesItem))
                 #j+=1
             qspace = QSpace(space)
-            epith = loadEpithelium("1. SavedEpi_" + str(qspace.getSize()[0]) + purp + ".csv")
+            epith = loadEpithelium("1. SavedEpi_" + str(qspace.size[0]) + purp + ".csv")
 
-            labelNames.append(str(qspace.getSize()[0]) + " qspace")
-            excelNames.append("LigandSat with " + str(qspace.getSize()[0]) + " qspace" + purp)
+            labelNames.append(str(qspace.size[0]) + " qspace")
+            excelNames.append("LigandSat with " + str(qspace.size[0]) + " qspace" + purp)
         
             if i == (len(qspaces) - 1):
                 end = True
@@ -83,7 +87,8 @@ def testdPsiBarSat(fixed, aff_sd=None, eff_sd=None, numRecs=30, c=1, dim=2, qspa
         for j, job in enumerate(jobs):
             job.join()
         
-            
+
+# FIXME: Lists in parameter space
 def testdPsiBarSatColorMap(fixed, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, dim=2, qspaces=[4,10,30], purpose="standard", qunits = 3):
     """Runs multiple graphs of given qspaces at one time
     Optional - run makeSimilar (line 25), to create 3 epitheliums with equal eff and aff SD's (only rec means differ)
@@ -125,13 +130,13 @@ def testdPsiBarSatColorMap(fixed, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=3
             #j+=1
         qspace = QSpace(space)
 
-        print("QSPACE SIZE IS " + str(qspace.getSize()[0]) + "????????")
+        print("QSPACE SIZE IS " + str(qspace.size[0]) + "????????")
 
-        epith = loadEpithelium("1. SavedEpi_" + str(qspace.getSize()[0]) + purp + ".csv")
+        epith = loadEpithelium("1. SavedEpi_" + str(qspace.size[0]) + purp + ".csv")
 
         print("LOADED EPITHELIUM")
-        labelNames.append(str(qspace.getSize()[0]) + " qspace")
-        excelNames.append("LigandSat with " + str(qspace.getSize()[0]) + " qspace" + purp)
+        labelNames.append(str(qspace.size[0]) + " qspace")
+        excelNames.append("LigandSat with " + str(qspace.size[0]) + " qspace" + purp)
     
         # if i == (len(qspaces) - 1):
         #     end = True
@@ -140,10 +145,10 @@ def testdPsiBarSatColorMap(fixed, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=3
         y = 0
         ID = 0
         odorscenes = []
-        #while x < qspace.getSize()[0][1]:
+        #while x < qspace.size[0][1]:
         while x < qunits*10:
             y = 0
-            #while y < qspace.getSize()[1][1]:
+            #while y < qspace.size[1][1]:
             while y < qunits*10:
                 odorscenes.append(Odorscene(x,[Ligand(ID, [x/float(qunits),y/float(qunits)], .004)]))
                 y += 1
@@ -225,7 +230,7 @@ def allGraphsFromExcel(aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, dim
     i = 0
     pdfName = "LigandSat with varying qspaces" + purp
     titleName = "Saturation of dPsiBar" + purp
-    qspaceList=[]
+    qspaceList: list[QSpace]=[]
     dPsiName=[]
     end = False
     while i < len(qspaces):
@@ -236,7 +241,7 @@ def allGraphsFromExcel(aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, dim
             space.append((0,qspaces[i]))
             j+=1
         qspaceList.append(QSpace(space))
-        dPsiName.append("dPsi, qspace=" + str(qspaceList[i].getSize()[0]) + purp + ".csv")
+        dPsiName.append("dPsi, qspace=" + str(qspaceList[i].size[0]) + purp + ".csv")
 
         if i == (len(qspaces)-1):
             end = True
@@ -260,8 +265,8 @@ def allGraphsFromExcel(aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, dim
         excelName=[]
         end = False
         while k < len(qspaces):
-            labelNames.append(str(qspaceList[k].getSize()[0]) + " qspace")
-            excelName.append("LigandSat with " + str(qspaceList[k].getSize()[0]) + " qspace" + purp)
+            labelNames.append(str(qspaceList[k].size[0]) + " qspace")
+            excelName.append("LigandSat with " + str(qspaceList[k].size[0]) + " qspace" + purp)
             
             if k == (len(qspaces)-1):
                 end = True
@@ -292,7 +297,7 @@ def allGraphsFromExcel(aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, dim
         while k < len(qspaces):
             if k == (len(qspaces)-1):
                 end = True
-            name = "Glom_act with c=" + str(c) + " with " + str(qspaceList[k].getSize()[0]) + " qspace"
+            name = "Glom_act with c=" + str(c) + " with " + str(qspaceList[k].size[0]) + " qspace"
             graphFromExcel(name + ".csv", xaxis, numRecs, labelNames[k], titleName, pdfName, "Act", rep, end)
             k += 1
         
@@ -315,7 +320,7 @@ def dimAllGraphsFromExcel(numRecs=30, dims=[2,3,4,5], rep=200.0):
             k+=1
         qspace = QSpace(space)
 
-        dPsiName.append("dPsi, qspace=" + str(qspace.getSize()[0]) + ", dim=" + str(dim) + ".csv")
+        dPsiName.append("dPsi, qspace=" + str(qspace.size[0]) + ", dim=" + str(dim) + ".csv")
 
         if i == (len(dims)-1):
             end = True
@@ -377,7 +382,7 @@ def makeSimilar(numRecs, aff_sd, eff_sd, purpose="eff", qspaces=[4,10,30], dim=2
         i+=1
     qspace = QSpace(space)
     epith = createEpithelium(numRecs, dim, qspace, aff_sd, eff_sd) #amt, dim **amt = len(gl) and dim = dim of odorscene
-    saveEpithelium(epith, "1. SavedEpi_" + str(qspace.getSize()[0]) + purp)
+    saveEpithelium(epith, "1. SavedEpi_" + str(qspace.size[0]) + purp)
     
     i = 1
     while i < len(qspaces):
@@ -391,14 +396,14 @@ def makeSimilar(numRecs, aff_sd, eff_sd, purpose="eff", qspaces=[4,10,30], dim=2
         epith2 = createEpithelium(numRecs, dim, qspace, aff_sd, eff_sd)
     
         k = 0
-        for rec in epith2.getRecs():
-            rec.setSdA(epith.getRecs()[k].getSdA())
-            rec.setSdE(epith.getRecs()[k].getSdE())
-            rec.setCovA()
-            rec.setCovE()        
+        for rec in epith2.recs:
+            rec.sdA = epith.recs[k].sdA
+            rec.sdE = epith.recs[k].sdE
+            rec.covA = None
+            rec.covE = None       
             k += 1
     
-        saveEpithelium(epith2, "1. SavedEpi_" + str(qspace.getSize()[0]) + purp)
+        saveEpithelium(epith2, "1. SavedEpi_" + str(qspace.size[0]) + purp)
         
         i += 1
 

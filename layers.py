@@ -37,7 +37,7 @@ if TYPE_CHECKING:
     from typing import Iterable, Sized, Union
 
 
-def createGL(x: Real) -> Iterable[cells.Glom]:
+def createGL(x: Real) -> list[cells.Glom]:
     """
     Returns an array of x number of glom objects with activation levels
     and loc set to defaults. ID refers to its index in the array.
