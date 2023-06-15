@@ -1,6 +1,11 @@
-#Glomeruli and Mitral Cell Objects
-#Mitchell Gronowitz
-#Spring 2015
+# Glomeruli and Mitral Cell Objects
+# Mitchell Gronowitz
+# Spring 2015
+
+# Edited by Christopher De Jesus
+# Summer 2023
+
+from __future__ import annotations
 
 # Used for asserts
 from numbers import Real
@@ -9,17 +14,26 @@ from numbers import Real
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import List, Tuple, MutableMapping
+    from typing import MutableMapping
 
 class Glom:
-    """Represents a glomerulus cell that communicates with a single receptor.
-    Instance attributes:
-    _id    = [integer] identifies the glomerulus
-    _activ = [float: in (0,1)] activation level of glomerulus
-    _loc   = [Tuple: len = 2] x,y coordinates of the glom on the surface of the Olfactory bulb
-    _dim   = [Tuple: len = 2] row x columns 
-    _conn  = [integer] number of mitral cells connected to
-    _recConn = [dict] dict of connecting recs:weights
+    """
+    Represents a glomerulus cell that communicates with a single receptor.
+
+    Attributes
+    ----------
+    _id : int
+        Identifies the glomerulus
+    _activ : float
+        Between (0,1) - activation level of glomerulus
+    _loc : Tuple[float, float]
+        x,y coordinates of the glom on the surface of the Olfactory bulb
+    _dim : Tuple[float, float]
+        row x columns 
+    _conn : int
+        Number of mitral cells connected to
+    _recConn : dict
+        dict of connecting recs:weights
     """
 
     # TODO: Revisit why these were checking exact type rather than isinstance
@@ -49,12 +63,12 @@ class Glom:
         self._activ = round(value, 6)
 
     @property
-    def loc(self) -> "Tuple[Real]":
+    def loc(self) -> tuple[Real]:
         """Returns location of glom"""
         return self._loc
 
     @loc.setter
-    def loc(self, value: "Tuple[Real]") -> None:
+    def loc(self, value: tuple[Real]) -> None:
         """Sets value to loc.
         Precondition: value is a 2D list of numbers"""
         assert isinstance(value, tuple), "value is not a list!!"
@@ -62,12 +76,12 @@ class Glom:
         self._loc = value
 
     @property
-    def dim(self) -> "Tuple[int]":
+    def dim(self) -> tuple[int]:
         """Returns dimensions of glom"""
         return self._dim
 
     @dim.setter
-    def dim(self, value: "Tuple[int]") -> None:
+    def dim(self, value: tuple[int]) -> None:
         """Sets value to dim.
         Precondition: value is a 2D list of numbers"""
         assert isinstance(value, tuple), "value is not a list!!"
@@ -107,16 +121,21 @@ class Glom:
 
     def __str__(self):
         """Returns a Glomural object description with activation energy"""
-        return "Id: " + str(self.id) + " activ: " + str(self.activ)
+        return f"Id: {self.id} activ: {self.activ}"
 
 
-class Mitral(object):
+class Mitral:
     """Represents a mitral cell that samples from glomeruli.
-    Instance attributes:
-    _id = [int] identifies the mitral cell
-    _activ = [float: 0 - 1] activation level of mitral cell
-    -loc = [2D list] coordinates of the mitral cell on the surface of the bulb
-    _glom = dict where the keys are glom and the values are weights
+    Attributes
+    ----------
+    _id : int
+        identifies the mitral cell
+    _activ : float
+        value between [0,1]: activation level of mitral cell
+    _loc : list[float, float]
+        coordinates of the mitral cell on the surface of the bulb
+    _glom : dict
+        where the keys are glom and the values are weights
     
     """
     @property
@@ -145,12 +164,12 @@ class Mitral(object):
         self._activ = round(value, 5)
         
     @property
-    def loc(self) -> "Tuple[Real]":
+    def loc(self) -> tuple[Real]:
         """Returns location of mitral cell"""
         return self._loc
 
     @loc.setter
-    def loc(self, value: "Tuple[Real]") -> None:
+    def loc(self, value: tuple[Real]) -> None:
         """Sets value to loc.
         Precondition: value is a 2D list of numbers"""
         assert isinstance(value, tuple), "value is not a list!!"
@@ -158,12 +177,12 @@ class Mitral(object):
         self._loc = value   
         
     @property
-    def glom(self) -> "MutableMapping[Glom, dict]":
+    def glom(self) -> MutableMapping[Glom, dict]:
         """Returns dictionary of connected glom"""
         return self._glom
 
     @glom.setter
-    def glom(self, value: "MutableMapping[Glom, dict]") -> None:
+    def glom(self, value: MutableMapping[Glom, dict]) -> None:
         """Sets glomeruli to value.
         Precondition: Value is a dict containing glomeruli id's and weights."""
         assert isinstance(value, dict), "Not a dict!"
@@ -181,6 +200,6 @@ class Mitral(object):
         of connected glomeruli."""
         # *********************** From Python 3.6 onwards, the standard dict type maintains insertion order by default *****************************
         gstring = self.glom.keys()
-        return "Mitral ID: " + str (self.id) + " Mitral Activ: " + str(self.activ) + " Glom:" + str(gstring)
+        return f"Mitral ID: {self.id} Mitral Activ: {self.activ} Glom: {gstring}"
 
 

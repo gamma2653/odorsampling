@@ -1,19 +1,27 @@
-#Odor Spaces!
-#Mitchell Gronowitz
-#Spring 2014
+# Odor Spaces!
+# Mitchell Gronowitz
+# Spring 2014
 
-"""QSpace, Odototope, Odorscene, and Receptor objects
+# Edited by Christopher De Jesus
+# Summer 2023
+
+"""
+QSpace, Odototope, Odorscene, and Receptor objects
 Index of document:
 1. Global variables
 2. Defining all objects
 3. Simple functions to create and activate each object
-4. Experiments/Simulations utilizing objects"""
+4. Experiments/Simulations utilizing objects
+"""
+
+
+from __future__ import annotations
 
 import math
 import random
 import layers
-#import matplotlib
-#matplotlib.use('TkAgg')
+# import matplotlib
+# matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 from scipy.stats import multivariate_normal as mvn
 import numpy as np
@@ -21,12 +29,23 @@ import matplotlib.pylab
 from matplotlib.backends.backend_pdf import PdfPages
 import copy
 import time
+import functools
 
 #from matplotlib import mlab, cm
 from matplotlib.patches import Ellipse
 import numpy.random as rnd
 
 import params
+
+# Used for asserts
+from numbers import Real
+
+# from typing import TYPE_CHECKING
+
+# if TYPE_CHECKING:
+    # from typing import Tuple
+    # from typing import List
+    # ^Removed in favor of Python 3.9 list generics (see PEP 585)
 
 ###Global Variables
 peak_affinity = -8     # literally 10e-8, not influenced by minimum_affinity value
@@ -35,9 +54,10 @@ m = 1 #Hill Coefficient
 ODOR_REPETITIONS = 2 #Amount of odorscene repetitions to create a smooth graph
 ANGLES_REP = 2
 
-#SD_NUMBER = 1.5
-#SD_NUMBER = params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION
+# SD_NUMBER = 1.5
+# SD_NUMBER = params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION
 
+# TODO: Move to params.py
 ###Global Variables when c!=1 (multiple conn between rec and glom)
 glom_penetrance = .68  # primary glom:rec connection weight if c != 1
 s_weights = [0.12,0.08,0.03,0.03,0.02,0.02,0.01,0.01] # The remaining glom:rec connection weights if c != 1
@@ -46,129 +66,155 @@ numCol = 5 # num of cols of glom  (numRow*numCol = total number of Glom)
 constant_attachments = True
 
 
-class QSpace(object):
+class QSpace:
     """Defines the size of the sample space
     ***ex: [(0,5),(0,5)] means qspace extends from 0 to 5 (not including 5) 
-    _size = [List of float tuples] defines the size of the sample space"""
+
+    Attributes
+    ----------
+    _size : list[tuple[float]]
+        defines the size of the sample space"""
     
-    def getSize(self):
+    @property
+    def size(self) -> list[tuple[float, float]]:
         #Returns the odors.
         return self._size
 
-    def setSize(self, value):
+    @size.setter
+    def size(self, value: list[tuple[float, float]]) -> None:
         """Sets size equal to value.
         Precondition: Value is a list of tuples"""
-        assert type(value) == list, "Value is not a list!"
-        assert type(value[0] == tuple), "Elements aren't tuples!"
+        assert isinstance(value, list), "Value is not a list!"
+        assert isinstance(value[0], tuple), "Elements aren't tuples!"
+        # TODO: assert values are floats for consistency
         self._size = value
     
-    def __init__(self, size):
+    def __init__(self, size: list[tuple[float, float]]):
         self.setSize(size)
     
     def __str__(self):
-        st = ""
-        for tup in self._size:
-            st = st + " " + str(tup)
-        return st[1:]
+        return " ".join(map(str, self._size))
 
 
-class Ligand(object):
-    """Represents a simple smell embedded in Q space of dimensionality Q.
-    Instance Attributes:
-    _id   = [Integer] identifies the odor
-    _loc = [List of floats] coordinates in chemical space. Dim=Q
-    _dim = [Integer] dimension of ligand (Q)
-    _conc = [float] concentration in molar, e.g., 1.5e-5 (NOT 0)
-    _aff = [float] temporary affinity value for a specific receptor
-    _eff = [float] temporary efficacy value for a specific receptor [0..1]
-    _occ = [float] temporary partial occupancy value for a specific receptor [0..1]
-    _affs = [list of floats] affs for all recepters
-    _effs = [list of floats] effs for all recepters
-    _odors2 = [list of ordors/ligands] nested for faster calcs
+class Ligand:
+    """
+    Represents a simple smell embedded in Q space of dimensionality Q.
+
+    Attributes
+    ----------
+
+    _id : int
+        Identifies the odor
+    _loc : list[float]
+        Coordinates in chemical space. Dim=Q
+    _dim : int
+        Dimension of ligand (Q)
+    _conc : float
+        Concentration in molar, e.g., 1.5e-5 (NOT 0)
+    _aff : float
+        Temporary affinity value for a specific receptor
+    _eff : float
+        Temporary efficacy value for a specific receptor [0..1]
+    _occ : float
+        Temporary partial occupancy value for a specific receptor [0..1]
+    _affs : list[float]
+        affs for all recepters
+    _effs : list[float]
+        effs for all recepters
+    _odors2 : list[Ligand] nested for faster calcs
 
     """
     
-    #Getters and Setters
-    def getId(self):
+    @property
+    def id(self) -> int:
         """Returns the id."""
         return self._id
 
-    def setId(self, value):
+    @id.setter
+    def id(self, value: int) -> None:
         """Sets id equal to value.
         Precondition: Value is an int"""
-        assert type(value) == int, "Value is not a int!"
+        assert isinstance(value, int), "Value is not a int!"
         self._id = value
-        
-    def getLoc(self):
+    
+    @property
+    def loc(self) -> list[float]:
         """Returns the loc."""
         return self._loc
 
-    def setLoc(self, value):
+    @loc.setter
+    def loc(self, value: list[float]) -> None:
         """Sets loc equal to value.
         Precondition: Value is a List"""
-        assert type(value) == list, "Value is not a List!"        
+        assert isinstance(value, list), "Value is not a List!"        
         self._loc = value
     
-    def getDim(self):
+    @property
+    def dim(self) -> int:
         """Returns the dim."""
         return self._dim
 
-    def setDim(self, value):
+    @dim.setter
+    def dim(self, value: int) -> None:
         """Sets dim equal to value.
         Precondition: Value is an int"""
-        assert type(value) == int, "Value is not a int!"
+        assert isinstance(value, int), "Value is not a int!"
         self._dim = value
-        
-    def getConc(self):
+    
+    @property
+    def conc(self) -> float:
         """Returns the conc."""
         return self._conc
 
-    def setConc(self, value):
+    @conc.setter
+    def conc(self, value: float) -> None:
         """Sets conc equal to value.
         Precondition: Value is a nonZero number"""
-        assert type(value) in [int,float], "Value is not a number!"
+        assert isinstance(value, Real), "Value is not a number!"
         assert value != 0, "Conc can't be 0!"
         self._conc = float(value)
     
-    def setAff(self, value):
+    # FIXME: There seems to be a type mismatch from the stated class type and the set value type!
+    def setAff(self, value: list[float]) -> None:
         """Sets aff equal to value.
         Precondition: Value is a float"""
         assert type(value) == float, "Value is not a float!"
         self._aff = value
     
-    def setEff(self, value):
+    # FIXME: Same issue as the above fixme (type mismatch from attribute to set value)
+    def setEff(self, value: list[float]) -> None:
         """Sets eff equal to value.
         Precondition: Value is a float btwn 0..1"""
         assert type(value) == float, "Value is not a float!"
         assert value >= 0 and value <= 1, "Eff is not btwn 0 and 1"
         self._eff = value
     
-    def setOcc(self, value):
+    def setOcc(self, value: float) -> None:
         """Sets occ equal to value.
         Precondition: Value is an float btwn 0..1"""
         assert type(value) == float, "Value is not a float!"
         assert value >= 0.0 and value <= 1.0, "Occ is not btwn 0 and 1"
         self._occ = value
 
-    def appendToAffs(self, value):
+    def appendToAffs(self, value: float) -> None:
         """adds aff equal to value.
         Precondition: Value is a float"""
         assert type(value) == float, "Value is not a float!"
         self._affs.append(value)
 
-    def appendToEffs(self, value):
+    def appendToEffs(self, value: float) -> None:
         """adds eff equal to value.
         Precondition: Value is a float"""
         assert type(value) == float, "Value is not a float!"
         self._effs.append(value)
 
-    def appendToOdors2(self, value):
+    def appendToOdors2(self, value: Ligand) -> None:
         """adds odor2 equal to value.
         Precondition: odor2 is type of Ligand"""
         assert type(value) == Ligand, "Value is not a Ligand!"
         self._odors2.append(value)
 
-    def getOdors2(self):
+    def getOdors2(self) -> list[Ligand]:
         """Returns _odors2."""
         return self._odors2
 
@@ -176,10 +222,10 @@ class Ligand(object):
     #Initializer
     def __init__(self, Id, loc, conc):
         """Initializes ligand"""
-        self.setId(Id)
-        self.setLoc(loc)
-        self.setDim(len(loc))
-        self.setConc(conc)
+        self.id = Id
+        self.loc = loc
+        self.dim = len(loc)
+        self.conc = conc
         self._aff = 0.0
         self._eff = 0.0
         self._occ = 0.0
@@ -189,114 +235,145 @@ class Ligand(object):
 
     def __str__(self):
         """Returns description of Ligand"""
-        return "ID: " + str(self._id) + " Loc: " + str(self._loc) + " Conc: " + str(self._conc)
+        return f"ID: {self._id} Loc: {self._loc} Conc: {self._conc}"
 
 
-class Odorscene(object):
+class Odorscene:
     """Represents a list of ligands embedded in Q-Space. Can resemble an odorant, a complex odorant,
     or a mixture of odorants.
-    Instance Attributes:
-    _id   = [Integer] identifies the odor
-    _dim = [Integer] dimension of odorscene (same as dim of attached ligands)
-    _odors = [List of ligands] List of ligands that define the odorscene
+    
+    Attributes
+    _id : int
+        identifies the odor
+    _dim : int
+        dimension of odorscene (same as dim of attached ligands)
+    _odors : list[Ligand]
+        List of ligands that define the odorscene
     """
 
-#Getters and Setters
-    def getId(self):
+    @property
+    def id(self) -> int:
         """Returns the id."""
         return self._id
 
-    def setId(self, value):
+    @id.setter
+    def id(self, value: int) -> None:
         """Sets id equal to value.
         Precondition: Value is an int"""
-        assert type(value) == int, "Value is not a int!"
+        assert isinstance(value, int), "Value is not a int!"
         self._id = value
 
-    def getDim(self):
+    @property
+    def dim(self) -> int:
         """Returns the dim."""
         return self._dim
 
-    def setDim(self, value):
+    @dim.setter
+    def dim(self, value: int) -> None:
         """Sets dim equal to value.
         Precondition: Value is an int"""
         assert type(value) == int, "Value is not a int!"
         self._dim = value
 
-    def getOdors(self):
+    @property
+    def odors(self) -> list[Ligand]:
         """Returns the odors."""
         return self._odors
 
-    def setOdors(self, value):
+    @odors.setter
+    def odors(self, value: list[Ligand]) -> None:
         """Sets odors equal to value.
         Precondition: Value is a List and dim of elements are equal."""
         assert type(value) == list, "Value is not a List!"
         self._odors = []
+        # TODO: simplify
         i = 0
         while i < len(value):
-            assert value[0].getDim() == value[i].getDim(), "Odors aren't all the same dim."
+            assert value[0].dim == value[i].dim, "Odors aren't all the same dim."
             self._odors.append(value[i])
             i += 1
 
-
-#Initializer
-    def __init__(self, Id, odors):
+    def __init__(self, Id, odors: list[Ligand]):
         """Initializes odorscene"""
-        self.setId(Id)
-        self.setDim(odors[0].getDim())
-        self.setOdors(odors)
+        self.id = Id
+        self.dim = odors[0].dim
+        self.odors = odors
         
     def __str__(self):
         """Returns description of Odor"""
-        st = ""
-        for odor in self._odors:
-            st = st + str(odor) + '\n'
-        return "ID: " + str(self._id) + '\n' + "Odors: \n" + st
+        # st = ""
+        # for odor in self._odors:
+        #     st = st + str(odor) + '\n'
+        # return "ID: " + str(self._id) + '\n' + "Odors: \n" + st
+        # Hotfix until Python 3.12
+        n_ = '\n'
+        return f"ID: {self.id}\nOdors: \n{n_.join(map(str, self._odors))}"
 
 
-class Receptor(object):
+class Receptor:
     """Represents an odor receptor with center (x,y,z...) and radius of 
     sensitivity r.
-    Instance Attributes:
-    _id     = [int] identifies the receptor
-    _mean   = [list] list of means for affinity and efficacy Gaussian distributions. Length = Q
-    _sdA   = [list] List of standard deviations for affinity. Length = Q
-    _sdE   = [list] List of standard deviations for efficacy. Length = Q
-    _covA   = [list] sdA ^^ 2
-    _covE   = [list] sdE ^^ 2
-    _scale  = [float] A heuristic scalar value for the "strongest available affinity"
-    _effScale  = [float] A heuristic scalar value for the "strongest available affinity"
-    _activ = [float] Total activation level of receptor
-    _occ = [float] Total occupancy of receptor
-    _affs = np.array([]) aff values of all odors for this receptor
-    _effs = np.array([]) eff values of all odors for this receptor
+
+    Attributes
+    ----------
+    _id : int
+        identifies the receptor
+    _mean : list
+        list of means for affinity and efficacy Gaussian distributions. Length = Q
+    _sdA : list
+        List of standard deviations for affinity. Length = Q
+    _sdE : list
+        List of standard deviations for efficacy. Length = Q
+    _covA : list
+        sdA ^^ 2
+    _covE : list
+        sdE ^^ 2
+    _scale : float
+        A heuristic scalar value for the "strongest available affinity"
+    _effScale : float
+        A heuristic scalar value for the "strongest available affinity"
+    _activ : float
+        Total activation level of receptor
+    _occ : float
+        Total occupancy of receptor
+    _affs : np.ndarray
+        aff values of all odors for this receptor
+    _effs : np.ndarray
+        eff values of all odors for this receptor
 
     """
     
 #Getters and Setters
-    def getId(self):
+    @property
+    def id(self):
         """Returns id of receptor."""
         return self._id
 
-    def setId(self, value):
+    @id.setter
+    def id(self, value):
         """Sets id to value
         Precondtion: value is an int"""
         assert type(value) == int, "Value is not a int!"
         self._id = value
     
-    def getMean(self):
+    @property
+    def mean(self):
         """Returns mean of receptor."""
         return self._mean
 
-    def setMean(self, value):
+    @mean.setter
+    def mean(self, value):
         """Sets id to value
         Precondtion: value is an list"""
         assert type(value) == list, "Value is not a float!"
         self._mean = value
     
-    def getSdA(self):
+    @property
+    def sdA(self):
         """Returns the standard deviations for Affinity."""
         return self._sdA
 
+    @sdA.setter
     def setSdA(self, value):
         """Sets sdA equal to value.
         Precondition: Value is a List with dim Q"""
@@ -304,22 +381,27 @@ class Receptor(object):
         assert len(value) == len(self._mean), "Dimension is not consistent with dim of mean"
         self._sdA = value
     
-    def getSdE(self):
+    @property
+    def sdE(self):
         """Returns the standard deviations for Efficacy."""
         return self._sdE
 
-    def setSdE(self, value):
+    @sdE.setter
+    def sdE(self, value):
         """Sets sdE equal to value.
         Precondition: Value is a List with dim Q"""
         assert type(value) == list, "Value is not a List!"
         assert len(value) == len(self._mean), "Dimension is not consistent with dim of mean"
         self._sdE = value
     
-    def getCovA(self):
+    @property
+    def covA(self):
         """Returns the covariance for affinity"""
         return self._covA
     
-    def setCovA(self):
+    # FIXME: This needs a little work to properly be converted into a property getter/setter
+    @covA.setter
+    def covA(self, value):
         """Sets covariance of affinity by squaring the sd."""
         covA = []
         i = 0
@@ -328,11 +410,13 @@ class Receptor(object):
             i += 1
         self._covA = covA
     
-    def getCovE(self):
+    @property
+    def covE(self):
         """Returns the covariance for Efficacy"""
         return self._covE
     
-    def setCovE(self):
+    @covE.setter
+    def covE(self, value):
         """Sets covariance of Efficacy by squaring the sd."""
         covE = []
         i = 0
@@ -341,27 +425,32 @@ class Receptor(object):
             i += 1
         self._covE = covE
     
-    def getScale(self):
+    @property
+    def scale(self):
         """Returns scale of receptor."""
         return self._scale
 
-    def setScale(self):
+    @scale.setter
+    def scale(self):
         """Sets scale based on mean"""
-        self._scale = mvn.pdf(self.getMean(), self.getMean(), self.getCovA())
+        self._scale = mvn.pdf(self.mean, self.mean, self.covA)
 
-
-    def getEffScale(self):
+    @property
+    def effScale(self):
         """Returns eff scale of receptor."""
         return self._effScale
 
-    def setEffScale(self):
+    @effScale.setter
+    def effScale(self):
         """Sets eff scale based on mean"""
-        self._effScale = float(mvn.pdf(self.getMean(), self.getMean(), self.getCovE()))
+        self._effScale = float(mvn.pdf(self.mean, self.mean, self.covE))
 
-    def getActiv(self):
+    @property
+    def activ(self):
         return self._activ
 
-    def setActiv(self, value):
+    @activ.setter
+    def activ(self, value):
         """Sets activation level for receptor"""
         self._activ = value
     
@@ -373,19 +462,23 @@ class Receptor(object):
         """sets amount of ligands 'adjacent' (<2SD) to receptor"""
         self._odoAmt = value
 
-    def getAffs(self):
+    @property
+    def affs(self):
         """Returns affs for all ordors"""
         return self._affs
 
-    def setAffs(self, value):
+    @affs.setter
+    def affs(self, value):
         """Sets affs for all ordors"""
         self._affs = value
 
-    def getEffs(self):
+    @property
+    def effs(self):
         """Returns effs for all ordors"""
         return self._effs
 
-    def setEffs(self, value):
+    @effs.setter
+    def effs(self, value):
         """Sets effs for all ordors"""
         self._effs = value
 
@@ -393,55 +486,58 @@ class Receptor(object):
 #Initializer
     def __init__(self, Id, mean, sda, sde):
         """Initializes a receptor."""
-        self.setId(Id)
-        self.setMean(mean)
-        self.setSdA(sda)
-        self.setSdE(sde)
-        self.setCovA()
-        self.setCovE()
-        self.setScale()
-        self.setActiv(0)
+        self.id = Id
+        self.mean = mean
+        self.sdA = sda
+        self.sdE = sde
+        # FIXME: Hotfix until getters and setters are fixed for covA, covE, scale, and effScale (are autoassigned by setter)
+        # Sol. is probably to change getter to calculate the values automagically
+        self.covA = None
+        self.covE = None
+        self.scale = None
+        self.activ = 0
         self.setOcc(0)
         self.setOdoAmt(0)
-        self.setEffScale()
+        self.effScale = None
 
 
     def __str__(self):
         """Returns receptor description"""
-        st = ""
-        for num in self.getMean():
-            st = st + str(num) + ", "
-        return "ID " + str(self._id) + " Mean: " + st[:-2] + "."  #Can add mean if prefer
+        # st = ""
+        # for num in self.getMean():
+        #     st = st + str(num) + ", "
+        return f"ID {self.id} Mean: {', '.join(map(str, self.mean))}."
+        # return "ID " + str(self._id) + " Mean: " + st[:-2] + "."  #Can add mean if prefer
     
 
-class Epithelium(object):
+class Epithelium:
     """Represents a list of receptors.
     Instance Attributes:
-    _recs     = [List of receptors]
+    _recs : list[Receptor]
     """
     
-    def getRecs(self):
+    @property
+    def recs(self):
         """Returns the receptors."""
         return self._recs
 
-    def setRecs(self, value):
+    @recs.setter
+    def recs(self, value):
         """Sets receptors equal to value.
         Precondition: Value is a List"""
-        assert type(value) == list, "Value is not a List!"
+        assert isinstance(value, list), "Value is not a List!"
         self._recs = value
     
     def __init__(self, recs):
         """Initializes a epithelium."""
-        self.setRecs(recs)
+        self.recs = recs
 
     def __str__(self):
         """Returns epithelium description"""
-        st = "Epithelium contains the following receptors: \n"
-        for recs in self.getRecs():
-            st = st + str(recs) + "\n"
-        return st[:-2]
+        n_ = '\n'
+        return f"Epithelium contains the following receptors: \n{n_.join(map(str, self.recs))}"
 
-class Text(object):
+class Text:
     """Holding experimental text to later store in text file"""
     
     def __init__(self, st, name):
@@ -450,7 +546,7 @@ class Text(object):
         self._st2 = ""
 
 ######Functions for objects
-def createLigand(dim, conc, qspace, ID=0):
+def createLigand(dim: int, conc: int, qspace: QSpace, ID=0):
     """Returns an ligand with randomly (uniformly) generated ligand point coordinates
     in Q space."""
     i = 0
@@ -461,7 +557,7 @@ def createLigand(dim, conc, qspace, ID=0):
     return Ligand(ID, loc, conc)
 
 
-def createOdorscene(dim, conc, amt, qspace, Id = 0):
+def createOdorscene(dim: int, conc: list[float], amt: list[int], qspace: QSpace, Id = 0):
     """Returns an odorscene object with a certain amount of randomly generated ligands.
     Conc is a list of concentrations and amt is the amt of each conc (matched by index).
     Ex: conc = [1e-5, 5e-6, 1e-6] and amt = [6, 4, 2] This means:
@@ -485,21 +581,21 @@ def createOdorscene(dim, conc, amt, qspace, Id = 0):
     return Odorscene(Id, odors)
 
     
-def modifyLoc(odorant, qspace, dim):
+def modifyLoc(odorant: Ligand, qspace: QSpace, dim: int):
     """Modifies an odorant's location to be within the given qspace of the odorscene
     Precondition: QSpace dimensions are consistent with dim"""
     assert len(qspace.getSize()) == dim, "QSpace dimensions are not consistent with ligand locations"
     i = 0
-    loc = odorant.getLoc()
+    loc = odorant.loc
     while i < dim:
         loc[i] = ((loc[i] + (abs(qspace.getSize()[i][0]))) % (abs(qspace.getSize()[i][0]) +
                                 abs(qspace.getSize()[i][1]))) + -1 * abs(qspace.getSize()[i][0])
         i += 1
-    odorant.setLoc(loc)
+    odorant.loc = loc
     return odorant
 
 
-def createEpithelium(n, dim, qspace, scale=[.5,1.5], scaleEff=[], constMean=False):
+def createEpithelium(n: int, dim: int, qspace: QSpace, scale: list[float]=[.5,1.5], scaleEff=[], constMean=False):
     """Returns an epithelium with n receptors by calling createReceptor n times.
     SD of each receptor is a uniformly chosen # btwn scale[0] and scale[1]
     Precondition: n is an int"""
@@ -511,7 +607,7 @@ def createEpithelium(n, dim, qspace, scale=[.5,1.5], scaleEff=[], constMean=Fals
         i += 1
     return Epithelium(recs)
 
-def createReceptor(dim, qspace, scale=[0.5,1.5], scaleEff=[], constMean=False, Id=0):
+def createReceptor(dim: int, qspace: QSpace, scale: list[float] = [0.5,1.5], scaleEff=[], constMean=False, Id=0):
     """Creates a receptor using meanType sdAtype and sdEtype as descriptions
     to how to randomly distribute those values.
     scaleEff is empty unless want to have a diff sd for aff and eff.
@@ -522,7 +618,7 @@ def createReceptor(dim, qspace, scale=[0.5,1.5], scaleEff=[], constMean=False, I
     sdE = _distributeSD(dim, scale, scaleEff)
     return Receptor(Id, mean, sdA, sdE)
 
-def _distributeMean(dim, qspace, constMean):
+def _distributeMean(dim: int, qspace: QSpace, constMean: bool):
     """Returns a list of means randomly distributed within the qspace based on the Type"""
     mean = []
     i = 0

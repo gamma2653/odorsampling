@@ -17,6 +17,8 @@
         - Graphical representations of a layer
 """
 
+from __future__ import annotations
+
 import cells
 import random
 import matplotlib.pyplot as plt
@@ -31,10 +33,10 @@ from numbers import Real
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Iterable, Sized, List
+    from typing import Iterable, Sized
 
 
-def createGL(x: "Real") -> "Iterable[cells.Glom]":
+def createGL(x: Real) -> Iterable[cells.Glom]:
     """
     Returns an array of x number of glom objects with activation levels
     and loc set to defaults. ID refers to its index in the array.
