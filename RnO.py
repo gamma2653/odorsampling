@@ -377,7 +377,7 @@ class Receptor:
         return self._sdA
 
     @sdA.setter
-    def setSdA(self, value):
+    def sdA(self, value):
         """Sets sdA equal to value.
         Precondition: Value is a List with dim Q"""
         assert type(value) == list, "Value is not a List!"

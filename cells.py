@@ -177,23 +177,23 @@ class Mitral:
         self._loc = value   
         
     @property
-    def glom(self) -> MutableMapping[Glom, dict]:
+    def glom(self) -> MutableMapping[Glom, float]:
         """Returns dictionary of connected glom"""
         return self._glom
 
     @glom.setter
-    def glom(self, value: MutableMapping[Glom, dict]) -> None:
+    def glom(self, value: MutableMapping[Glom, float]) -> None:
         """Sets glomeruli to value.
         Precondition: Value is a dict containing glomeruli id's and weights."""
         assert isinstance(value, dict), "Not a dict!"
         self._glom = value
 
-    def __init__(self, ID, activ=0.0, loc=[0,0], glom={}):
+    def __init__(self, ID, activ=0.0, loc=None, glom=None):
         """Initializes a Mitral cell"""
         self.id = ID
         self.activ = activ
-        self.loc = loc
-        self.glom = glom
+        self.loc = [0,0] if loc is None else loc
+        self.glom = {} if glom is None else glom
 
     def __str__(self):
         """Returns a Mitral object description with activation energy and ID's 
