@@ -2698,15 +2698,15 @@ def drawEllipseGraph(qspace: QSpace, epithelium: Epithelium, odorscenesArray: li
     else:
         print('NOT using mock values')
         for odor in odorscenesArray[params.ODORSCENE_INDEX][params.ODORSCENE_REP_NUMBER].odors: #odorscenesArray[k][i].odors
+            # FIXME: Hotfix. Inspected data suggests they were arrays of the same value. Additionally, the lists were exactly 2*[expected_len].
+            #  Moving this into this if case fixes the issue, and provides results, however, I am not sure if the results are correct.
+            #  @checkin with Thom
+            locSizes.append((math.log10(odor.conc)+10)*10)
             for li, loc in enumerate(odor.loc):
                 #print('odor conc = ' + str(odor.conc))
                 #print('odor size = ' + str((math.log10(odor.conc)+10)*10))
 
                 if li == 0:
-                    # FIXME: Hotfix. Inspected data suggests they were arrays of the same value. Additionally, the lists were exactly 2*[expected_len].
-                    #  Moving this into this if case fixes the issue, and provides results, however, I am not sure if the results are correct.
-                    #  @checkin with Thom
-                    locSizes.append((math.log10(odor.conc)+10)*10)
                     locXaxis.append(loc)
                 if li == 1:    
                     locYaxis.append(loc)
