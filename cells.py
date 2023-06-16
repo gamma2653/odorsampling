@@ -68,11 +68,12 @@ class Glom:
         """Returns location of glom"""
         return self._loc
 
+# TODO: change loc & dim to tuple
     @loc.setter
-    def loc(self, value: tuple[Real]) -> None:
+    def loc(self, value: list[Real]) -> None:
         """Sets value to loc.
         Precondition: value is a 2D list of numbers"""
-        assert isinstance(value, tuple), "value is not a list!!"
+        assert isinstance(value, list), "value is not a list!!"
         assert len(value) == 2 and isinstance(value[0], Real), "Not a 2D list of numbers!"
         self._loc = value
 
@@ -82,10 +83,10 @@ class Glom:
         return self._dim
 
     @dim.setter
-    def dim(self, value: tuple[int]) -> None:
+    def dim(self, value: list[int]) -> None:
         """Sets value to dim.
         Precondition: value is a 2D list of numbers"""
-        assert isinstance(value, tuple), "value is not a list!!"
+        assert isinstance(value, list), "value is not a list!!"
         assert len(value) == 2 and isinstance(value[0], int), "Not a 2D list of numbers!"
         self._dim = value
         

@@ -24,8 +24,8 @@ GRAPH_FILE_NAME = 'Receptor-Odor Coverage '
 
 
 # odor concentration (driving the size of the odors)
-# ODOR_CONCENTRATION = 1e-5
-ODOR_CONCENTRATION = 1e-8
+ODOR_CONCENTRATION = 1e-5
+# ODOR_CONCENTRATION = 1e-8
 
 # location distributions control params, eg., uniform, gaussian...1 and only 1 type needs to be true at any given time
 DIST_TYPE_GAUSS = False

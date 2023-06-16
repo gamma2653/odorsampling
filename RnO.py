@@ -93,7 +93,7 @@ class QSpace:
         self._size = value
     
     def __init__(self, size: list[tuple[float, float]]):
-        self.setSize(size)
+        self.size = size
     
     def __str__(self):
         return " ".join(map(str, self._size))
@@ -434,7 +434,7 @@ class Receptor:
         return self._scale
 
     @scale.setter
-    def scale(self):
+    def scale(self, value):
         """Sets scale based on mean"""
         self._scale = mvn.pdf(self.mean, self.mean, self.covA)
 
@@ -444,7 +444,7 @@ class Receptor:
         return self._effScale
 
     @effScale.setter
-    def effScale(self):
+    def effScale(self, value):
         """Sets eff scale based on mean"""
         self._effScale = float(mvn.pdf(self.mean, self.mean, self.covE))
 
@@ -918,7 +918,7 @@ def loadReceptor(name: str, helper=False) -> Receptor:
     while commas[i] != -1:
         commas.append(line.find(",", commas[i]+1))
         i += 1
-    dim = len(commas) / 3
+    dim = len(commas) // 3
     Id = int(line[:comma1])
     mean = [float(line[comma2+1:commas[0]])]
     index = 1
@@ -2043,7 +2043,7 @@ def dPsiBarSaturation(epithelium: Epithelium, r, qspace: QSpace, pdfName: str, l
         
         if not fixed:
             effs_rec = mvn.pdf(pdfOdorLocsInput, rec.mean, rec.covE)
-            effs_rec = np.asarray(effs_rec,dtype=np.float) / rec.effScale #Scales it from 0 to 1
+            effs_rec = np.asarray(effs_rec,dtype=np.float64) / rec.effScale #Scales it from 0 to 1
 
 
             effs = np.append(effs,effs_rec)
@@ -2071,7 +2071,7 @@ def dPsiBarSaturation(epithelium: Epithelium, r, qspace: QSpace, pdfName: str, l
         
         if not fixed:
             effs_rec2 = mvn.pdf(pdfOdorLocsInput2, rec.mean, rec.covE)
-            effs_rec2 = np.asarray(effs_rec2,dtype=np.float) / rec.effScale #Scales it from 0 to 1
+            effs_rec2 = np.asarray(effs_rec2,dtype=np.float64) / rec.effScale #Scales it from 0 to 1
 
 
             effs2 = np.append(effs2,effs_rec2)
@@ -2682,29 +2682,39 @@ def drawEllipseGraph(qspace: QSpace, epithelium: Epithelium, odorscenesArray: li
     locSizes = []
 
     if params.USE_MOCK_ODORS_EVEN_WHEN_RUNNING_CALCS or useMockData:
-        locSizes.append((math.log10(params.ODOR_CONCENTRATION)+10)*10)
+        # locSizes.append((math.log10(params.ODOR_CONCENTRATION)+10)*10)
         #locXaxis = params.MOCK_ODORS_X
         #locYaxis = params.MOCK_ODORS_Y
-
+        print('Using mock values')
         for li, loc in enumerate(params.MOCK_ODORS):
-                #print('odor conc = ' + str(odor.conc))
-                #print('odor size = ' + str((math.log10(odor.conc)+10)*10))
+                
+            locSizes.append((math.log10(params.ODOR_CONCENTRATION)+10)*10)
+            #print('odor conc = ' + str(odor.conc))
+            #print('odor size = ' + str((math.log10(odor.conc)+10)*10))
 
-                locXaxis.append(loc[0])
-                locYaxis.append(loc[1])
+            locXaxis.append(loc[0])
+            locYaxis.append(loc[1])
 
-    else:    
+    else:
+        print('NOT using mock values')
         for odor in odorscenesArray[params.ODORSCENE_INDEX][params.ODORSCENE_REP_NUMBER].odors: #odorscenesArray[k][i].odors
             for li, loc in enumerate(odor.loc):
-                locSizes.append((math.log10(odor.conc)+10)*10)
                 #print('odor conc = ' + str(odor.conc))
                 #print('odor size = ' + str((math.log10(odor.conc)+10)*10))
 
                 if li == 0:
+                    # FIXME: Hotfix. Inspected data suggests they were arrays of the same value. Additionally, the lists were exactly 2*[expected_len].
+                    #  Moving this into this if case fixes the issue, and provides results, however, I am not sure if the results are correct.
+                    #  @checkin with Thom
+                    locSizes.append((math.log10(odor.conc)+10)*10)
                     locXaxis.append(loc)
                 if li == 1:    
                     locYaxis.append(loc)
     #plt.scatter(locXaxis,locYaxis, s=100, c='black')
+    # print(type(locSizes))
+    # print(locSizes)
+    # print(len(locXaxis), len(locYaxis))
+    # print(len(locSizes))
     plt.scatter(locXaxis,locYaxis, s=locSizes, c=params.ODOR_COLOR)
 
 
