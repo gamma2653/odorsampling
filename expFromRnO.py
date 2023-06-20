@@ -16,8 +16,8 @@ import random
 
 import layers
 from RnO import (
-    QSpace, Ligand, Odorscene, Receptor, ODOR_REPETITIONS, createEpithelium, saveEpithelium,
-    loadEpithelium, dPsiBarSaturation, graphFromExcel, createOdorscene, recDensityDpsiGraph,
+    QSpace, Ligand, Odorscene, Receptor, Epithelium, ODOR_REPETITIONS, saveEpithelium,
+    loadEpithelium, dPsiBarSaturation, graphFromExcel, recDensityDpsiGraph,
     activateGL_QSpace, dPsiOccActGraphFromExcel, peak_affinity, minimum_affinity, m, glom_penetrance
 )
 
@@ -153,7 +153,7 @@ def testdPsiBarSaturationDim(dims: list[int], fixed=False, aff_sd=None, eff_sd=N
             i+=1
         qspace = QSpace(space)
         #epith = loadEpithelium("SavedEpi_(0,4)_" + str(dim) + "Dim.csv")
-        epith = createEpithelium(numRecs, dim, qspace, aff_sd, eff_sd)
+        epith = Epithelium.create(numRecs, dim, qspace, aff_sd, eff_sd)
         saveEpithelium(epith, "1. SavedEpi_(0,4), dim=" + str(dim))
         
         labels.append(str(dim) + "D")
@@ -212,7 +212,7 @@ def makeSimilar(numRecs: int, aff_sd: list[float], eff_sd: list[float], purpose=
         space.append((0,qspaces[0]))
         i+=1
     qspace = QSpace(space)
-    epith = createEpithelium(numRecs, dim, qspace, aff_sd, eff_sd) #amt, dim **amt = len(gl) and dim = dim of odorscene
+    epith = Epithelium.create(numRecs, dim, qspace, aff_sd, eff_sd) #amt, dim **amt = len(gl) and dim = dim of odorscene
     saveEpithelium(epith, "1. SavedEpi_" + str(qspace.size[0]) + purp)
     
     i = 1
@@ -224,15 +224,12 @@ def makeSimilar(numRecs: int, aff_sd: list[float], eff_sd: list[float], purpose=
             space.append((0,qspaces[i]))
             k+=1
         qspace = QSpace(space)
-        epith2 = createEpithelium(numRecs, dim, qspace, aff_sd, eff_sd)
+        epith2 = Epithelium.create(numRecs, dim, qspace, aff_sd, eff_sd)
     
         k = 0
         for rec in epith2.recs:
             rec.sdA = epith.recs[k].sdA
-            rec.sdE = epith.recs[k].sdE
-            # FIXME: hotfix
-            rec.covA = None
-            rec.covE = None       
+            rec.sdE = epith.recs[k].sdE     
             k += 1
     
         saveEpithelium(epith2, "1. SavedEpi_" + str(qspace.size[0]) + purp)
@@ -321,7 +318,7 @@ def testRecDensityDpsiGraph1():
     dim = 2
     qspace = QSpace([(0,2), (0, 2)])
     numOdo = 200
-    odorscene = createOdorscene(dim, [1e-5], [numOdo], qspace)
+    odorscene = Odorscene.create(dim, [1e-5], [numOdo], qspace)
     PDFname="receptor distance vs dPsi, varying ligands 2"
 
     while numOdo >= 50:
@@ -338,7 +335,7 @@ def testRecDensityDpsiGraph2():
     numOdo = 100
     sd = 1
     dim = 2
-    odorscene = createOdorscene(dim, [1e-5], [numOdo], qspace)
+    odorscene = Odorscene.create(dim, [1e-5], [numOdo], qspace)
     
     PDFname="receptor distance vs dPsi, varying Standard Dev"
     
@@ -377,7 +374,7 @@ def effAnalysis(effSD, affSD=[2,2], qspace=(0,4), fixed=False):
             j += .1
         i += .1
     
-    epi = createEpithelium(1, dim, qspace, affSD, effSD, True) #Creates an epithelium with 1 rec (and not constant mean)
+    epi = Epithelium.create(1, dim, qspace, affSD, effSD, True) #Creates an epithelium with 1 rec (and not constant mean)
     print("Aff sd distr: " + str(epi.recs[0]._sdA))
     print("eff sd distr: " + str(epi.recs[0]._sdE))
     print("mean is " +str(epi.recs[0]._mean))

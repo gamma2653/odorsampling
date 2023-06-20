@@ -48,7 +48,7 @@ class GlomLayer(list[cells.Glom]):
     
     def clearActiv(self):
         for glom in self:
-            glom.activ = 0.0,
+            glom.activ = 0.0
             glom.setRecConn({})
 
     #The following function generates activation levels for a GL in different ways

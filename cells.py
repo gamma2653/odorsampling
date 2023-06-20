@@ -58,7 +58,7 @@ class Glom:
     def activ(self, value: float) -> None:
         """Rounds value and sets it to activation level.
         Precondition: Value is a float between 0 and 1."""
-        assert isinstance(value, float), "Not a float!"
+        assert isinstance(value, float), f"Not a float! ({type(value)})"
         assert value <= 1 and value >= 0, "Not between 0 and 1"
         self._activ = round(value, 6)
 

@@ -39,6 +39,7 @@ import cells
 
 # Used for asserts
 from numbers import Real
+from typing import Sequence
 
 from typing import TYPE_CHECKING
 
@@ -140,15 +141,16 @@ class Ligand:
         self._id = value
     
     @property
-    def loc(self) -> list[float]:
+    def loc(self) -> tuple[float, float]:
         """Returns the loc."""
         return self._loc
 
     @loc.setter
-    def loc(self, value: list[float]) -> None:
+    def loc(self, value: tuple[float, float]) -> None:
         """Sets loc equal to value.
         Precondition: Value is a List"""
-        assert isinstance(value, list), "Value is not a List!"        
+        # TODO: make tuple everywhere
+        assert isinstance(value, Sequence), f"Value is not a List! ({type(value)})"        
         self._loc = value
     
     @property
@@ -220,7 +222,7 @@ class Ligand:
 
 
     #Initializer
-    def __init__(self, id_, conc, loc):
+    def __init__(self, id_, loc, conc):
         """
         Initializes ligand
         
@@ -237,10 +239,11 @@ class Ligand:
         self._effs: list[float] = []
         self._odors2 = []
 
+    # TODO: Change order to be more consistent with constructor
     @classmethod
     def create(cls, dim, conc, id_=0):
         loc = [random.uniform(-1000, 1000) for i in range(dim)]
-        return Ligand(id_, loc, conc)
+        return Ligand(id_, conc, loc)
 
     def __str__(self):
         """Returns description of Ligand"""
@@ -399,30 +402,31 @@ class Receptor:
         self._update_scale()
     
     @property
-    def sdA(self):
+    def sdA(self) -> tuple:
         """Returns the standard deviations for Affinity."""
         return self._sdA
 
     @sdA.setter
-    def sdA(self, value):
+    def sdA(self, value: tuple):
         """Sets sdA equal to value.
         Precondition: Value is a List with dim Q"""
-        assert type(value) == list, "Value is not a List!"
+        assert isinstance(value, Sequence), f"Value is not a List! ({type(value)})"
         assert len(value) == len(self._mean), "Dimension is not consistent with dim of mean"
         self._sdA = value
         self._covA = [_sdA**2 for _sdA in self.sdA]
         self._update_scale()
     
     @property
-    def sdE(self):
+    def sdE(self) -> tuple:
         """Returns the standard deviations for Efficacy."""
         return self._sdE
 
     @sdE.setter
-    def sdE(self, value):
+    def sdE(self, value: tuple):
         """Sets sdE equal to value.
         Precondition: Value is a List with dim Q"""
-        assert type(value) == list, "Value is not a List!"
+        assert isinstance(value, Sequence), "Value is not a List!"
+        # TODO: assert it is a tuple
         assert len(value) == len(self._mean), "Dimension is not consistent with dim of mean"
         self._sdE = value
         self._covE = [_sdE**2 for _sdE in self.sdE]
@@ -498,7 +502,9 @@ class Receptor:
     def __init__(self, id_, mean, sda, sde):
         """Initializes a receptor."""
         self.id = id_
-        self.mean = mean
+        # Note: have to manually set mean or else setter gets called before _covA has value
+        # Resolves covA value when sdA is set using setter.
+        self._mean = mean
         self.sdA = sda
         self.sdE = sde
         # FIXME: Hotfix until getters and setters are fixed for covA, covE, scale, and effScale (are autoassigned by setter)
@@ -558,7 +564,7 @@ class Epithelium:
         SD of each receptor is a uniformly chosen # btwn scale[0] and scale[1]
         Precondition: n is an int"""
         assert type(n) == int, "n is not an integer"
-        return Epithelium([Receptor.create(dim, qspace, scale, scaleEff, constMean, i) for i in n])
+        return Epithelium([Receptor.create(dim, qspace, scale, scaleEff, constMean, i) for i in range(n)])
 
     def __str__(self):
         """Returns epithelium description"""
@@ -1086,7 +1092,7 @@ def sumOfSquares(epithelium: Epithelium, odorscene: Odorscene, dn: list[int], fi
 ## Maximum dpsi value = # of receptors in epithelium (if the first odorscene
 ## always activates the receptor = 1.0 and the other activates = 0.0)
 
-def sumOfSquaresVectorized(epithelium: Epithelium, odorscene: Odorscene, dn, repIndex: int, fixed=False, c=1, gl: list[cells.Glom]=[]): 
+def sumOfSquaresVectorized(epithelium: Epithelium, odorscene: Odorscene, dn, repIndex: int, fixed=False, c=1, gl: layers.GlomLayer=None): 
     
     #print("CALLED AGAIN!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
     """Calculates differentiation between epithelium activation of odorscene before
@@ -1096,10 +1102,11 @@ def sumOfSquaresVectorized(epithelium: Epithelium, odorscene: Odorscene, dn, rep
     Precondtion: dn=list in correct dim"""
     
     #assert odorscene.dim== len(dn), "dimension not consistent with dn"
-    
+    gl = layers.GlomLayer() if gl is None else gl
+
     dPsi = 0
     recs2 = copy.deepcopy(epithelium.recs)
-    layers.clearGLactiv(gl) #Sets gl activations and recConn back to 0.0
+    gl.clearActiv() #Sets gl activations and recConn back to 0.0
     
     
     #print("before loop levl 1:" + str(time.time()))
@@ -1817,7 +1824,7 @@ def dPsiBarSaturation(epithelium: Epithelium, r, qspace: QSpace, pdfName: str, l
     size = ODOR_REPETITIONS #amount of odorscenes we want to avg out
     #conc = 1e-5
     conc = params.ODOR_CONCENTRATION
-    gl = layers.createGL(len(epithelium.recs)) #Only if using newly modified gl:rec n:1 ratio
+    gl = layers.GlomLayer.create(len(epithelium.recs)) #Only if using newly modified gl:rec n:1 ratio
     
     
     #Instantiate odorscene and ligand lists
