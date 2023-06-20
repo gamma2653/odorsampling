@@ -836,7 +836,7 @@ def ActivateMCLfromGL(gl: GlomLayer, mcl: list[cells.Mitral], sel, map_=None, no
     Preconditions: Map holds valid connections for GL and MCL if not empty.
     Sel = "add", "avg" or "sat". Noise = None, u, g, or e."""
     assert sel in ["add", "avg", "sat"], "select value isn't valid"
-    assert noise in ["None", "u", "g", "e"], "noise isn't a valid string"
+    assert noise in [None, "u", "g", "e"], "noise isn't a valid string"
     #Build MCL - GL connections
     if map_ is not None:
         mcl, gl = ApplyMCLSamplingMap(gl, mcl, map_)
@@ -861,7 +861,8 @@ def ApplyMCLSamplingMap(GL: list[cells.Glom], MCL: list[cells.Mitral], Map: list
     precondition: Map holds valid connections for GL and MCL"""
     assert Map[len(Map)-1][0] == len(MCL)-1, "dimensionality of Mitral cells is wrong"
     test = 0
-    MCL[Map[0][0]].loc = GL[Map[0][1]].loc
+    # FIXME: hotfix
+    MCL[Map[0][0]].loc = tuple(GL[Map[0][1]].loc)
 
     for conn in Map:
         # print("Mitral: " + str(conn[0]) + " Glom: " + str(conn[1]) + " Weight: " + str(conn[2]))
@@ -869,7 +870,8 @@ def ApplyMCLSamplingMap(GL: list[cells.Glom], MCL: list[cells.Mitral], Map: list
 
         if conn[0] != test:
             test = test+1
-            MCL[conn[0]].loc = GL[conn[1]].loc
+            # FIXME: hotfix 2 electric boogaloo
+            MCL[conn[0]].loc = tuple(GL[conn[1]].loc)
             MCL[conn[0]].glom = {}
         MCL[conn[0]].glom[conn[1]]=conn[2]  #format: mc.glom[glom]=weight
         MCL[conn[0]].glom = MCL[conn[0]].glom

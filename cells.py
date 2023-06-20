@@ -9,6 +9,7 @@ from __future__ import annotations
 
 # Used for asserts
 from numbers import Real
+from typing import Sequence
 
 # Type checking
 from typing import TYPE_CHECKING
@@ -71,7 +72,8 @@ class Glom:
     def loc(self, value: tuple[Real, Real]) -> None:
         """Sets value to loc.
         Precondition: value is a 2D list of numbers"""
-        assert isinstance(value, tuple), "value is not a list!!"
+        # FIXME: ensure tuple
+        assert isinstance(value, Sequence), f"value is not a list! ({type(value)})"
         assert len(value) == 2 and isinstance(value[0], Real), "Not a 2D list of numbers!"
         self._loc = value
 
@@ -84,7 +86,7 @@ class Glom:
     def dim(self, value: tuple[int]) -> None:
         """Sets value to dim.
         Precondition: value is a 2D list of numbers"""
-        assert isinstance(value, tuple), "value is not a list!!"
+        assert isinstance(value, Sequence), "value is not a list!!"
         assert len(value) == 2 and isinstance(value[0], int), "Not a 2D list of numbers!"
         self._dim = value
         
@@ -175,7 +177,7 @@ class Mitral:
     def loc(self, value: tuple[Real, Real]) -> None:
         """Sets value to loc.
         Precondition: value is a 2D list of numbers"""
-        assert isinstance(value, tuple), "value is not a list!!"
+        assert isinstance(value, Sequence), "value is not a list!!"
         assert len(value) == 2 and isinstance(value[0], Real), "Not a length: 2 list of numbers!"
         self._loc = value   
         
