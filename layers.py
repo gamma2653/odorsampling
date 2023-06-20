@@ -34,35 +34,129 @@ from numbers import Real
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Iterable, Sized, Union
+    from typing import Union, Iterable
 
 
-def createGL(x: Real) -> list[cells.Glom]:
-    """
-    Returns an array of x number of glom objects with activation levels
-    and loc set to defaults. ID refers to its index in the array.
+class GlomLayer(list[cells.Glom]):
 
-    PARAMETERS
-    ----------
-    x - Real
-        FIXME: Why were int & float allowed? Should it not be a discrete number? (Original code explicitly allows float or int)
+    def __init__(self, cells: Iterable[cells.Glom] = tuple()):
+        self.extend(cells)
+    
+    @classmethod
+    def create(cls, n: int):
+        return cls((cells.Glom(i) for i in range(n)))
+    
+    def clearActiv(self):
+        for glom in self:
+            glom.activ = 0.0,
+            glom.setRecConn({})
 
-    RETURNS
-    -------
-    Iterable[cells.Glom]
+    #The following function generates activation levels for a GL in different ways
 
-    """
-    assert isinstance(x, Real), "x is not a Real number."
-    GL: "Iterable[cells.Glom]" = []
-    count = 0
-    while count<x:
-        GL.append(cells.Glom(count, 0.0, [0,0], [0,0], 0))
-        count += 1
+    #For now, if a number is generated to be over 1 or under 0 in Gaussian or
+    #exponential, the function will be called again to generate a different number.
+    def activate_random(self, sel: str, mean=0, sd=0):
+        """Initializes activation level for given GL (glom layer).
+        If sel = "u" then activation levels are drawn from a random distribution.
+        If sel = "g" then drawn from a Gaussian distribution with mean and sd.
+        If sel = "e", then drawn from exponenial distribution with mean.
+        Precondition: GL is a list of Glom and sel is u, g, or e."""
+        assert sel in ["g","u", "e"], "sel isn't g or u"
+        assert (mean+sd) <= 1 and mean-sd >= 0, "Mean and SD are too high or low"
+        for glom in self:
+            if sel == "u":
+                x = random.random()
+            elif sel == "g":
+                x = random.gauss(mean, sd)
+                while x > 1 or x < 0:
+                    x = random.gauss(mean, sd)
+            else: #sel == "e":
+                x = random.expovariate(1/mean)
+                #Maybe find a different function that'll be able input as a parameter the rate of decay
+                while x > 1 or x < 0:
+                    x = random.expovariate(1/mean)
+            glom.activ = x
+            
+    #For now, any number that is incremented to be over 1 or under 0 is just set
+    # to 1 or 0 respectively.
+    def activateGLSimilar(self, num, sel, mean=0, sd= 0, new_ = True):
+        """Returns a glomeruli layer with activation levels similar to gl, by randomly
+        picking a number between -num and num and incrementing (or if gaussian then picked
+        using mean and sd). If new_ is True, then create new gl, otherwise this method fills
+        its member object with the generated activation levels.
+        preconditions: num is between 0 and 1, sel is g' for gaussian or 'u' for uniform"""
+        assert num > 0 and num < 1, "num must be between 0 and 1"
+        assert sel in ["g", "u"], "sel is not 'g' or 'u'."
+        
+        gl2 = GlomLayer.create(len(self)) if new_ else self
+        for i, glom in enumerate(gl2):
+            rand = random.uniform(-num,num) if sel=="u" else random.choice([1,-1])*random.gauss(mean, sd)
+            glom.activ = min(max(rand + self[i].activ, 0.0), 1.0)
 
-    # for glom in GL:
-    #     print(str(glom))
+        return gl2
+    
+    #Creating array of GL's with similar activation
+    def createGLArray(self, x: int, opt: str, sel, num, mean=0, sd=0):
+        """Given a glomeruli layer, returns x amount of similar gl's using
+        the similarity method specified with opt and sel. Original activ lvl is incremented by <= num.
+        Preconditions: gl is a list of glomeruli, x is an int sel is star or ser"""
+        assert type(x) == int, "x is not an int"
+        assert  opt in ["star","ser"], "opt needs to be 'star' or 'ser'"
+        #Everything else is asserted in helper function below
+        if not x:
+            return GlomLayer([])
+        gl = self.activateGLSimilar(num, sel, mean, sd)
+        snd_gl = self if opt == 'star' else gl
+        return [gl] + GlomLayer.createGLArray(snd_gl, x-1, opt, sel, num, mean, sd)
+    
+    #####Loading and Storing a GL, MCL, and Map
+    def save(self, name: str):
+        """Saves GL as a file on the computer with .GL as extention
+        Precondtion: GL is a valid gl and name is a string."""
+        assert type(name) == str, "name is not a string"
+        # TODO: rewrite this pythonically
+        st = ""
+        for glom in self:
+            loc = glom.loc
+            loc = str(loc[0]) + ":" + str(loc[1])
+            st = st + str(glom.id) + "," + str(glom.activ) + "," + loc + "," + str(glom.conn) +";" + '\n'
+        test = open(name + ".GL", "w")
+        test.write(st)
+        test.close
+    
+    @classmethod
+    def loadGL(cls, name: str) -> GlomLayer:
+        """Returns GL with given name from directory
+        precondition: name is a string with correct extension"""
+        assert type(name) == str, "name isn't a string"
+        GL = []
+        # TODO: regex it, and use a generator into GlomLayer constructor
+        text = open(name)
+        for line in text:
+            comma1 = line.index(",")
+            comma2 = line.index(",",comma1+1)
+            comma3 = line.index(",",comma2+1)
+            colon = line.index(":", comma2+1)
+            semi = line.index(";", comma3+1)
+            loc = [int(line[comma2+1:colon]), int(line[colon+1:comma3])]
+            glom = cells.Glom(int(line[:comma1]), float(line[comma1+1:comma2]), loc, int(line[comma3+1:semi]))
+            GL.append(glom)
+        return GlomLayer(GL)
+    
+    def addNoise(self, noise, mean=0, sd=0):
+        """Increments activation levels in GL by a certain value
+        If noise is "u", then mean = scale for uniform distribution."""
+        if noise == "u":
+            inc = random.uniform(0,mean)
+        elif noise == "g":
+            inc = random.gauss(mean, sd)
+        else:
+            inc = random.expovariate(1/mean)
+        for g in self:
+            g.activ = min(max(g.activ + random.choice([1,-1])*inc, 0.0), 1.0)
+        return self
 
-    return GL
+# TODO: Move following two functions into member functions of GlomLayer
 
 def createGL_dimensions(x: Real, y: Real):
     """
@@ -78,7 +172,7 @@ def createGL_dimensions(x: Real, y: Real):
     """
     assert isinstance(x, Real), "x is not a Real number"
     assert isinstance(y, Real), "y is not a Real number"
-    GL: "Iterable[cells.Glom]" = []
+    GL: list[cells.Glom] = []
     countX = 0
     countY = 0
     glomID = 0
@@ -96,104 +190,74 @@ def createGL_dimensions(x: Real, y: Real):
 
     return GL
 
-def clearGLactiv(gl: Iterable[cells.Glom]):
-    """Given gl, clears all the activation lvls to 0.0"""
-    for glom in gl:
-        glom.activ = 0.0
-        glom.setRecConn({})
 
-#The following function generates activation levels for a GL in different ways
+class MitralLayer(list[cells.Mitral]):
+    def __init__(self, cells: Iterable[cells.Mitral]):
+        self.extend(cells)
 
-#For now, if a number is generated to be over 1 or under 0 in Gaussian or
-#exponential, the function will be called again to generate a different number.
-def activateGL_Random(GL: Iterable[cells.Glom], sel: str, mean=0, sd=0):
-    """Initializes activation level for given GL (glom layer).
-    If sel = "u" then activation levels are drawn from a random distribution.
-    If sel = "g" then drawn from a Gaussian distribution with mean and sd.
-    If sel = "e", then drawn from exponenial distribution with mean.
-    Precondition: GL is a list of Glom and sel is u, g, or e."""
-    assert isinstance(GL, list), "GL is not a list"
-    assert sel in ["g","u", "e"], "sel isn't g or u"
-    assert (mean+sd) <= 1 and mean-sd >= 0, "Mean and SD are too high or low"
-    for glom in GL:
-        if sel == "u":
-            x = random.random()
-        elif sel == "g":
-            x = random.gauss(mean, sd)
-            while x > 1 or x < 0:
-                x = random.gauss(mean, sd)
-        else: #sel == "e":
-            x = random.expovariate(1/mean)
-            #Maybe find a different function that'll be able input as a parameter the rate of decay
-            while x > 1 or x < 0:
-                x = random.expovariate(1/mean)
-        glom.activ = x
+    @classmethod
+    def create(cls, n: Real):
+        assert isinstance(n, Real)
+        return cls((cells.Mitral(i, 0.0, (0, 0), {}) for i in range(n)))
+    
+    def save(self, name: str):
+        """Saves MCL as a file on the computer with .MCL as extention.
+        Precondition: Map is a valid map and name is a string."""
+        assert type(name) == str, "name is not a string"
+        st = ""
+        for m in self:
+            loc = m.loc
+            loc = str(loc[0]) + ":" + str(loc[1])
+            #Storing glom
+            glom = str(m.glom.items())
+            end = glom.index("]")
+            i = 0
+            s = ""
+            while i < end-1:
+                ind1 = glom.index("(", i)
+                comma = glom.index(",",ind1)
+                ind2 = glom.index(")", ind1)
+                s = s + glom[ind1+1:comma] + "|" + glom[comma+2:ind2] + "+"
+                i = ind2
+            st = f"{st}{m.id},{m.activ},{loc},{s};\n"
+        test = open(name + ".mcl", "w")
+        test.write(st)
+        test.close
+    
+    @classmethod
+    def load(name: str) -> MitralLayer:
+        """Returns MCL with given name from directory.
+        precondition: name is a string with correct extension"""
+        assert type(name) == str, "name isn't a string"
+        mcl = []
+        text = open(name)
+        for line in text:
+            comma1 = line.index(",")
+            comma2 = line.index(",",comma1+1)
+            comma3 = line.index(",",comma2+1)
+            colon = line.index(":", comma2+1)
+            semi = line.index(";", comma3+1)
+            loc = [int(line[comma2+1:colon]), int(line[colon+1:comma3])]
+            middle = line.find("|")
+            beg = comma3
+            glom = {}
+            while middle != -1:
+                key = line[beg+1:middle]
+                beg = line.index("+", beg+1)
+                val = line[middle+1:beg]
+                middle = line.find("|", middle+1)
+                glom[int(key)] = float(val)
+            mitral = cells.Mitral(int(line[:comma1]), float(line[comma1+1:comma2]), loc, glom)
+            mcl.append(mitral)
+        return mcl
 
-# TODO: add type hints for other args in following funcs
-
-#Creating array of GL's with similar activation
-def createGLArray(gl: Iterable[cells.Glom], x: int, opt: str, sel, num, mean=0, sd=0):
-    """Given a glomeruli layer, returns x amount of similar gl's using
-    the similarity method specified with opt and sel. Original activ lvl is incremented by <= num.
-    Preconditions: gl is a list of glomeruli, x is an int sel is star or ser"""
-    assert type(x) == int, "x is not an int"
-    assert  opt in ["star","ser"], "opt needs to be 'star' or 'ser'"
-    #Everything else is asserted in helper function below
-    if x == 0:
-        return []
-    if opt == "star":
-        glom = activateGL_Similar(gl, num, sel, mean, sd)
-        return [glom] + createGLArray(gl, x-1, opt, sel, num, mean, sd)
-    else: #opt == "ser"
-        glom = activateGL_Similar(gl, num, sel, mean, sd)
-        return [glom] + createGLArray(glom, x-1, opt, sel, num, mean, sd)
-
-#For now, any number that is incremented to be over 1 or under 0 is just set
-# to 1 or 0 respectively.
-def activateGL_Similar(gl: "Sized[cells.Glom]", num, sel, mean=0, sd= 0, gl2=[]):
-    """Returns a glomeruli layer with activation levels similar to gl, by randomly
-    picking a number between -num and num and incrementing (or if gaussian then picked
-    using mean and sd). If gl2 is empty, then create new gl, otherwise this function
-    fills gl2 with activation levels.
-    preconditions: len(gl2) == 0 or len(gl), num is between 0 and 1, sel is
-    'g' for gaussian or 'u' for uniform"""
-    assert gl2 ==[] or len(gl2) == len(gl), "Glomeruli layers are different sizes!"
-    assert num > 0 and num < 1, "num must be between 0 and 1"
-    assert sel in ["g", "u"], "sel is not 'g' or 'u'."
-    if gl2 == []:
-        gl2 = createGL(len(gl))
-    for index in range(len(gl2)):
-        if sel == "u":
-            rand = random.uniform(-num,num)
-        else: # sel == "g"
-            rand = random.choice([1,-1])*random.gauss(mean, sd)
-        inc = rand + gl[index].getActiv()
-        if inc > 1:
-            inc = 1.0
-        if inc < 0:
-            inc = 0.0
-        gl2[index].activ = inc
-    return gl2
-
-
-def createMCL(x) -> Iterable[cells.Mitral]:
-    """Returns an array of x number of mitral objects with activation levels,
-    loc, and connecting glomeruli set to defaults. ID refers to its index in the array.
-    Precondition: x is an int or float"""
-    assert isinstance(x, Real), "x is not a real number"
-    ML = []
-    count = 0
-    while count<x:
-        ML.append(cells.Mitral(count, 0.0, [0,0], {}))
-        count += 1
-
-    return ML
 
 ######## Creating Map
 
 #****For now all weights are chosen uniformly
 #connections are either fixed or cr serves as the mean with a sd for amount of connections
-def createMCLSamplingMap(gl: Sized[cells.Glom], mcl: Sized[cells.Mitral], cr: Real, fix: bool, sel: str, sd=0, bias="lin") -> list:
+def createMCLSamplingMap(gl: GlomLayer, mcl: MitralLayer, cr: Real, fix: bool,
+                         sel: str, sd=0, bias="lin") -> list[tuple[int, int, float]]:
     """Returns a map in the form of [[Mi, G, W],[Mi, G, W]...] where
     Mi and G are ID's and W is the weight.
     1. The convergence ratio (cr) determines the amount of glom sample to each
@@ -210,39 +274,47 @@ def createMCLSamplingMap(gl: Sized[cells.Glom], mcl: Sized[cells.Mitral], cr: Re
     assert bias in ["lin", "exp"]
 
     if cr == 1 and fix == True:  #Needed to avoid two Mitral cells sampling the same Glom
-        Map = oneToOneSample(gl,mcl)
+        return oneToOneSample(gl,mcl)
     elif sel == "simple":
-        Map = simpleSampleRandom(gl, mcl, cr, fix, sd)
+        return simpleSampleRandom(gl, mcl, cr, fix, sd)
     elif sel == "balanced": 
         assert (len(mcl)*cr)%len(gl) == 0, "cannot balance. recreate mitrals."
-        Map = simpleSampleBalanced(gl, mcl, cr, fix, sd)
+        return simpleSampleBalanced(gl, mcl, cr, fix, sd)
     elif sel == "location":
-        assert gl[0].getDim()[0]>=3 and gl[0].getDim()[1]>=3, "glom need to be at least 3X3. recreate gloms."
-        Map = simpleSampleLocation(gl, mcl, cr, fix, sd)
+        assert gl[0].dim[0]>=3 and gl[0].dim[1]>=3, "glom need to be at least 3X3. recreate gloms."
+        return simpleSampleLocation(gl, mcl, cr, fix, sd)
     else: #sel == "biased
-        Map = biasSample(gl, mcl, cr, fix, bias, sd)
+        return biasSample(gl, mcl, cr, fix, bias, sd)
     #Can call a clean up function here if we want
     #print(unsampledGlom(gl, mcl, Map)               #PRINTING HERE
-    return Map
 
-def oneToOneSample(gl: Sized[cells.Glom], mcl: list[cells.Mitral]):
-    """For 1:1 sampling, each mitral cell chooses an unselected glom cell
-    Precondition: len of gl >= len of mcl"""
+# TODO: rewrite samplers
+
+def oneToOneSample(gl: GlomLayer, mcl: MitralLayer) -> list[tuple[int, int, float]]:
+    """
+    For 1:1 sampling, each mitral cell chooses an unselected glom cell
+    Precondition: len of gl >= len of mcl
+    
+    Returns
+    -------
+    list[tuple[int, int, float]]
+        The mitral_id, glom_idx, and weights for each mitral cell
+    """
     assert len(gl) >= len(mcl)
-    Map = []
+    map_ = []
     indexes = list(range(0,len(gl)))
     for mitral in mcl:
         ind = random.choice(indexes)
         indexes.remove(ind)
-        Map.append([mitral.id, ind, 1])   #******Changed for weights to always be 1
-    return Map
+        map_.append([mitral.id, ind, 1])   #******Changed for weights to always be 1
+    return map_
 
-def simpleSample(gl: list[cells.Glom], mcl: list[cells.Mitral], cr, fix, sd=0):
+def simpleSample(gl: GlomLayer, mcl: MitralLayer, cr, fix, sd=0) -> list[tuple[int, int, float]]:
     """Builds a map by randomly choosing glomeruli to sample to mitral cells.
     If fix != true, cr serves as mean for # of glom sample to each mitral cell.
     Weights are randomly chosen uniformly.
     ***Weights of a mitral cell's gloms do NOT add up to 1.0***"""
-    Map = []
+    map_ = []
     counter = 0
     if fix:
         while counter < len(mcl):
@@ -250,8 +322,8 @@ def simpleSample(gl: list[cells.Glom], mcl: list[cells.Mitral], cr, fix, sd=0):
             conn = []
             while inc < cr:
                 num = random.randint(0,len(gl)-1)
-                num = _prevDuplicates(num, conn, gl, "simple", [], 0) #Ensures that glom at num isn't connected to the mitral cell yet
-                Map.append([mcl[counter].id, num, random.uniform(0,.4)])
+                num = _prevDuplicates(num, conn, gl) #Ensures that glom at num isn't connected to the mitral cell yet
+                map_.append([mcl[counter].id, num, random.uniform(0,.4)])
                 inc += 1
                 conn.append(num)
             counter += 1
@@ -262,19 +334,19 @@ def simpleSample(gl: list[cells.Glom], mcl: list[cells.Mitral], cr, fix, sd=0):
             conn = []
             while inc < rand:
                 num = random.randint(0,len(gl)-1)
-                num = _prevDuplicates(num, conn, gl, "simple", [], 0)
-                Map.append([mcl[counter].id, num, random.uniform(0,.4)])
+                num = _prevDuplicates(num, conn, gl)
+                map_.append([mcl[counter].id, num, random.uniform(0,.4)])
                 inc += 1
                 conn.append(num)
             counter += 1
-    return Map
+    return map_
 
-def simpleSampleRandom(gl: list[cells.Glom], mcl: list[cells.Mitral], cr, fix, sd=0):
+def simpleSampleRandom(gl: GlomLayer, mcl: MitralLayer, cr, fix, sd=0) -> list[tuple[int, int, float]]:
     """Builds a map by randomly choosing glomeruli to sample to mitral cells.
     If fix != true, cr serves as mean for # of glom sample to each mitral cell.
     Weights are randomly chosen uniformly.
     ***Weights of a mitral cell's gloms add up to 1.0***"""
-    Map = []
+    map_ = []
     counter = 0
     if fix:
         while counter < len(mcl):
@@ -283,14 +355,14 @@ def simpleSampleRandom(gl: list[cells.Glom], mcl: list[cells.Mitral], cr, fix, s
             leftover = 1
             while inc < cr:
                 num = random.randint(0,len(gl)-1)
-                num = _prevDuplicates(num, conn, gl, "simple", [], 0) #Ensures that glom at num isn't connected to the mitral cell yet
+                num = _prevDuplicates(num, conn, gl) #Ensures that glom at num isn't connected to the mitral cell yet
 
                 if inc == (cr-1):
                     act = leftover
                 else:
                     act = random.uniform(0, leftover)
                     leftover -= act
-                Map.append([mcl[counter].id, num, act])
+                map_.append([mcl[counter].id, num, act])
                 inc += 1
                 conn.append(num)
             counter += 1
@@ -301,20 +373,20 @@ def simpleSampleRandom(gl: list[cells.Glom], mcl: list[cells.Mitral], cr, fix, s
             conn = []
             while inc < rand:
                 num = random.randint(0,len(gl)-1)
-                num = _prevDuplicates(num, conn, gl, "simple", [], 0)
-                Map.append([mcl[counter].id, num, random.uniform(0,.4)])
+                num = _prevDuplicates(num, conn, gl)
+                map_.append([mcl[counter].id, num, random.uniform(0,.4)])
                 inc += 1
                 conn.append(num)
             counter += 1
-    return Map
+    return map_
 
-def simpleSampleBalanced(gl: list[cells.Glom], mcl: list[cells.Mitral], cr, fix, sd=0):
+def simpleSampleBalanced(gl: GlomLayer, mcl: MitralLayer, cr, fix, sd=0) -> list[tuple[int, int, float]]:
     """Builds a map by randomly choosing glomeruli to sample to mitral cells.
     If fix != true, cr serves as mean for # of glom sample to each mitral cell.
     Weights are randomly chosen uniformly. Limits number of mitral cells that 
     glom can project to (Fanout_ratio = (#MC * cr) / #Glom).
     ***Weights of a mitral cell's gloms add up to 1.0***"""
-    Map = []
+    map_ = []
     counter = 0
     F = (len(mcl) * cr)/len(gl) #fanout ratio
     glomSelections = []
@@ -336,44 +408,30 @@ def simpleSampleBalanced(gl: list[cells.Glom], mcl: list[cells.Mitral], cr, fix,
                 while num in conn and check < 100:
                     num = random.choice(glomSelections)
                     check += 1
-                    assert check != 100, "please run again. this is check: " + str(check) # IMPLEMENT THIS IN A BETTER WAY. This error shows up when the very last mitral is forced to sample from the same glom.
+                    # IMPLEMENT THIS IN A BETTER WAY. This error shows up when the very last mitral is forced to sample from the same glom.
+                    assert check != 100, "please run again. this is check: " + str(check)
                 glomSelections.remove(num)
-                # print("num: " + str(num))
-                # print("glomSelections: ")
-                # print(glomSelections)
                 if inc == (cr-1):
                     act = leftover
                 else:
                     act = random.uniform(0, leftover)
                     leftover -= act
-                Map.append([mcl[counter].id, num, act])
+                map_.append([mcl[counter].id, num, act])
                 inc += 1
                 conn.append(num)
             counter += 1
-    # currently we have decided that cr should always be fixed
-    # if not fix:
-        # while counter < len(mcl):
-        #     rand = max(random.gauss(cr, sd), 1)
-        #     inc = 0
-        #     conn = []
-        #     while inc < rand:
-        #         num = random.randint(0,len(gl)-1)
-        #         num = _prevDuplicates(num, conn, gl, "simple", [], 0)
-        #         Map.append([mcl[counter].getId(), num, random.uniform(0,.4)])
-        #         inc += 1
-        #         conn.append(num)
-        #     counter += 1
-    return Map
+    return map_
 
-def simpleSampleLocation(gl: list[cells.Glom], mcl: list[cells.Mitral], cr, fix, sd=0):
+def simpleSampleLocation(gl: GlomLayer, mcl: MitralLayer, cr, fix, sd=0) -> list[tuple[int, int, float]]:
     """Builds a map by randomly choosing glomeruli to sample to mitral cells.
     If fix != true, cr serves as mean for # of glom sample to each mitral cell.
     Weights are randomly chosen uniformly. Glomeruli are drawn randomly from the
     surrounding glomeruli that surround the parent glomerulus.
     ***Weights of a mitral cell's gloms add up to 1.0***"""
-    Map = []
+    map_ = []
     counter = 0
-    
+
+    # TODO: Fix "magic" numbers
     numLayers = math.ceil((-4+math.sqrt(16-16*(-(cr-1))))/8)
     print("numLayers: " + str(numLayers))
     numToSelect = (cr-1) - (8*(((numLayers-1)*(numLayers))/2))
@@ -393,25 +451,15 @@ def simpleSampleLocation(gl: list[cells.Glom], mcl: list[cells.Mitral], cr, fix,
             yUpperBound = numLayers+y
             yLowerBound = y-numLayers
             print("y: [" + str(yLowerBound) + ", " + str(yUpperBound) + "]")
-
-            inc = 0
             gloms = []
             act = random.uniform(0,1)
-            Map.append([mcl[counter].id, num, act])
+            map_.append([mcl[counter].id, num, act])
             leftover = 1-act
-
-            # while inc < cr-1:
-            #     if inc == (cr-2):
-            #         act = leftover
-            #     else:
-            #         act = random.uniform(0, leftover)
-            #         leftover -= act
-
 
             if int(numLayers) == 1:
                 selected = 0
                 # FIXME: Why in the world is the y and x dims swapped
-                randomGlom = generateRandomGlom(xLowerBound, xUpperBound, yLowerBound, yUpperBound, gl[0].dim[1], gl[0].dim[0])
+                randomGlom = generateRandomGlom(xLowerBound, xUpperBound, yLowerBound, yUpperBound)
                 while selected < int(numToSelect):
                     if selected == int(numToSelect)-1:
                         act = leftover
@@ -419,17 +467,17 @@ def simpleSampleLocation(gl: list[cells.Glom], mcl: list[cells.Mitral], cr, fix,
                         act = random.uniform(0, leftover)
                         leftover -= act
                     while randomGlom in gloms:
-                        randomGlom = generateRandomGlom(xLowerBound, xUpperBound, yLowerBound, yUpperBound, gl[0].dim[1], gl[0].dim[0])
+                        randomGlom = generateRandomGlom(xLowerBound, xUpperBound, yLowerBound, yUpperBound)
                     gloms.append(randomGlom)
                     selected += 1
                     for g in gl:
-                        # print("g id: " + str(g.getId()))
-                        # if g.getLoc() == randomGlom:
+                        # print("g id: " + str(g.id))
+                        # if g.loc == randomGlom:
                         if g.loc == [randomGlom[0]%(gl[0].dim[1]), randomGlom[1]%(gl[0].dim[0])]:
                             print(randomGlom)
                             num = g.id
 
-                    Map.append([mcl[counter].id, num, act])
+                    map_.append([mcl[counter].id, num, act])
                 print(gloms)
 
             elif int(numLayers) == 2:
@@ -456,12 +504,12 @@ def simpleSampleLocation(gl: list[cells.Glom], mcl: list[cells.Mitral], cr, fix,
                             num = g.id
                             act = random.uniform(0, leftover)
                             leftover -= act
-                            Map.append([mcl[counter].id, num, act])
+                            map_.append([mcl[counter].id, num, act])
 
                 # second layer
                 print("second layer")
                 selected = 0
-                randomGlom = generateRandomGlom(xLowerBound, xUpperBound, yLowerBound, yUpperBound, gl[0].dim[1], gl[0].dim[0])
+                randomGlom = generateRandomGlom(xLowerBound, xUpperBound, yLowerBound, yUpperBound)
                 while selected < int(numToSelect):
                     if selected == int(numToSelect)-1:
                         act = leftover
@@ -469,49 +517,22 @@ def simpleSampleLocation(gl: list[cells.Glom], mcl: list[cells.Mitral], cr, fix,
                         act = random.uniform(0, leftover)
                         leftover -= act
                     while randomGlom in gloms:
-                        randomGlom = generateRandomGlom(xLowerBound, xUpperBound, yLowerBound, yUpperBound, gl[0].dim[1], gl[0].dim[0])
+                        randomGlom = generateRandomGlom(xLowerBound, xUpperBound, yLowerBound, yUpperBound)
                     gloms.append(randomGlom)
                     selected += 1
                     for g in gl:
-                        # print("g id: " + str(g.getId())))
-                        # if g.getLoc() == randomGlom:
+                        # print("g id: " + str(g.id)))
+                        # if g.loc == randomGlom:
                         if g.loc == [randomGlom[0]%(gl[0].dim[1]), randomGlom[1]%(gl[0].dim[0])]:
                             print(randomGlom)
                             num = g.id
 
-                    Map.append([mcl[counter].id, num, act])
-
-
-                # randomGlom = generateRandomGlom(xLowerBound, xUpperBound, yLowerBound, yUpperBound, gl[0].getDim()[1], gl[0].getDim()[0])
-                # while randomGlom in gloms:
-                #     # if randomGlom in gloms:
-                #     #     print("?")
-                #     #     print(randomGlom)
-                #     # print(randomGlom)
-                    
-                #     randomGlom = generateRandomGlom(xLowerBound, xUpperBound, yLowerBound, yUpperBound, gl[0].getDim()[1], gl[0].getDim()[0])
-                #     if len(gloms) == int(numToSelect)-5:
-                #         print("im in here")
-                #         break
-                # gloms.append(randomGlom)
-                # print(gloms)
-
-                # for g in gl:
-                #     # print("g id: " + str(g.getId()))
-                #     # if g.getLoc() == randomGlom:
-                #     if g.getLoc() == [randomGlom[0]%(gl[0].getDim()[1]), randomGlom[1]%(gl[0].getDim()[0])]:
-                #         # print(randomGlom)
-                #         num = g.getId()
-                
-                # Map.append([mcl[counter].getId(), num, act])
-
-                # print("random glom: (" + str(randomGlom[0]) + ", " + str(randomGlom[1]) + ")")
-                # inc += 1
+                    map_.append([mcl[counter].id, num, act])
             counter+=1
 
-    return Map
+    return map_
 
-def generateRandomGlom(xLowerBound: int, xUpperBound: int, yLowerBound: int, yUpperBound: int, row, col):
+def generateRandomGlom(xLowerBound: int, xUpperBound: int, yLowerBound: int, yUpperBound: int):
     """Returns a random glom location"""
     randomGlomX = random.randint(xLowerBound, xUpperBound)
     if randomGlomX == xLowerBound or randomGlomX == xUpperBound:
@@ -523,12 +544,12 @@ def generateRandomGlom(xLowerBound: int, xUpperBound: int, yLowerBound: int, yUp
     return [randomGlomX, randomGlomY]    
  
 
-def biasSample(gl: list[cells.Glom], mcl: list[cells.Mitral], cr, fix, bias, sd=0):
+def biasSample(gl: GlomLayer, mcl: MitralLayer, cr, fix, bias, sd=0) -> list[tuple[int, int, float]]:
     """Builds a map by choosing glomeruli to sample to mitral cells, but the more times
     a glomeruli is sampled, the less likely it is to be chosen again (either a linear
     degression or exponential based on bias). If fix != true, cr serves as mean for
     # of glom sample to each mitral cell. Weights are randomly chosen uniformly."""
-    Map = []
+    map_ = []
     #determine scale
     calc = (len(mcl)/len(gl))
     scale = max(7, int(calc*1.7*cr))  
@@ -554,29 +575,28 @@ def biasSample(gl: list[cells.Glom], mcl: list[cells.Mitral], cr, fix, bias, sd=
                 rand = rand - weights[index]
                 index += 1
             index -= 1
-            index = _prevDuplicates(index, conn, gl, "bias", weights, s)
-            Map.append([counter, index, random.uniform(0,.4)])
+            index = _prevDuplicates(index, conn, gl, weights, s)
+            map_.append([counter, index, random.uniform(0,.4)])
             const = _recalcWeights(weights, index, bias, s)
             weights = const[0]
             s = const[1]
             conn.append(index)
             temp += 1
         counter += 1
-    return Map
+    return map_
 
 # TODO: figure out types
 
-def _prevDuplicates(num, conn, gl: list[cells.Glom], sel, weights, s):
+def _prevDuplicates(num, conn, gl: GlomLayer, weights=None, s=1):
     """If a mitral cell already connects to glom at index num, then pick
     a new number. To prevent infinite loop, if a certain number of loops
     occur, just allow duplicate but print a warning message."""
-    if sel == "simple":
-        check = 0
+    check = 0
+    if weights is None:
         while num in conn and check < 100:
             num = random.randint(0,len(gl)-1)
             check += 1
     else:
-        check = 0
         while num in conn and check < 100:
             rand = random.randint(1, s)
             num = 0
@@ -590,7 +610,7 @@ def _prevDuplicates(num, conn, gl: list[cells.Glom], sel, weights, s):
     return num
         
 
-def _buildWeights(gl: list[cells.Glom], bias: str, scale):
+def _buildWeights(gl: GlomLayer, bias: str, scale):
     """Returns a list len(gl), with each index starting with the same number
     which depends on bias"""
     weights = []
@@ -630,7 +650,7 @@ def _recalcWeights(weights, index: int, bias, s):
 
 ###Cleaning up unconnected glom in built Map
 
-def cleanUp(gl: list[cells.Glom], mcl: list[cells.Mitral], Map):
+def cleanUp(gl: list[cells.Glom], mcl: list[cells.Mitral], map_: list):
     """Samples all unsampled glom in gl to the last mitral cell in mcl with a
     random uniform number for weight. **This will violate the Map if # of connections
     was fixed"""
@@ -640,15 +660,15 @@ def cleanUp(gl: list[cells.Glom], mcl: list[cells.Mitral], Map):
         unsampled.append(counter)
         counter += 1
     counter = 0
-    while counter < len(Map):
-        if Map[counter][1] in unsampled:
-            unsampled.remove(Map[counter][1])
+    while counter < len(map_):
+        if map_[counter][1] in unsampled:
+            unsampled.remove(map_[counter][1])
         counter += 1
     while len(unsampled) > 0:
-        Map.append([len(mcl)-1, unsampled[0], random.random()])
+        map_.append([len(mcl)-1, unsampled[0], random.random()])
         unsampled.remove(unsampled[0])
         
-def unsampledGlom(gl: list[cells.Glom], mcl: list[cells.Mitral], Map):
+def unsampledGlom(gl: list[cells.Glom], mcl: list[cells.Mitral], map_):
     """prints out amount of gl unsampled in Map"""
     unsampled = []
     counter = 0
@@ -656,9 +676,9 @@ def unsampledGlom(gl: list[cells.Glom], mcl: list[cells.Mitral], Map):
         unsampled.append(counter)
         counter += 1
     counter = 0
-    while counter < len(Map):
-        if Map[counter][1] in unsampled:
-            unsampled.remove(Map[counter][1])
+    while counter < len(map_):
+        if map_[counter][1] in unsampled:
+            unsampled.remove(map_[counter][1])
         counter += 1
     return "Amount of unsampled Glom: " + str(len(unsampled)) + "\n"
 
@@ -671,9 +691,9 @@ def GraphGlomActivation(gl: list[cells.Glom], n, m):
     #     graph.append([])
     #     counter += 1
     # for g in gl:
-    #     print("id: " + str(g.getId()) + " activation: " + str(g.getActiv()) + " loc: " + str(g.getLoc()))
+    #     print("id: " + str(g.id) + " activation: " + str(g.activ) + " loc: " + str(g.loc))
     #     c = 0
-    #     graph[g.getLoc()[1]].append(g.getActiv())
+    #     graph[g.loc[1]].append(g.activ)
     # print(graph)
 
     # fig = plt.imshow(graph, cmap=matplotlib.pylab.cm.YlOrRd, interpolation='nearest', origin="lower", extent=[0,n,0,m])
@@ -691,6 +711,8 @@ def GraphGlomActivation(gl: list[cells.Glom], n, m):
     # plt.close()
 
 ################################# THIS WORKS 
+
+# FIXME: ^Does it? What is it graphing?
     graph = [[0,0,0],[0,0,0],[0,0,0],[0,0.5,0],[0.0,1.0,0.0],[0,0.4,0],[0,0,0.4],[0,0,1],[0,0,0.8]]
     plt.imshow(graph, cmap=matplotlib.pylab.cm.YlOrRd, interpolation='nearest', origin="lower", extent=[0,3,0,3])
     plt.title("Glom Activation")
@@ -703,8 +725,9 @@ def GraphGlomActivation(gl: list[cells.Glom], n, m):
 
     plt.close()
 
+# TODO: tidy up
 def GraphMitralActivation(gl: list[cells.Glom], mcl: list[cells.Mitral], n, m):
-    print("in GraphMitralActivation")
+    print("Graphing mitral activation")
     mitralLocations = {}
     mitralActivations: dict[str, list[float]] = {}
     for mitral in mcl:
@@ -734,23 +757,12 @@ def GraphMitralActivation(gl: list[cells.Glom], mcl: list[cells.Mitral], n, m):
             graph[counter].append(0)
             counter1 += 1
         counter += 1
-    print("testing now")
     print(graph)
 
     for x in range(m):
         for y in range(len(graph)):
             if str([x,y/maxMitrals]) in mitralActivations:
                 print(str(x) + ", " + str(y))
-                # if y%maxMitrals < len(mitralActivations.get(str([x,y/maxMitrals]))):
-                #     print(mitralActivations.get(str([x,y/maxMitrals]))[y%maxMitrals])
-                #     graph[y][x] = mitralActivations.get(str([x,y/maxMitrals]))[y%maxMitrals]
-                # elif len(mitralActivations.get(str([x,y/maxMitrals])) == 1:
-                #     graph[y][x] = mitralActivations.get(str([x,y/maxMitrals]))[0]
-                # else:
-                #     print(mitralActivations.get(str([x,y/maxMitrals]))[0])
-                #     counter2 = 0
-                #     while counter2 <
-                #     graph[y][x] = mitralActivations.get(str([x,y/maxMitrals]))[0]
                 numActivations = len(mitralActivations.get(str([x,y/maxMitrals])))
                 if numActivations == 1:
                     print("if")
@@ -785,91 +797,6 @@ def GraphMitralActivation(gl: list[cells.Glom], mcl: list[cells.Mitral], n, m):
 
     plt.close()
 
-    #     print("id: " + str(g.getId()) + " loc: " + str(g.getLoc()))
-    #     graph[g.getLoc()[1]].append(g.getActiv())
-
-
-#####Loading and Storing a GL, MCL, and Map
-def saveGL(GL: list[cells.Glom], name: str):
-    """Saves GL as a file on the computer with .GL as extention
-    Precondtion: GL is a valid gl and name is a string."""
-    assert type(name) == str, "name is not a string"
-    st = ""
-    for glom in GL:
-        loc = glom.loc
-        loc = str(loc[0]) + ":" + str(loc[1])
-        st = st + str(glom.id) + "," + str(glom.activ) + "," + loc + "," + str(glom.conn) +";" + '\n'
-    test = open(name + ".GL", "w")
-    test.write(st)
-    test.close
-
-def loadGL(name:str) -> list[cells.Glom]:
-    """Returns GL with given name from directory
-    precondition: name is a string with correct extension"""
-    assert type(name) == str, "name isn't a string"
-    GL = []
-    text = open(name)
-    for line in text:
-        comma1 = line.index(",")
-        comma2 = line.index(",",comma1+1)
-        comma3 = line.index(",",comma2+1)
-        colon = line.index(":", comma2+1)
-        semi = line.index(";", comma3+1)
-        loc = [int(line[comma2+1:colon]), int(line[colon+1:comma3])]
-        glom = cells.Glom(int(line[:comma1]), float(line[comma1+1:comma2]), loc, int(line[comma3+1:semi]))
-        GL.append(glom)
-    return GL
-
-def saveMCL(MCL: list[cells.Mitral], name: str):
-    """Saves MCL as a file on the computer with .MCL as extention.
-    Precondition: Map is a valid map and name is a string."""
-    assert type(name) == str, "name is not a string"
-    st = ""
-    for m in MCL:
-        loc = m.loc
-        loc = str(loc[0]) + ":" + str(loc[1])
-        #Storing glom
-        glom = str(m.glom.items())
-        end = glom.index("]")
-        i = 0
-        s = ""
-        while i < end-1:
-            ind1 = glom.index("(", i)
-            comma = glom.index(",",ind1)
-            ind2 = glom.index(")", ind1)
-            s = s + glom[ind1+1:comma] + "|" + glom[comma+2:ind2] + "+"
-            i = ind2
-        st = st + str(m.id) + "," + str(m.activ) + "," + loc + "," + s +";" + '\n'
-    test = open(name + ".mcl", "w")
-    test.write(st)
-    test.close
-
-def loadMCL(name: list[cells.Mitral]) -> list[cells.Mitral]:
-    """Returns MCL with given name from directory.
-    precondition: name is a string with correct extension"""
-    assert type(name) == str, "name isn't a string"
-    MCL = []
-    text = open(name)
-    for line in text:
-        comma1 = line.index(",")
-        comma2 = line.index(",",comma1+1)
-        comma3 = line.index(",",comma2+1)
-        colon = line.index(":", comma2+1)
-        semi = line.index(";", comma3+1)
-        loc = [int(line[comma2+1:colon]), int(line[colon+1:comma3])]
-        middle = line.find("|")
-        beg = comma3
-        glom = {}
-        while middle != -1:
-            key = line[beg+1:middle]
-            beg = line.index("+", beg+1)
-            val = line[middle+1:beg]
-            middle = line.find("|", middle+1)
-            glom[int(key)] = float(val)
-        mitral = cells.Mitral(int(line[:comma1]), float(line[comma1+1:comma2]), loc, glom)
-        MCL.append(mitral)
-    return MCL
-
 
 def saveMCLSamplingMap(Map, name: str):
     """Saves Map as a file on the computer with .mapGLMCL as extention.
@@ -901,7 +828,7 @@ def loadMCLSamplingMap(name: str) -> list[list[Real]]:
 ########Connnecting GL, MCL, and Map altogether
 
 #How do weights play in? Right now I just do activlvl*weight
-def ActivateMCLfromGL(GL: list[cells.Glom], MCL: list[cells.Mitral], sel, Map=[], noise="None", mean=0, sd=0):
+def ActivateMCLfromGL(gl: GlomLayer, mcl: list[cells.Mitral], sel, map_=None, noise=None, mean=0, sd=0):
     """Builds glom connections to mitral cells and calculates mitral activ lvl based on
     connections and weights. Sel decides how to calculate the values, and noise
     adds some variation.
@@ -911,17 +838,15 @@ def ActivateMCLfromGL(GL: list[cells.Glom], MCL: list[cells.Mitral], sel, Map=[]
     assert sel in ["add", "avg", "sat"], "select value isn't valid"
     assert noise in ["None", "u", "g", "e"], "noise isn't a valid string"
     #Build MCL - GL connections
-    if Map != []:
-        temp = ApplyMCLSamplingMap(GL, MCL, Map)
-        MCL = temp[0]
-        GL = temp[1]
+    if map_ is not None:
+        mcl, gl = ApplyMCLSamplingMap(gl, mcl, map_)
     #Add noise
-    if noise != "None":
-        GL = addNoise(GL, noise, mean=0, sd=0)
+    if noise is not None:
+        gl = gl.addNoise(noise, mean=0, sd=0)
     #Activate Mitral cell activ lvls in MCL
     if sel == "add" or sel == "avg":
-        for m in MCL:
-            activ = addActivationMCL(m, GL)
+        for m in mcl:
+            activ = addActivationMCL(m, gl)
             if sel == "avg":
                 activ = activ/(len(m.glom))
             m._activ = activ   #Bypassing assertion that activ lvl < 1
@@ -940,40 +865,28 @@ def ApplyMCLSamplingMap(GL: list[cells.Glom], MCL: list[cells.Mitral], Map: list
 
     for conn in Map:
         # print("Mitral: " + str(conn[0]) + " Glom: " + str(conn[1]) + " Weight: " + str(conn[2]))
-        # print("Glom location: " + str(GL[conn[1]].getLoc()))
+        # print("Glom location: " + str(GL[conn[1]].loc))
 
         if conn[0] != test:
             test = test+1
             MCL[conn[0]].loc = GL[conn[1]].loc
             MCL[conn[0]].glom = {}
-        MCL[conn[0]].glom[conn[1]]=conn[2]  #format: mc.getGlom()[glom]=weight
+        MCL[conn[0]].glom[conn[1]]=conn[2]  #format: mc.glom[glom]=weight
         MCL[conn[0]].glom = MCL[conn[0]].glom
         GL[conn[1]].conn = GL[conn[1]].conn + 1
 
     # for mitral in MCL:
     #     print(mitral)
-    #     print(mitral.getLoc())
+    #     print(mitral.loc)
     return [MCL, GL]
         
     """In List form:
-    glom = MCL[conn[0]].getGlom()
+    glom = MCL[conn[0]].glom
     glom.append([conn[1],conn[2]])
-    MCL[conn[0]].setGlom(glom)
-    GL[conn[1]].setConn(GL[conn[1]].getConn() + 1)"""
+    MCL[conn[0]].glom = glom
+    GL[conn[1]].conn = GL[conn[1]].conn + 1"""
 
-def addNoise(GL: list[cells.Glom], noise, mean=0, sd=0):
-    """Increments activation levels in GL by a certain value
-    If noise is "u", then mean = scale for uniform distribution."""
-    if noise == "u":
-        inc = random.uniform(0,mean)
-    elif noise == "g":
-        inc = random.gauss(mean, sd)
-    else:
-        inc = random.expovariate(1/mean)
-    for g in GL:
-        active = max(g.activ + random.choice([1,-1])*inc, 0.0)
-        g.setActiv(min(active, 1.0))
-    return GL
+
 
 # FIXME: What is GL if not a list of glom cells?
 def addActivationMCL(m: cells.Mitral, GL: list[cells.Glom]):

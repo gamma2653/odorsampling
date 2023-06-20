@@ -14,9 +14,10 @@ from numbers import Real
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import MutableMapping
+    from typing import MutableMapping, Optional
     from RnO import Receptor
 
+# TODO: consider making these dataclasses
 class Glom:
     """
     Represents a glomerulus cell that communicates with a single receptor.
@@ -36,8 +37,6 @@ class Glom:
     _recConn : dict
         dict of connecting recs:weights
     """
-
-    # TODO: Revisit why these were checking exact type rather than isinstance
 
     @property
     def id(self) -> int:
@@ -64,16 +63,15 @@ class Glom:
         self._activ = round(value, 6)
 
     @property
-    def loc(self) -> tuple[Real]:
+    def loc(self) -> tuple[Real, Real]:
         """Returns location of glom"""
         return self._loc
 
-# TODO: change loc & dim to tuple
     @loc.setter
-    def loc(self, value: list[Real]) -> None:
+    def loc(self, value: tuple[Real, Real]) -> None:
         """Sets value to loc.
         Precondition: value is a 2D list of numbers"""
-        assert isinstance(value, list), "value is not a list!!"
+        assert isinstance(value, tuple), "value is not a list!!"
         assert len(value) == 2 and isinstance(value[0], Real), "Not a 2D list of numbers!"
         self._loc = value
 
@@ -83,10 +81,10 @@ class Glom:
         return self._dim
 
     @dim.setter
-    def dim(self, value: list[int]) -> None:
+    def dim(self, value: tuple[int]) -> None:
         """Sets value to dim.
         Precondition: value is a 2D list of numbers"""
-        assert isinstance(value, list), "value is not a list!!"
+        assert isinstance(value, tuple), "value is not a list!!"
         assert len(value) == 2 and isinstance(value[0], int), "Not a 2D list of numbers!"
         self._dim = value
         
@@ -169,12 +167,12 @@ class Mitral:
         self._activ = round(value, 5)
         
     @property
-    def loc(self) -> tuple[Real]:
+    def loc(self) -> tuple[Real, Real]:
         """Returns location of mitral cell"""
         return self._loc
 
     @loc.setter
-    def loc(self, value: tuple[Real]) -> None:
+    def loc(self, value: tuple[Real, Real]) -> None:
         """Sets value to loc.
         Precondition: value is a 2D list of numbers"""
         assert isinstance(value, tuple), "value is not a list!!"
@@ -193,11 +191,11 @@ class Mitral:
         assert isinstance(value, dict), "Not a dict!"
         self._glom = value
 
-    def __init__(self, ID, activ=0.0, loc=None, glom=None):
+    def __init__(self, ID, activ=0.0, loc: tuple[float, float]=(0.0,0.0), glom=None):
         """Initializes a Mitral cell"""
         self.id = ID
         self.activ = activ
-        self.loc = [0,0] if loc is None else loc
+        self.loc = loc
         self.glom = {} if glom is None else glom
 
     def __str__(self):

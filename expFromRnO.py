@@ -18,7 +18,7 @@ import layers
 from RnO import (
     QSpace, Ligand, Odorscene, Receptor, ODOR_REPETITIONS, createEpithelium, saveEpithelium,
     loadEpithelium, dPsiBarSaturation, graphFromExcel, createOdorscene, recDensityDpsiGraph,
-    ActivateGL_QSpace, dPsiOccActGraphFromExcel, peak_affinity, minimum_affinity, m, glom_penetrance
+    activateGL_QSpace, dPsiOccActGraphFromExcel, peak_affinity, minimum_affinity, m, glom_penetrance
 )
 
 # ####Below are two simulations for dPsiBarSaturation Graphs.
@@ -390,7 +390,7 @@ def effAnalysis(effSD, affSD=[2,2], qspace=(0,4), fixed=False):
     #Loop through ligands, activate
     #Within loop:
     for odors in odorscenes:
-        ActivateGL_QSpace(epi, odors, gl, fixed) #if fixed=True, eff is fixed at 1
+        activateGL_QSpace(epi, odors, gl, fixed) #if fixed=True, eff is fixed at 1
         activ= epi.recs[0].activ 
         index = int(math.floor(activ*10.0))
         

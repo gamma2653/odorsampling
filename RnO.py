@@ -35,7 +35,6 @@ from matplotlib.patches import Ellipse
 import numpy.random as rnd
 
 import params
-
 import cells
 
 # Used for asserts
@@ -44,7 +43,7 @@ from numbers import Real
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Union
+    from typing import Union, Optional
     from numbers import Number
     # from typing import Tuple
     # from typing import List
@@ -177,15 +176,13 @@ class Ligand:
         assert value != 0, "Conc can't be 0!"
         self._conc = float(value)
     
-    # FIXME: There seems to be a type mismatch from the stated class type and the set value type!
-    def setAff(self, value: list[float]) -> None:
+    def setAff(self, value: float) -> None:
         """Sets aff equal to value.
         Precondition: Value is a float"""
         assert type(value) == float, "Value is not a float!"
         self._aff = value
     
-    # FIXME: Same issue as the above fixme (type mismatch from attribute to set value)
-    def setEff(self, value: list[float]) -> None:
+    def setEff(self, value: float) -> None:
         """Sets eff equal to value.
         Precondition: Value is a float btwn 0..1"""
         assert type(value) == float, "Value is not a float!"
@@ -223,18 +220,27 @@ class Ligand:
 
 
     #Initializer
-    def __init__(self, Id, loc, conc):
-        """Initializes ligand"""
-        self.id = Id
+    def __init__(self, id_, conc, loc):
+        """
+        Initializes ligand
+        
+        loc is randomly (uniformly) generated point coordinates in QSpace if None.
+        """
+        self.id = id_
         self.loc = loc
         self.dim = len(loc)
         self.conc = conc
         self._aff = 0.0
         self._eff = 0.0
         self._occ = 0.0
-        self._affs = []
-        self._effs = []
-        self._odors2 = []        
+        self._affs: list[float] = []
+        self._effs: list[float] = []
+        self._odors2 = []
+
+    @classmethod
+    def create(cls, dim, conc, id_=0):
+        loc = [random.uniform(-1000, 1000) for i in range(dim)]
+        return Ligand(id_, loc, conc)
 
     def __str__(self):
         """Returns description of Ligand"""
@@ -296,18 +302,38 @@ class Odorscene:
             self._odors.append(value[i])
             i += 1
 
-    def __init__(self, Id, odors: list[Ligand]):
+    def __init__(self, id_, odors: list[Ligand]):
         """Initializes odorscene"""
-        self.id = Id
+        self.id = id_
         self.dim = odors[0].dim
         self.odors = odors
+    
+    @classmethod
+    def create(cls, dim: int, conc: list[float], amt: list[int], qspace: QSpace, odor_id = 0):
+        """Returns an odorscene object with a certain amount of randomly generated ligands.
+        Conc is a list of concentrations and amt is the amt of each conc (matched by index).
+        Ex: conc = [1e-5, 5e-6, 1e-6] and amt = [6, 4, 2] This means:
+        six randomly generated ligands at 1x10e-5 molar, four at 5x10e-6 molar,
+        and two at 1x10e-6 molar.
+        qspace is a qspace object.
+        Precondition: Conc and amt are lists of equal length"""
+        assert len(conc) == len(amt), "conc and amt are not lists of equal length"
+        odors = []
+        lig_id = 0
+        i = 0
+        while i < len(amt):
+            ind = 0
+            while ind < amt[i]:
+                odor = Ligand.create(dim, conc[i], lig_id)
+                odor = modifyLoc(odor, qspace, dim) 
+                odors.append(odor)
+                ind += 1
+                lig_id += 1
+            i += 1
+        return cls(odor_id, odors)
         
     def __str__(self):
         """Returns description of Odor"""
-        # st = ""
-        # for odor in self._odors:
-        #     st = st + str(odor) + '\n'
-        # return "ID: " + str(self._id) + '\n' + "Odors: \n" + st
         # Hotfix until Python 3.12
         n_ = '\n'
         return f"ID: {self.id}\nOdors: \n{n_.join(map(str, self._odors))}"
@@ -370,6 +396,7 @@ class Receptor:
         Precondtion: value is an list"""
         assert type(value) == list, "Value is not a float!"
         self._mean = value
+        self._update_scale()
     
     @property
     def sdA(self):
@@ -383,6 +410,8 @@ class Receptor:
         assert type(value) == list, "Value is not a List!"
         assert len(value) == len(self._mean), "Dimension is not consistent with dim of mean"
         self._sdA = value
+        self._covA = [_sdA**2 for _sdA in self.sdA]
+        self._update_scale()
     
     @property
     def sdE(self):
@@ -396,45 +425,24 @@ class Receptor:
         assert type(value) == list, "Value is not a List!"
         assert len(value) == len(self._mean), "Dimension is not consistent with dim of mean"
         self._sdE = value
+        self._covE = [_sdE**2 for _sdE in self.sdE]
     
     @property
     def covA(self):
         """Returns the covariance for affinity"""
         return self._covA
     
-    # FIXME: This needs a little work to properly be converted into a property getter/setter
-    @covA.setter
-    def covA(self, value):
-        """Sets covariance of affinity by squaring the sd."""
-        covA = []
-        i = 0
-        while i < len(self._sdA):
-            covA.append(self._sdA[i]**2)
-            i += 1
-        self._covA = covA
-    
     @property
     def covE(self):
         """Returns the covariance for Efficacy"""
         return self._covE
-    
-    @covE.setter
-    def covE(self, value):
-        """Sets covariance of Efficacy by squaring the sd."""
-        covE = []
-        i = 0
-        while i < len(self._sdE):
-            covE.append(self._sdE[i]**2)
-            i += 1
-        self._covE = covE
     
     @property
     def scale(self):
         """Returns scale of receptor."""
         return self._scale
 
-    @scale.setter
-    def scale(self, value):
+    def _update_scale(self):
         """Sets scale based on mean"""
         self._scale = mvn.pdf(self.mean, self.mean, self.covA)
 
@@ -487,22 +495,31 @@ class Receptor:
 
 
 #Initializer
-    def __init__(self, Id, mean, sda, sde):
+    def __init__(self, id_, mean, sda, sde):
         """Initializes a receptor."""
-        self.id = Id
+        self.id = id_
         self.mean = mean
         self.sdA = sda
         self.sdE = sde
         # FIXME: Hotfix until getters and setters are fixed for covA, covE, scale, and effScale (are autoassigned by setter)
         # Sol. is probably to change getter to calculate the values automagically
-        self.covA = None
-        self.covE = None
-        self.scale = None
         self.activ = 0
         self.setOcc(0)
         self.setOdoAmt(0)
         self.effScale = None
 
+    @classmethod
+    def create(cls, dim: int, qspace: QSpace, scale: tuple[float, float] = (0.5,1.5),
+               scaleEff: Optional[tuple[float, float]] = None, constMean=False, id_=0):
+        """Creates a receptor using meanType sdAtype and sdEtype as descriptions
+        to how to randomly distribute those values.
+        scaleEff is empty unless want to have a diff sd for aff and eff.
+        Precondition: qspace must have "dim" dimensions"""
+        assert len(qspace._size) == dim, "Qspace doesn't have right dimensions"
+        mean = _distributeMean(dim, qspace, constMean)
+        sdA = _distributeSD(dim, scale)
+        sdE = _distributeSD(dim, scaleEff) if scaleEff is not None else sdA
+        return cls(id_, mean, sdA, sdE)
 
     def __str__(self):
         """Returns receptor description"""
@@ -535,6 +552,14 @@ class Epithelium:
         """Initializes a epithelium."""
         self.recs = recs
 
+    @classmethod
+    def create(cls, n: int, dim: int, qspace: QSpace, scale: tuple[float]=(.5,1.5), scaleEff=[], constMean=False):
+        """Returns an epithelium with n receptors by calling createReceptor n times.
+        SD of each receptor is a uniformly chosen # btwn scale[0] and scale[1]
+        Precondition: n is an int"""
+        assert type(n) == int, "n is not an integer"
+        return Epithelium([Receptor.create(dim, qspace, scale, scaleEff, constMean, i) for i in n])
+
     def __str__(self):
         """Returns epithelium description"""
         n_ = '\n'
@@ -549,39 +574,7 @@ class Text:
         self._st2 = ""
 
 ######Functions for objects
-def createLigand(dim: int, conc: int, qspace: QSpace, ID=0):
-    """Returns an ligand with randomly (uniformly) generated ligand point coordinates
-    in Q space."""
-    i = 0
-    loc = []
-    while (i<dim):
-        loc.append(random.uniform(-1000, 1000))
-        i += 1
-    return Ligand(ID, loc, conc)
 
-
-def createOdorscene(dim: int, conc: list[float], amt: list[int], qspace: QSpace, Id = 0):
-    """Returns an odorscene object with a certain amount of randomly generated ligands.
-    Conc is a list of concentrations and amt is the amt of each conc (matched by index).
-    Ex: conc = [1e-5, 5e-6, 1e-6] and amt = [6, 4, 2] This means:
-    six randomly generated ligands at 1x10e-5 molar, four at 5x10e-6 molar,
-    and two at 1x10e-6 molar.
-    qspace is a qspace object.
-    Precondition: Conc and amt are lists of equal length"""
-    assert len(conc) == len(amt), "conc and amt are not lists of equal length"
-    odors = []
-    ID = 0
-    i = 0
-    while i < len(amt):
-        ind = 0
-        while ind < amt[i]:
-            odor = createLigand(dim, conc[i], qspace, ID)
-            odor = modifyLoc(odor, qspace, dim) 
-            odors.append(odor)
-            ind += 1
-            ID += 1
-        i += 1
-    return Odorscene(Id, odors)
 
     
 def modifyLoc(odorant: Ligand, qspace: QSpace, dim: int):
@@ -597,38 +590,12 @@ def modifyLoc(odorant: Ligand, qspace: QSpace, dim: int):
     odorant.loc = loc
     return odorant
 
-
-def createEpithelium(n: int, dim: int, qspace: QSpace, scale: list[float]=[.5,1.5], scaleEff=[], constMean=False):
-    """Returns an epithelium with n receptors by calling createReceptor n times.
-    SD of each receptor is a uniformly chosen # btwn scale[0] and scale[1]
-    Precondition: n is an int"""
-    assert type(n) == int, "n is not an integer"
-    i = 0
-    recs= []
-    while i < n:
-        recs.append(createReceptor(dim, qspace, scale, scaleEff, constMean, i))
-        i += 1
-    return Epithelium(recs)
-
-def createReceptor(dim: int, qspace: QSpace, scale: list[float] = [0.5,1.5], scaleEff=[], constMean=False, Id=0):
-    """Creates a receptor using meanType sdAtype and sdEtype as descriptions
-    to how to randomly distribute those values.
-    scaleEff is empty unless want to have a diff sd for aff and eff.
-    Precondition: qspace must have "dim" dimensions"""
-    assert len(qspace._size) == dim, "Qspace doesn't have right dimensions"
-    mean = _distributeMean(dim, qspace, constMean)
-    sdA = _distributeSD(dim, scale, [])
-    sdE = _distributeSD(dim, scale, scaleEff)
-    return Receptor(Id, mean, sdA, sdE)
-
 def _distributeMean(dim: int, qspace: QSpace, constMean: bool):
     """Returns a list of means randomly distributed within the qspace based on the Type"""
     mean = []
     i = 0
     if constMean:
-        while i < dim:
-            mean.append(qspace.size[i][1]/2.0)
-            i+=1
+        mean = [qspace.size[i][1]/2.0 for i in dim]
     else:
         while i < dim:
             if params.DIST_TYPE_UNIF:
@@ -645,26 +612,16 @@ def _distributeMean(dim: int, qspace: QSpace, constMean: bool):
             i += 1
     return mean
 
-def _distributeSD(dim, scale: tuple[float, float], scaleEff: tuple[float ,float]):
+def _distributeSD(dim, scale: tuple[float, float]):
     """Returns a list of standard deviations between scale[0] and scale[1] randomly distributed based on the Type
     Precondition: scale is a 2d list with #'s>=0"""
     assert scale[0] > 0, "scale is not a valid list"
-    sd = []
-    i = 0
-    if len(scaleEff) == 0: #Want sd for aff and eff to be the same
-        while i < dim:
-            sd.append(random.uniform(scale[0],scale[1]))
-            i += 1
-    else:
-        while i < dim:
-            sd.append(random.uniform(scaleEff[0],scaleEff[1]))
-            i += 1
-    return sd
+    return tuple(random.uniform(*scale) for _ in range(dim))
 
 
 ######## Activating Receptors/corresponding GL
 
-def ActivateGL_QSpace(epith: Epithelium, odorscene: Odorscene, gl: list[cells.Glom], fixed=True, c=1, sel="avg"):
+def activateGL_QSpace(epith: Epithelium, odorscene: Odorscene, gl: layers.GlomLayer, fixed=True, c=1, sel="avg"):
     """Given an epithelium, odorscene, and Glomerular Layer, the GL is activated based on
     its corresponding 1:1 receptors. Returns string of data about odorscene and epithelium.
     If c!=1 (convergence ratio of glom:rec, then use updated function to calc non 1:1 glom:rec activation.
@@ -672,7 +629,7 @@ def ActivateGL_QSpace(epith: Epithelium, odorscene: Odorscene, gl: list[cells.Gl
     assert len(epith.recs[0].mean) == odorscene.odors[0].dim, "Dimensions aren't equal"
     assert len(epith.recs) == len(gl), "Receptors:GL is not 1:1"
     
-    layers.clearGLactiv(gl)
+    gl.clearActiv()
     
     #Loop through each receptor and eventually calculate activation level
     for rec in epith.recs:
@@ -1717,10 +1674,6 @@ def colorMapSumOfSquares(epithelium: Epithelium, odorscenes: list[Odorscene], r,
     fig = plt.figure()
 
     ax = fig.add_subplot(111, aspect='equal')
-    # FIXME: Is this supposed to be called?
-    ax.add_patch
-
-
     #ax2=fig.add_subplot(111, label="2", frame_on=False)
 
 
@@ -3122,7 +3075,7 @@ def recDensityDpsiGraphRandomized(r, qspace: QSpace, odorscene: Odorscene, dim: 
         num=0
         while num < len(receptorNum):
             text._st += "Rec # " + str(receptorNum[num]) + "\n"
-            epi = createEpithelium(receptorNum[num], dim, qspace, scale=[.5,1.5])
+            epi = Epithelium.create(receptorNum[num], dim, qspace, scale=(.5,1.5))
             dPsi[num] += dPsiBarCalcAngles(epi, odorscene, r, fixed, text)
             num+=1
             print(num)
@@ -3223,6 +3176,7 @@ def attachSecondaryRecs(gl: list[cells.Glom], recs: list[Receptor], c: int, conn
                 while i < c-1:
                     index = random.choice(ints)
                     rec = recs[index]
+                    # FIXME: Shouldn't access private vars outside of class
                     while rec in glom._recConn.keys(): #Choose random rec until find one that isn't connected yet
                         index = random.choice(ints)
                         rec = recs[index]
