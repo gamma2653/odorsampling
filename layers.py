@@ -57,9 +57,6 @@ def createGL_dimensions(x, y):
         countY = 0
         countX += 1
 
-    for glom in GL:
-        print str(glom) + " location: (" + str(glom.getLoc()[0]) + ", " + str(glom.getLoc()[1]) + ")"
-
     return GL
 
 def clearGLactiv(gl):
@@ -287,7 +284,6 @@ def simpleSampleBalanced(gl, mcl, cr, fix, sd=0):
         while fanout < F:
             glomSelections.append(g.getId())
             fanout += 1
-    # print glomSelections
 
     if fix:
         while counter < len(mcl):
@@ -302,9 +298,6 @@ def simpleSampleBalanced(gl, mcl, cr, fix, sd=0):
                     check += 1
                     assert check != 100, "please run again. this is check: " + str(check) # IMPLEMENT THIS IN A BETTER WAY. This error shows up when the very last mitral is forced to sample from the same glom.
                 glomSelections.remove(num)
-                # print "num: " + str(num)
-                # print "glomSelections: "
-                # print glomSelections
                 if inc == (cr-1):
                     act = leftover
                 else:
@@ -339,10 +332,7 @@ def simpleSampleLocation(gl, mcl, cr, fix, sd=0):
     counter = 0
     
     numLayers = math.ceil((-4+math.sqrt(16-16*(-(cr-1))))/8)
-    print "numLayers: " + str(numLayers)
     numToSelect = (cr-1) - (8*(((numLayers-1)*(numLayers))/2))
-    print "numToSelect: " + str(int(numToSelect)) # number to select in the outermost layer
-    print "dimensions: " + str(gl[0].getDim()[0]) + "X" + str(gl[0].getDim()[1])
 
     if fix:
         while counter < len(mcl):
@@ -350,13 +340,10 @@ def simpleSampleLocation(gl, mcl, cr, fix, sd=0):
             num = random.randint(0,len(gl)-1)
             x = gl[num].getLoc()[0]
             y = gl[num].getLoc()[1]
-            print "parent glom location: (" + str(x) + ", " + str(y) + ")"
             xUpperBound = numLayers+x
             xLowerBound = x-numLayers
-            print "x: [" + str(xLowerBound) + ", " + str(xUpperBound) + "]"  
             yUpperBound = numLayers+y
             yLowerBound = y-numLayers
-            print "y: [" + str(yLowerBound) + ", " + str(yUpperBound) + "]"
 
             inc = 0
             gloms = []
@@ -386,14 +373,11 @@ def simpleSampleLocation(gl, mcl, cr, fix, sd=0):
                     gloms.append(randomGlom)
                     selected += 1
                     for g in gl:
-                        # print "g id: " + str(g.getId())
                         # if g.getLoc() == randomGlom:
                         if g.getLoc() == [randomGlom[0]%(gl[0].getDim()[1]), randomGlom[1]%(gl[0].getDim()[0])]:
-                            print randomGlom
                             num = g.getId()
 
                     Map.append([mcl[counter].getId(), num, act])
-                print gloms
 
             elif int(numLayers) == 2:
                 # get first layer first (the surrounding 8)
@@ -406,23 +390,19 @@ def simpleSampleLocation(gl, mcl, cr, fix, sd=0):
                     yInner = y-1
                     while yInner <= yOuter:
                         if not((xInner == x) and (yInner == y)):
-                            print "hi " + str(xInner) + ", " + str(yInner)
                             firstLayer.append([xInner%(gl[0].getDim()[1]), yInner%(gl[0].getDim()[0])])
                         yInner += 1
                     xInner += 1
-                print firstLayer
 
                 for a in firstLayer:
                     for g in gl:
                         if [a[0], a[1]] == g.getLoc():
-                            print a
                             num = g.getId()
                             act = random.uniform(0, leftover)
                             leftover -= act
                             Map.append([mcl[counter].getId(), num, act])
 
                 # second layer
-                print "second layer"
                 selected = 0
                 randomGlom = generateRandomGlom(xLowerBound, xUpperBound, yLowerBound, yUpperBound, gl[0].getDim()[1], gl[0].getDim()[0])
                 while selected < int(numToSelect):
@@ -436,40 +416,12 @@ def simpleSampleLocation(gl, mcl, cr, fix, sd=0):
                     gloms.append(randomGlom)
                     selected += 1
                     for g in gl:
-                        # print "g id: " + str(g.getId())
                         # if g.getLoc() == randomGlom:
                         if g.getLoc() == [randomGlom[0]%(gl[0].getDim()[1]), randomGlom[1]%(gl[0].getDim()[0])]:
-                            print randomGlom
                             num = g.getId()
 
                     Map.append([mcl[counter].getId(), num, act])
 
-
-                # randomGlom = generateRandomGlom(xLowerBound, xUpperBound, yLowerBound, yUpperBound, gl[0].getDim()[1], gl[0].getDim()[0])
-                # while randomGlom in gloms:
-                #     # if randomGlom in gloms:
-                #     #     print "?"
-                #     #     print randomGlom
-                #     # print randomGlom
-                    
-                #     randomGlom = generateRandomGlom(xLowerBound, xUpperBound, yLowerBound, yUpperBound, gl[0].getDim()[1], gl[0].getDim()[0])
-                #     if len(gloms) == int(numToSelect)-5:
-                #         print "im in here"
-                #         break
-                # gloms.append(randomGlom)
-                # print gloms
-
-                # for g in gl:
-                #     # print "g id: " + str(g.getId())
-                #     # if g.getLoc() == randomGlom:
-                #     if g.getLoc() == [randomGlom[0]%(gl[0].getDim()[1]), randomGlom[1]%(gl[0].getDim()[0])]:
-                #         # print randomGlom
-                #         num = g.getId()
-                
-                # Map.append([mcl[counter].getId(), num, act])
-
-                # print "random glom: (" + str(randomGlom[0]) + ", " + str(randomGlom[1]) + ")"
-                # inc += 1
             counter+=1
 
     return Map
@@ -481,7 +433,6 @@ def generateRandomGlom(xLowerBound, xUpperBound, yLowerBound, yUpperBound, row, 
         randomGlomY = random.randint(yLowerBound, yUpperBound)
     else:
         randomGlomY = int(random.sample([yLowerBound, yUpperBound], 1)[0])
-    # print "original random glom: [" + str(randomGlomX) + ", " + str(randomGlomY) + "]" 
     # return [randomGlomX%row, randomGlomY%col]   
     return [randomGlomX, randomGlomY]    
  
@@ -548,7 +499,7 @@ def _prevDuplicates(num, conn, gl, sel, weights, s):
             num -= 1
             check += 1
     if check == 100:
-        print "Warning: mitral cell may be connected to same Glom cell twice in order to prevent infinite loop"
+        print("Warning: mitral cell may be connected to same Glom cell twice in order to prevent infinite loop")
     return num
         
 
@@ -626,33 +577,7 @@ def unsampledGlom(gl, mcl, Map):
 
 #####Graphing
 def GraphGlomActivation(gl, n, m):
-    # saveGL(gl, "test")
-    # graph = []
-    # counter = 0
-    # while counter < m:
-    #     graph.append([])
-    #     counter += 1
-    # for g in gl:
-    #     print "id: " + str(g.getId()) + " activation: " + str(g.getActiv()) + " loc: " + str(g.getLoc())
-    #     c = 0
-    #     graph[g.getLoc()[1]].append(g.getActiv())
-    # print graph
 
-    # fig = plt.imshow(graph, cmap=matplotlib.pylab.cm.YlOrRd, interpolation='nearest', origin="lower", extent=[0,n,0,m])
-    # # plt.show()
-    # fig.axes.get_xaxis().set_visible(False)
-    # fig.axes.get_yaxis().set_visible(False)
-    # plt.title("Glom Activation: " + str(m) + "X" + str(n))
-    # # plt.xlabel("X")
-    # # plt.ylabel("Y")
-    
-    # pp = PdfPages('GlomActivation.pdf')
-    # pp.savefig()
-    # pp.close()
-
-    # plt.close()
-
-################################# THIS WORKS 
     graph = [[0,0,0],[0,0,0],[0,0,0],[0,0.5,0],[0.0,1.0,0.0],[0,0.4,0],[0,0,0.4],[0,0,1],[0,0,0.8]]
     plt.imshow(graph, cmap=matplotlib.pylab.cm.YlOrRd, interpolation='nearest', origin="lower", extent=[0,3,0,3])
     plt.title("Glom Activation")
@@ -666,7 +591,6 @@ def GraphGlomActivation(gl, n, m):
     plt.close()
 
 def GraphMitralActivation(gl, mcl, n, m):
-    print "in GraphMitralActivation"
     mitralLocations = {}
     mitralActivations = {}
     for mitral in mcl:
@@ -680,12 +604,8 @@ def GraphMitralActivation(gl, mcl, n, m):
         else:
             mitralLocations.update({str(mitral.getLoc()):1})
             mitralActivations.update({str(mitral.getLoc()):[mitral.getActiv()]})
-    print mitralLocations
-    print "mitral activations"
-    print mitralActivations
 
     maxMitrals = mitralLocations.get(max(mitralLocations, key=mitralLocations.get))
-    print maxMitrals
 
     graph = []
     counter = 0
@@ -696,39 +616,22 @@ def GraphMitralActivation(gl, mcl, n, m):
             graph[counter].append(0)
             counter1 += 1
         counter += 1
-    print "testing now"
-    print graph
 
     for x in range(m):
         for y in range(len(graph)):
             if str([x,y/maxMitrals]) in mitralActivations:
-                print str(x) + ", " + str(y)
-                # if y%maxMitrals < len(mitralActivations.get(str([x,y/maxMitrals]))):
-                #     print mitralActivations.get(str([x,y/maxMitrals]))[y%maxMitrals]
-                #     graph[y][x] = mitralActivations.get(str([x,y/maxMitrals]))[y%maxMitrals]
-                # elif len(mitralActivations.get(str([x,y/maxMitrals])) == 1:
-                #     graph[y][x] = mitralActivations.get(str([x,y/maxMitrals]))[0]
-                # else:
-                #     print mitralActivations.get(str([x,y/maxMitrals]))[0]
-                #     counter2 = 0
-                #     while counter2 <
-                #     graph[y][x] = mitralActivations.get(str([x,y/maxMitrals]))[0]
                 numActivations = len(mitralActivations.get(str([x,y/maxMitrals])))
                 if numActivations == 1:
-                    print "if"
                     graph[y][x] = mitralActivations.get(str([x,y/maxMitrals]))[0]
                 elif numActivations < maxMitrals:
                     if y%maxMitrals < numActivations:
                         graph[y][x] = mitralActivations.get(str([x,y/maxMitrals]))[y%maxMitrals]
                     else:
-                        print "Ah"
                         graph[y][x] = -0.15
 
                 else:
-                    print mitralActivations.get(str([x,y/maxMitrals]))[y%(len(mitralActivations.get(str([x,y/maxMitrals]))))]
                     graph[y][x] = mitralActivations.get(str([x,y/maxMitrals]))[y%(len(mitralActivations.get(str([x,y/maxMitrals]))))]
 
-    print graph         
 
     #   https://stackoverflow.com/questions/22121239/matplotlib-imshow-default-colour-normalisation 
 
@@ -746,9 +649,6 @@ def GraphMitralActivation(gl, mcl, n, m):
     pp.close()
 
     plt.close()
-
-    #     print "id: " + str(g.getId()) + " loc: " + str(g.getLoc())
-    #     graph[g.getLoc()[1]].append(g.getActiv())
 
 
 #####Loading and Storing a GL, MCL, and Map
@@ -900,8 +800,6 @@ def ApplyMCLSamplingMap(GL, MCL, Map):
     MCL[Map[0][0]].setLoc(GL[Map[0][1]].getLoc())
 
     for conn in Map:
-        # print "Mitral: " + str(conn[0]) + " Glom: " + str(conn[1]) + " Weight: " + str(conn[2])
-        # print "Glom location: " + str(GL[conn[1]].getLoc())
 
         if conn[0] != test:
             test = test+1
@@ -911,9 +809,6 @@ def ApplyMCLSamplingMap(GL, MCL, Map):
         MCL[conn[0]].setGlom(MCL[conn[0]].getGlom())
         GL[conn[1]].setConn(GL[conn[1]].getConn() + 1)
 
-    # for mitral in MCL:
-    #     print mitral
-    #     print mitral.getLoc()
     return [MCL, GL]
         
     """In List form:
@@ -1050,7 +945,6 @@ def colorMapWeights(Map, GL, MCL):
         for glom in GL:
             row.append(0)
         graph.append(row)
-    print Map
     #Add weights
     index = 0
     while index < len(Map):

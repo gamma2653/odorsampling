@@ -58,7 +58,6 @@ def testdPsiBarSaturation_Qspaces(fixed, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], nu
         dPsiBarSaturation(epith, .01, qspace, pdfName, labelNames[i], excelNames[i], fixed ,c, plotTitle, end, purp, True)
         
         i += 1
-        print "Graph #" + str(i) + ": " + str((time.time() - startTime) / 60.0 ) + " minutes"
 
     #Creating Occ and Rec Act graphs
     ###################amt of rep in dPsiSaturation function and xAxis. MUST change if change in function
@@ -96,7 +95,6 @@ def testdPsiBarSaturation_Qspaces(fixed, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], nu
             graphFromExcel(name + ".csv", xaxis, numRecs, labelNames[k], titleName, pdfName, "Act", rep, end)
             k += 1
     
-    print "Overall time: " + str((time.time() - startTime) / 60.0 ) + " minutes"
 
 
 def testdPsiBarSaturationDim(dims, fixed=False, aff_sd=[.5,1.5], eff_sd=[.05,1.0], numRecs=30, c=1):
@@ -165,7 +163,6 @@ def testdPsiBarSaturationDim(dims, fixed=False, aff_sd=[.5,1.5], eff_sd=[.05,1.0
             graphFromExcel(excels[k] + ".csv", xaxis, numRecs, labels[k], titleName, pdfName, toggle, rep, end)
             k+=1
         
-    print "Overall time: " + str((time.time() - startTime) / 60.0 ) + " minutes"
 
 #####Below are functions to create similar epithelium and save them. These
 #epithelium can then be used to run a function above.
@@ -351,9 +348,6 @@ def effAnalysis(effSD, affSD=[2,2], qspace=(0,4), fixed=False):
         i += .1
     
     epi = createEpithelium(1, dim, qspace, affSD, effSD, True) #Creates an epithelium with 1 rec (and not constant mean)
-    print "Aff sd distr: " + str(epi.getRecs()[0]._sdA)
-    print "eff sd distr: " + str(epi.getRecs()[0]._sdE)
-    print "mean is " +str(epi.getRecs()[0]._mean)
     
     bins = [0,.1,.2,.3,.4,.5,.6,.7,.8,.9]
     xAxis2 = [.05,.15,.25,.35,.45,.55,.65,.75,.85,.95]
@@ -376,8 +370,6 @@ def effAnalysis(effSD, affSD=[2,2], qspace=(0,4), fixed=False):
         yAxis_eff[i] = elem/(float(yAxis_act[i]))
         i +=1
 
-    print "activation bin: " + str(yAxis_act)
-    print "mean efficacy: " + str(yAxis_eff)
     
     #Hist of activation levels
   

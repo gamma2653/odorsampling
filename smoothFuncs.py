@@ -65,9 +65,6 @@ def testdPsiBarSat(fixed, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, 
             #dPsiBarSaturation(epith, .01, qspace, pdfName, labelNames[i], excelNames[i], fixed ,c, plotTitle, end, purp, graphIt=False)
         
             #i += 1
-            print "Graph #" + str(i) + ": " + str((time.time() - startTime) / 60.0 ) + " minutes"
-
-            print "Overall time: " + str((time.time() - startTime) / 60.0 ) + " minutes"
         
         
         for j, job in enumerate(jobs):
@@ -103,7 +100,6 @@ def testdPsiBarSatColorMap(fixed, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=3
     
     # if __name__ == '__main__':
     #     jobs = []
-    print "BEFORE FOR LOOP!!!!!!"
     
     #while i < len(qspaces):
     for i, qspacesItem in enumerate(qspaces):    
@@ -115,11 +111,9 @@ def testdPsiBarSatColorMap(fixed, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=3
             #j+=1
         qspace = QSpace(space)
 
-        print "QSPACE SIZE IS " + str(qspace.getSize()[0]) + "????????"
 
         epith = loadEpithelium("1. SavedEpi_" + str(qspace.getSize()[0]) + purp + ".csv")
 
-        print "LOADED EPITHELIUM"
         labelNames.append(str(qspace.getSize()[0]) + " qspace")
         excelNames.append("LigandSat with " + str(qspace.getSize()[0]) + " qspace" + purp)
     
@@ -139,7 +133,6 @@ def testdPsiBarSatColorMap(fixed, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=3
                 y += 1
                 ID += 1
             x += 1
-        print "POPULATED ODORSCENES"
         colorMapSumOfSquares(epith, odorscenes, .3, qspace)
       
         # p = multiprocessing.Process(target=dPsiBarSaturation, args=(epith, .01, qspace, pdfName, labelNames[i], excelNames[i], fixed ,c, plotTitle, end, purp, False))
@@ -151,9 +144,6 @@ def testdPsiBarSatColorMap(fixed, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=3
         #dPsiBarSaturation(epith, .01, qspace, pdfName, labelNames[i], excelNames[i], fixed ,c, plotTitle, end, purp, graphIt=False)
     
         #i += 1
-        print "Graph #" + str(i) + ": " + str((time.time() - startTime) / 60.0 ) + " minutes"
-
-        print "Overall time: " + str((time.time() - startTime) / 60.0 ) + " minutes"
         
         
         # for j, job in enumerate(jobs):
@@ -202,7 +192,6 @@ def testdPsiBarSaturationDim(dims, fixed=False, aff_sd=[.5,1.5], eff_sd=[.05,1.0
         dPsiBarSaturation(epith, .01, qspace, pdfName, labels[index], excels[index], fixed, c, plotTitle, end,  ', dim=' + str(dim), False)
         index += 1
         
-    print "Overall time: " + str((time.time() - startTime) / 60.0 ) + " minutes"
     
 
 def allGraphsFromExcel(aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, dim=2, qspaces=[4,10,30], purpose="standard", rep=200.0):
@@ -415,7 +404,6 @@ def purpFunction(purpose, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, 
     
     
 def test():
-    print "start of smoothFuncs:"+str(time.time())
 
     # runReceptorOdorGraphToolStandAlone()
 
@@ -430,6 +418,5 @@ def test():
     #testdPsiBarSaturationDim(dims=[2,3,4,5], fixed=False, aff_sd=[.5,1.5], eff_sd=[.05,1.0], numRecs=30, c=1)
     #dimAllGraphsFromExcel(numRecs=30, dims=[2,3,4,5], rep=200)
 
-    print "end of smoothFuncs:"+str(time.time())
     
 test()
