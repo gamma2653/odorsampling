@@ -9,8 +9,8 @@ from __future__ import annotations
 
 from layers import (
     euclideanDistance, createMCLSamplingMap, ActivateMCLfromGL, ApplyMCLSamplingMap,
-    createGL_dimensions, GraphGlomActivation, GraphMitralActivation, normalize,
-    graphLayer, colorMapWeights, MitralLayer, GlomLayer
+    GraphGlomActivation, GraphMitralActivation, normalize, graphLayer, colorMapWeights,
+    MitralLayer, GlomLayer
 ) 
 import matplotlib.pyplot as plt
 
@@ -222,7 +222,7 @@ def testApplyMCLSamplingMap():
 def testApplyMCLSamplingMapBalanced():
     """Tests building the connections btwn MCL and GL (created with dimensions) given a map using BALANCED RANDOM"""
     # FIXME: hotfix
-    gl = GlomLayer(createGL_dimensions(4,2))
+    gl = GlomLayer.createGL_dimensions(4,2)
     gl.activate_random("u")
     mcl = MitralLayer.create(8)
     Map = createMCLSamplingMap(gl, mcl, 4, True, "balanced")
@@ -248,7 +248,7 @@ def testApplyMCLSamplingMapBalanced():
 def testApplyMCLSamplingMapLocation():
     """Tests building the connections btwn MCL and GL (created with dimensions) given a map using LOCATION"""
     # FIXME: hotfix
-    gl = GlomLayer(createGL_dimensions(4,4))
+    gl = GlomLayer.createGL_dimensions(4,4)
     gl.activate_random("u")
     mcl = MitralLayer.create(4)
     Map = createMCLSamplingMap(gl, mcl, 10, True, "location")
@@ -275,13 +275,13 @@ def testApplyMCLSamplingMapLocation():
 
 def testGraphGlomActivation():
     """ """
-    gl = GlomLayer(createGL_dimensions(10,10))
+    gl = GlomLayer.createGL_dimensions(10,10)
     gl.activate_random("u")
     GraphGlomActivation(gl, gl[0].dim[1], gl[0].dim[0])
 
 def testGraphMitralActivation():
     """ """
-    gl = GlomLayer(createGL_dimensions(4,4))
+    gl = GlomLayer.createGL_dimensions(4,4)
     gl.activate_random("u")
     mcl = MitralLayer.create(10)
     Map = createMCLSamplingMap(gl, mcl, 10, True, "location")

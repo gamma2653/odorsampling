@@ -34,7 +34,7 @@ import time
 from matplotlib.patches import Ellipse
 import numpy.random as rnd
 
-import params
+import config
 import cells
 
 # Used for asserts
@@ -604,11 +604,11 @@ def _distributeMean(dim: int, qspace: QSpace, constMean: bool):
         mean = [qspace.size[i][1]/2.0 for i in dim]
     else:
         while i < dim:
-            if params.DIST_TYPE_UNIF:
+            if config.DIST_TYPE_UNIF:
                 mean.append(random.uniform(qspace.size[i][0], qspace.size[i][1]))
-            elif params.DIST_TYPE_GAUSS:
+            elif config.DIST_TYPE_GAUSS:
                 while True:
-                    g = random.gauss(params.MU, params.SIG)
+                    g = random.gauss(config.MU, config.SIG)
                     #if ((i==0 and g <= qspace.size[i][1] and g >= 0) or (i==1 and g <= qspace.size[i][1]) and g >= 0):
                     if (g <= qspace.size[i][1] and g >= 0):
                         mean.append(g)
@@ -1550,10 +1550,10 @@ def colorMapSumOfSquares(epithelium: Epithelium, odorscenes: list[Odorscene], r,
     maxY = qspace.size[1][1]
     x = 0 
     y = 0
-    while y < maxY * params.PIXEL_PER_Q_UNIT:
+    while y < maxY * config.PIXEL_PER_Q_UNIT:
         row = []
         x = 0
-        while x < maxX * params.PIXEL_PER_Q_UNIT:
+        while x < maxX * config.PIXEL_PER_Q_UNIT:
             row.append(0)
             x += 1
         graph.append(row)
@@ -1571,7 +1571,7 @@ def colorMapSumOfSquares(epithelium: Epithelium, odorscenes: list[Odorscene], r,
         dPsiBar = dPsiBarCalcAnglesOrig(epithelium, odorscene, r, True) 
         print(odorscene.odors[0].loc)
 
-        graph[int(params.PIXEL_PER_Q_UNIT*(odorscene.odors[0].loc[1]))][int(params.PIXEL_PER_Q_UNIT*(odorscene.odors[0].loc[0]))] = dPsiBar
+        graph[int(config.PIXEL_PER_Q_UNIT*(odorscene.odors[0].loc[1]))][int(config.PIXEL_PER_Q_UNIT*(odorscene.odors[0].loc[0]))] = dPsiBar
     
     print("-----------------------------")
     print(graph)
@@ -1582,10 +1582,10 @@ def colorMapSumOfSquares(epithelium: Epithelium, odorscenes: list[Odorscene], r,
     ells_sde: list[Ellipse] = []
     ii = -1
     for i, rec in enumerate(epithelium.recs): 
-            if params.RECEPTOR_INDEX == 'ALL':
+            if config.RECEPTOR_INDEX == 'ALL':
                 ii=i
             else:
-                ii= params.RECEPTOR_INDEX      
+                ii= config.RECEPTOR_INDEX      
             if i == ii:   
                 print("rec" + str(rec.id) + ":")
                 print("Mean:" + str(rec.mean))
@@ -1606,12 +1606,12 @@ def colorMapSumOfSquares(epithelium: Epithelium, odorscenes: list[Odorscene], r,
                 ells.append(Ellipse(xy=rec.mean, width=rec.sdA[1]*standardDeviationNumber, height=rec.sdE[1]*standardDeviationNumber, angle=ang))
 
                 """
-                if params.SHOW_SDA_ELLIPSE:
+                if config.SHOW_SDA_ELLIPSE:
                     # ells_sda.append(Ellipse(xy=rec.mean, width=rec.sdA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang))
                     
-                    ells_sda.append(Ellipse(xy=params.MOCK_RECEPTOR_MEAN, width=params.MOCK_RECEPTOR_SDA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=params.MOCK_RECEPTOR_SDA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
-                    ells_sda.append(Ellipse(xy=params.MOCK_RECEPTOR_MEAN1, width=params.MOCK_RECEPTOR_SDA1[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=params.MOCK_RECEPTOR_SDA1[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang1))
-                    ells_sda.append(Ellipse(xy=params.MOCK_RECEPTOR_MEAN2, width=params.MOCK_RECEPTOR_SDA2[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=params.MOCK_RECEPTOR_SDA2[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang2))
+                    ells_sda.append(Ellipse(xy=config.MOCK_RECEPTOR_MEAN, width=config.MOCK_RECEPTOR_SDA[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=config.MOCK_RECEPTOR_SDA[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
+                    ells_sda.append(Ellipse(xy=config.MOCK_RECEPTOR_MEAN1, width=config.MOCK_RECEPTOR_SDA1[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=config.MOCK_RECEPTOR_SDA1[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang1))
+                    ells_sda.append(Ellipse(xy=config.MOCK_RECEPTOR_MEAN2, width=config.MOCK_RECEPTOR_SDA2[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=config.MOCK_RECEPTOR_SDA2[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang2))
         
 
                     # ***************** UNCOMMENT HERE TO PLOT RECEPTORS IN TORUS **************************
@@ -1642,12 +1642,12 @@ def colorMapSumOfSquares(epithelium: Epithelium, odorscenes: list[Odorscene], r,
                     # ells_sda.append(Ellipse(xy=newMean1topRight, width=rec.sdA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
 
                     
-                if params.SHOW_SDE_ELLIPSE:
+                if config.SHOW_SDE_ELLIPSE:
                     # ells_sde.append(Ellipse(xy=rec.mean, width=rec.sdE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
                     
-                    ells_sde.append(Ellipse(xy=params.MOCK_RECEPTOR_MEAN, width=params.MOCK_RECEPTOR_SDE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=params.MOCK_RECEPTOR_SDE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
-                    ells_sde.append(Ellipse(xy=params.MOCK_RECEPTOR_MEAN1, width=params.MOCK_RECEPTOR_SDE1[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=params.MOCK_RECEPTOR_SDE1[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang1))
-                    ells_sde.append(Ellipse(xy=params.MOCK_RECEPTOR_MEAN2, width=params.MOCK_RECEPTOR_SDE2[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=params.MOCK_RECEPTOR_SDE2[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang2))
+                    ells_sde.append(Ellipse(xy=config.MOCK_RECEPTOR_MEAN, width=config.MOCK_RECEPTOR_SDE[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=config.MOCK_RECEPTOR_SDE[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
+                    ells_sde.append(Ellipse(xy=config.MOCK_RECEPTOR_MEAN1, width=config.MOCK_RECEPTOR_SDE1[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=config.MOCK_RECEPTOR_SDE1[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang1))
+                    ells_sde.append(Ellipse(xy=config.MOCK_RECEPTOR_MEAN2, width=config.MOCK_RECEPTOR_SDE2[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=config.MOCK_RECEPTOR_SDE2[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang2))
 
                     # ***************** UNCOMMENT HERE TO PLOT RECEPTORS IN TORUS **************************
                     # newMeanLeft = [rec.mean[0] - qspaceBoundary, rec.mean[1]]
@@ -1684,7 +1684,7 @@ def colorMapSumOfSquares(epithelium: Epithelium, odorscenes: list[Odorscene], r,
     #ax2=fig.add_subplot(111, label="2", frame_on=False)
 
 
-    if params.SHOW_SDA_ELLIPSE:
+    if config.SHOW_SDA_ELLIPSE:
         for e in ells_sda:
             print("The center is " + str(e.center))
             ax.add_artist(e)
@@ -1692,27 +1692,27 @@ def colorMapSumOfSquares(epithelium: Epithelium, odorscenes: list[Odorscene], r,
             #e.set_alpha(rnd.rand())
             #e.set_facecolor(rnd.rand(3))
             #e.set_facecolor('red')
-            e.set_edgecolor(params.SDA_COLOR)
-            e.set_fill(params.SDA_FILL)
-            if params.SDA_FILL:
-                e.set_facecolor(params.SDA_COLOR)
+            e.set_edgecolor(config.SDA_COLOR)
+            e.set_fill(config.SDA_FILL)
+            if config.SDA_FILL:
+                e.set_facecolor(config.SDA_COLOR)
             e.set_label("SDA")
-            e.set_linewidth (params.LINE_WIDTH)
+            e.set_linewidth (config.LINE_WIDTH)
             
     
-    if params.SHOW_SDE_ELLIPSE:
+    if config.SHOW_SDE_ELLIPSE:
         for e in ells_sde:
             ax.add_artist(e)
             e.set_clip_box(ax.bbox)
             #e.set_alpha(rnd.rand())
             #e.set_facecolor(rnd.rand(3))
             #e.set_facecolor('blue')
-            e.set_edgecolor(params.SDE_COLOR)
-            if params.SDE_FILL:
-                e.set_facecolor(params.SDE_COLOR)
-            e.set_fill(params.SDE_FILL)
+            e.set_edgecolor(config.SDE_COLOR)
+            if config.SDE_FILL:
+                e.set_facecolor(config.SDE_COLOR)
+            e.set_fill(config.SDE_FILL)
             e.set_label("SDE")
-            e.set_linewidth (params.LINE_WIDTH)
+            e.set_linewidth (config.LINE_WIDTH)
 
         print(qspace.size[0])
         ax.set_xlim(qspace.size[0])
@@ -1823,7 +1823,7 @@ def dPsiBarSaturation(epithelium: Epithelium, r, qspace: QSpace, pdfName: str, l
 
     size = ODOR_REPETITIONS #amount of odorscenes we want to avg out
     #conc = 1e-5
-    conc = params.ODOR_CONCENTRATION
+    conc = config.ODOR_CONCENTRATION
     gl = layers.GlomLayer.create(len(epithelium.recs)) #Only if using newly modified gl:rec n:1 ratio
     
     
@@ -2362,10 +2362,10 @@ def runReceptorOdorGraphToolStandAlone():
 
 def drawEllipseGraph(qspace: QSpace, epithelium: Epithelium, odorscenesArray: list[list[Odorscene]], useMockData=False):
     #print("odorscene 2nd dim len = " + str(len(odorscenesArray[0])))
-    assert params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION > 0, "Standard Deviation number must be greater than 0"
-    if useMockData == False and params.USE_MOCK_ODORS_EVEN_WHEN_RUNNING_CALCS == False:
-        assert params.ODORSCENE_INDEX >= 0 and params.ODORSCENE_INDEX < len(odorscenesArray), "Odorscene index must be within the range of xaxis"
-        assert params.ODORSCENE_REP_NUMBER >= 0 and params.ODORSCENE_REP_NUMBER < ODOR_REPETITIONS, "Odorscene rep number must be within the range 0 - number of repetitions"
+    assert config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION > 0, "Standard Deviation number must be greater than 0"
+    if useMockData == False and config.USE_MOCK_ODORS_EVEN_WHEN_RUNNING_CALCS == False:
+        assert config.ODORSCENE_INDEX >= 0 and config.ODORSCENE_INDEX < len(odorscenesArray), "Odorscene index must be within the range of xaxis"
+        assert config.ODORSCENE_REP_NUMBER >= 0 and config.ODORSCENE_REP_NUMBER < ODOR_REPETITIONS, "Odorscene rep number must be within the range 0 - number of repetitions"
 
     ells_sda: list[Ellipse] = []
     ells_sde: list[Ellipse] = []
@@ -2383,15 +2383,15 @@ def drawEllipseGraph(qspace: QSpace, epithelium: Epithelium, odorscenesArray: li
     ang1 = rnd.rand()
     ang2 = rnd.rand()
 
-    if params.USE_MOCK_RECEPTORS_EVEN_WHEN_RUNNING_CALCS or useMockData:
-        if params.SHOW_SDA_ELLIPSE:
-            ells_sda.append(Ellipse(xy=params.MOCK_RECEPTOR_MEAN, width=params.MOCK_RECEPTOR_SDA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=params.MOCK_RECEPTOR_SDA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
-            ells_sda.append(Ellipse(xy=params.MOCK_RECEPTOR_MEAN1, width=params.MOCK_RECEPTOR_SDA1[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=params.MOCK_RECEPTOR_SDA1[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang1))
-            ells_sda.append(Ellipse(xy=params.MOCK_RECEPTOR_MEAN2, width=params.MOCK_RECEPTOR_SDA2[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=params.MOCK_RECEPTOR_SDA2[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang2))
+    if config.USE_MOCK_RECEPTORS_EVEN_WHEN_RUNNING_CALCS or useMockData:
+        if config.SHOW_SDA_ELLIPSE:
+            ells_sda.append(Ellipse(xy=config.MOCK_RECEPTOR_MEAN, width=config.MOCK_RECEPTOR_SDA[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=config.MOCK_RECEPTOR_SDA[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
+            ells_sda.append(Ellipse(xy=config.MOCK_RECEPTOR_MEAN1, width=config.MOCK_RECEPTOR_SDA1[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=config.MOCK_RECEPTOR_SDA1[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang1))
+            ells_sda.append(Ellipse(xy=config.MOCK_RECEPTOR_MEAN2, width=config.MOCK_RECEPTOR_SDA2[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=config.MOCK_RECEPTOR_SDA2[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang2))
         
         #if params.MOCK_RECEPTOR_MEAN[0] + params.MOCK_RECEPTOR_SDA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION > params.MOCK_QSPACE_DIMENSION[1]:
-            print("xy=" + str(params.MOCK_RECEPTOR_MEAN[0] + params.MOCK_RECEPTOR_SDA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION ))
-            print("dim=" + str(params.MOCK_QSPACE_DIMENSION[1]))
+            print("xy=" + str(config.MOCK_RECEPTOR_MEAN[0] + config.MOCK_RECEPTOR_SDA[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION ))
+            print("dim=" + str(config.MOCK_QSPACE_DIMENSION[1]))
 
             # # left side
             # newMean=[(params.MOCK_QSPACE_DIMENSION[1]-params.MOCK_RECEPTOR_MEAN[0])*-1,params.MOCK_RECEPTOR_MEAN[1]]
@@ -2446,10 +2446,10 @@ def drawEllipseGraph(qspace: QSpace, epithelium: Epithelium, odorscenesArray: li
             # newMean2top=[params.MOCK_RECEPTOR_MEAN2[0], params.MOCK_QSPACE_DIMENSION[1]+params.MOCK_RECEPTOR_MEAN2[1]]
             # ells_sda.append(Ellipse(xy=newMean2top, width=params.MOCK_RECEPTOR_SDA2[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=params.MOCK_RECEPTOR_SDA2[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang2))
 
-        if params.SHOW_SDE_ELLIPSE:
-            ells_sde.append(Ellipse(xy=params.MOCK_RECEPTOR_MEAN, width=params.MOCK_RECEPTOR_SDE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=params.MOCK_RECEPTOR_SDE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
-            ells_sde.append(Ellipse(xy=params.MOCK_RECEPTOR_MEAN1, width=params.MOCK_RECEPTOR_SDE1[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=params.MOCK_RECEPTOR_SDE1[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
-            ells_sde.append(Ellipse(xy=params.MOCK_RECEPTOR_MEAN2, width=params.MOCK_RECEPTOR_SDE2[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=params.MOCK_RECEPTOR_SDE2[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
+        if config.SHOW_SDE_ELLIPSE:
+            ells_sde.append(Ellipse(xy=config.MOCK_RECEPTOR_MEAN, width=config.MOCK_RECEPTOR_SDE[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=config.MOCK_RECEPTOR_SDE[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
+            ells_sde.append(Ellipse(xy=config.MOCK_RECEPTOR_MEAN1, width=config.MOCK_RECEPTOR_SDE1[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=config.MOCK_RECEPTOR_SDE1[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
+            ells_sde.append(Ellipse(xy=config.MOCK_RECEPTOR_MEAN2, width=config.MOCK_RECEPTOR_SDE2[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=config.MOCK_RECEPTOR_SDE2[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
 
         #if params.MOCK_RECEPTOR_MEAN[0] + params.MOCK_RECEPTOR_SDE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION > params.MOCK_QSPACE_DIMENSION[1]:
             # # left side
@@ -2508,10 +2508,10 @@ def drawEllipseGraph(qspace: QSpace, epithelium: Epithelium, odorscenesArray: li
         #for rec in epithelium.recs:
         ii = -1
         for i, rec in enumerate(epithelium.recs): 
-            if params.RECEPTOR_INDEX == 'ALL':
+            if config.RECEPTOR_INDEX == 'ALL':
                 ii=i
             else:
-                ii= params.RECEPTOR_INDEX      
+                ii= config.RECEPTOR_INDEX      
             if i == ii:   
                 print("rec" + str(rec.id) + ":")
                 print("Mean:" + str(rec.mean))
@@ -2526,8 +2526,8 @@ def drawEllipseGraph(qspace: QSpace, epithelium: Epithelium, odorscenesArray: li
                 ells.append(Ellipse(xy=rec.mean, width=rec.sdA[1]*standardDeviationNumber, height=rec.sdE[1]*standardDeviationNumber, angle=ang))
 
                 """
-                if params.SHOW_SDA_ELLIPSE:
-                    ells_sda.append(Ellipse(xy=rec.mean, width=rec.sdA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
+                if config.SHOW_SDA_ELLIPSE:
+                    ells_sda.append(Ellipse(xy=rec.mean, width=rec.sdA[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdA[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
                     
                     # newMeanLeft = [rec.mean[0]-qspaceBoundary, rec.mean[1]]
                     # print("newMeanLeft = " + str(newMeanLeft))
@@ -2556,8 +2556,8 @@ def drawEllipseGraph(qspace: QSpace, epithelium: Epithelium, odorscenesArray: li
                     # ells_sda.append(Ellipse(xy=newMean1topRight, width=rec.sdA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
 
                     
-                if params.SHOW_SDE_ELLIPSE:
-                    ells_sde.append(Ellipse(xy=rec.mean, width=rec.sdE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
+                if config.SHOW_SDE_ELLIPSE:
+                    ells_sde.append(Ellipse(xy=rec.mean, width=rec.sdE[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdE[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
                     
                     # newMeanLeft = [rec.mean[0] - qspaceBoundary, rec.mean[1]]
                     # ells_sde.append(Ellipse(xy=newMeanLeft, width=rec.sdE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
@@ -2590,7 +2590,7 @@ def drawEllipseGraph(qspace: QSpace, epithelium: Epithelium, odorscenesArray: li
     fig = plt.figure()
     ax = fig.add_subplot(111, aspect='equal')
 
-    if params.SHOW_SDA_ELLIPSE:
+    if config.SHOW_SDA_ELLIPSE:
         for e in ells_sda:
             print("The center is " + str(e.center))
             ax.add_artist(e)
@@ -2598,31 +2598,31 @@ def drawEllipseGraph(qspace: QSpace, epithelium: Epithelium, odorscenesArray: li
             #e.set_alpha(rnd.rand())
             #e.set_facecolor(rnd.rand(3))
             #e.set_facecolor('red')
-            e.set_edgecolor(params.SDA_COLOR)
-            e.set_fill(params.SDA_FILL)
-            if params.SDA_FILL:
-                e.set_facecolor(params.SDA_COLOR)
+            e.set_edgecolor(config.SDA_COLOR)
+            e.set_fill(config.SDA_FILL)
+            if config.SDA_FILL:
+                e.set_facecolor(config.SDA_COLOR)
             e.set_label("SDA")
-            e.set_linewidth (params.LINE_WIDTH)
+            e.set_linewidth (config.LINE_WIDTH)
             
     
-    if params.SHOW_SDE_ELLIPSE:
+    if config.SHOW_SDE_ELLIPSE:
         for e in ells_sde:
             ax.add_artist(e)
             e.set_clip_box(ax.bbox)
             #e.set_alpha(rnd.rand())
             #e.set_facecolor(rnd.rand(3))
             #e.set_facecolor('blue')
-            e.set_edgecolor(params.SDE_COLOR)
-            if params.SDE_FILL:
-                e.set_facecolor(params.SDE_COLOR)
-            e.set_fill(params.SDE_FILL)
+            e.set_edgecolor(config.SDE_COLOR)
+            if config.SDE_FILL:
+                e.set_facecolor(config.SDE_COLOR)
+            e.set_fill(config.SDE_FILL)
             e.set_label("SDE")
-            e.set_linewidth (params.LINE_WIDTH)
+            e.set_linewidth (config.LINE_WIDTH)
 
     if useMockData:
-        ax.set_xlim(params.MOCK_QSPACE_DIMENSION)
-        ax.set_ylim(params.MOCK_QSPACE_DIMENSION)
+        ax.set_xlim(config.MOCK_QSPACE_DIMENSION)
+        ax.set_ylim(config.MOCK_QSPACE_DIMENSION)
         
     else:
         ax.set_xlim(qspace.size[0])
@@ -2641,14 +2641,14 @@ def drawEllipseGraph(qspace: QSpace, epithelium: Epithelium, odorscenesArray: li
     locYaxis = []
     locSizes = []
 
-    if params.USE_MOCK_ODORS_EVEN_WHEN_RUNNING_CALCS or useMockData:
+    if config.USE_MOCK_ODORS_EVEN_WHEN_RUNNING_CALCS or useMockData:
         # locSizes.append((math.log10(params.ODOR_CONCENTRATION)+10)*10)
         #locXaxis = params.MOCK_ODORS_X
         #locYaxis = params.MOCK_ODORS_Y
         print('Using mock values')
-        for li, loc in enumerate(params.MOCK_ODORS):
+        for li, loc in enumerate(config.MOCK_ODORS):
                 
-            locSizes.append((math.log10(params.ODOR_CONCENTRATION)+10)*10)
+            locSizes.append((math.log10(config.ODOR_CONCENTRATION)+10)*10)
             #print('odor conc = ' + str(odor.conc))
             #print('odor size = ' + str((math.log10(odor.conc)+10)*10))
 
@@ -2657,7 +2657,7 @@ def drawEllipseGraph(qspace: QSpace, epithelium: Epithelium, odorscenesArray: li
 
     else:
         print('NOT using mock values')
-        for odor in odorscenesArray[params.ODORSCENE_INDEX][params.ODORSCENE_REP_NUMBER].odors: #odorscenesArray[k][i].odors
+        for odor in odorscenesArray[config.ODORSCENE_INDEX][config.ODORSCENE_REP_NUMBER].odors: #odorscenesArray[k][i].odors
             # FIXME: Hotfix. Inspected data suggests they were arrays of the same value. Additionally, the lists were exactly 2*[expected_len].
             #  Moving this into this if case fixes the issue, and provides results, however, I am not sure if the results are correct.
             #  @checkin with Thom
@@ -2675,21 +2675,21 @@ def drawEllipseGraph(qspace: QSpace, epithelium: Epithelium, odorscenesArray: li
     # print(locSizes)
     # print(len(locXaxis), len(locYaxis))
     # print(len(locSizes))
-    plt.scatter(locXaxis,locYaxis, s=locSizes, c=params.ODOR_COLOR)
+    plt.scatter(locXaxis,locYaxis, s=locSizes, c=config.ODOR_COLOR)
 
 
     #plt.legend()
     #plt.title("Receptors - QSpace "+ str(qspace.size[0])+ "Std Dev "+ str(params.ODORSCENE_REP_NUMBER))
-    plt.title(params.GRAPH_TITLE)
-    plt.xlabel(params.XLABEL)
-    plt.ylabel(params.YLABEL)
+    plt.title(config.GRAPH_TITLE)
+    plt.xlabel(config.XLABEL)
+    plt.ylabel(config.YLABEL)
 
     #plt.show()
 
     if useMockData:
-        pp = PdfPages(params.GRAPH_FILE_NAME + str(params.MOCK_QSPACE_DIMENSION) + '.pdf')    
+        pp = PdfPages(config.GRAPH_FILE_NAME + str(config.MOCK_QSPACE_DIMENSION) + '.pdf')    
     else:    
-        pp = PdfPages(params.GRAPH_FILE_NAME + str(qspace.size[0]) + '.pdf')
+        pp = PdfPages(config.GRAPH_FILE_NAME + str(qspace.size[0]) + '.pdf')
         
     pp.savefig()
     pp.close()

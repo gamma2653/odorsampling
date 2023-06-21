@@ -7,7 +7,6 @@
 
 from __future__ import annotations
 
-# from RnO import *
 import math
 from RnO import (
     Ligand, QSpace, Odorscene, Receptor, Epithelium, saveEpithelium,
