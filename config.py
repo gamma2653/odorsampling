@@ -12,7 +12,7 @@ LOG_FILE_HANDLER = logging.FileHandler(LOG_FILE_NAME)
 LOG_STREAM_HANDLER.setFormatter(LOG_FORMATTER)
 LOG_FILE_HANDLER.setFormatter(LOG_FORMATTER)
 
-LOG_LEVEL = logging.DEBUG
+LOG_LEVEL = logging.INFO
 
 def default_log_setup(logger: logging.Logger, log_level: int = None):
     """

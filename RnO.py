@@ -91,9 +91,9 @@ class QSpace:
     def size(self, value: list[tuple[float, float]]) -> None:
         """Sets size equal to value.
         Precondition: Value is a list of tuples"""
-        assert isinstance(value, list), "Value is not a list!"
-        assert isinstance(value[0], tuple), "Elements aren't tuples!"
-        logger.debug("QSpace size changed: [%s->%s]", self._size, value)
+        value = list(map(tuple, value))
+        old = getattr(self, "_size", None)
+        logger.debug("QSpace size changed: [%s->%s]", old, value)
         # TODO: assert values are floats for consistency
         self._size = value
     
@@ -142,8 +142,9 @@ class Ligand:
     def id(self, value: int) -> None:
         """Sets id equal to value.
         Precondition: Value is an int"""
-        assert isinstance(value, int), "Value is not a int!"
-        logger.debug("Ligand id changed: [%s->%s]", self._id, value)
+        value = int(value)
+        old = getattr(self, "_id", None)
+        logger.debug("Ligand id changed: [%s->%s]", old, value)
         self._id = value
     
     @property
@@ -156,8 +157,9 @@ class Ligand:
         """Sets loc equal to value.
         Precondition: Value is a List"""
         # TODO: make tuple everywhere
-        logger.debug("Ligand loc changed: [%s->%s]", self._loc, value)
-        assert isinstance(value, Sequence), f"Value is not a List! ({type(value)})"        
+        old = getattr(self, "_loc", None)
+        logger.debug("Ligand loc changed: [%s->%s]", old, value)
+        value = tuple(map(float, value))     
         self._loc = value
     
     @property
@@ -169,8 +171,9 @@ class Ligand:
     def dim(self, value: int) -> None:
         """Sets dim equal to value.
         Precondition: Value is an int"""
-        logger.debug("Ligand dim changed: [%s->%s]", self._dim, value)
-        assert isinstance(value, int), "Value is not a int!"
+        old = getattr(self, "_dim", None)
+        logger.debug("Ligand dim changed: [%s->%s]", old, value)
+        value = int(value)
         self._dim = value
     
     @property
@@ -182,9 +185,10 @@ class Ligand:
     def conc(self, value: float) -> None:
         """Sets conc equal to value.
         Precondition: Value is a nonZero number"""
-        assert isinstance(value, Real), "Value is not a number!"
         assert value != 0, "Conc can't be 0!"
-        logger.debug("Ligand conc changed: [%s->%s]", self._conc, value)
+        value = float(value)
+        old = getattr(self, "_conc", None)
+        logger.debug("Ligand conc changed: [%s->%s]", old, value)
         self._conc = float(value)
     
     @property
@@ -196,8 +200,9 @@ class Ligand:
     def aff(self, value: float) -> None:
         """Sets aff equal to value.
         Precondition: Value is a float"""
-        assert type(value) == float, "Value is not a float!"
-        logger.debug("Ligand aff changed: [%s->%s]", self._aff, value)
+        value = float(value)
+        old = getattr(self, "_aff", None)
+        logger.debug("Ligand aff changed: [%s->%s]", old, value)
         self._aff = value
     
     @property
@@ -209,9 +214,10 @@ class Ligand:
     def eff(self, value: float) -> None:
         """Sets eff equal to value.
         Precondition: Value is a float btwn 0..1"""
-        assert type(value) == float, "Value is not a float!"
+        value = float(value)
         assert value >= 0 and value <= 1, "Eff is not btwn 0 and 1"
-        logger.debug("Ligand eff changed: [%s->%s]", self._eff, value)
+        old = getattr(self, "_eff", None)
+        logger.debug("Ligand eff changed: [%s->%s]", old, value)
         self._eff = value
     
     @property
@@ -223,30 +229,33 @@ class Ligand:
     def occ(self, value: float) -> None:
         """Sets occ equal to value.
         Precondition: Value is an float btwn 0..1"""
-        assert type(value) == float, "Value is not a float!"
+        value = float(value)
         assert value >= 0.0 and value <= 1.0, "Occ is not btwn 0 and 1"
-        logger.debug("Ligand occ changed: [%s->%s]", self._occ, value)
+        old = getattr(self, "_occ", None)
+        logger.debug("Ligand occ changed: [%s->%s]", old, value)
         self._occ = value
 
     def appendToAffs(self, value: float) -> None:
         """adds aff equal to value.
         Precondition: Value is a float"""
-        assert type(value) == float, "Value is not a float!"
-        logger.debug("Ligand aff appended: [%s+%s]", self._affs, value)
+        value = float(value)
+        old = getattr(self, "_affs", None)
+        logger.debug("Ligand aff appended: [%s+%s]", old, value)
         self._affs.append(value)
 
     def appendToEffs(self, value: float) -> None:
         """adds eff equal to value.
         Precondition: Value is a float"""
-        assert type(value) == float, "Value is not a float!"
-        logger.debug("Ligand eff appended: [%s+%s]", self._effs, value)
+        value = float(value)
+        old = getattr(self, "_effs", None)
+        logger.debug("Ligand eff appended: [%s+%s]", old, value)
         self._effs.append(value)
 
     def appendToOdors2(self, value: Ligand) -> None:
         """adds odor2 equal to value.
         Precondition: odor2 is type of Ligand"""
-        assert type(value) == Ligand, "Value is not a Ligand!"
-        logger.debug("Ligand odor2 appended: [%s+%s]", self._odors2, value)
+        old = getattr(self, "_odors2", None)
+        logger.debug("Ligand odor2 appended: [%s+%s]", old, value)
         self._odors2.append(value)
 
     # TODO: return copy
@@ -262,17 +271,16 @@ class Ligand:
         
         loc is randomly (uniformly) generated point coordinates in QSpace if None.
         """
-        self._id = id_
-        self._loc = loc
-        self._dim = len(loc)
-        self._conc = conc
-        self._aff = 0.0
-        self._eff = 0.0
-        self._occ = 0.0
+        self.id = id_
+        self.loc = loc
+        self.dim = len(loc)
+        self.conc = conc
+        self.aff = 0.0
+        self.eff = 0.0
+        self.occ = 0.0
         self._affs: list[float] = []
         self._effs: list[float] = []
         self._odors2 = []
-        # TODO: rewrite to retroactively use setters to ensure checks
 
     # TODO: Change order to be more consistent with constructor
     @classmethod
@@ -360,8 +368,9 @@ class Odorscene:
     def id(self, value: int) -> None:
         """Sets id equal to value.
         Precondition: Value is an int"""
-        assert isinstance(value, int), "Value is not a int!"
-        logger.debug("Odorscene id changed: [%s->%s]", self._id, value)
+        value = int(value)
+        old = getattr(self, "_id", None)
+        logger.debug("Odorscene id changed: [%s->%s]", old, value)
         self._id = value
 
     @property
@@ -373,8 +382,9 @@ class Odorscene:
     def dim(self, value: int) -> None:
         """Sets dim equal to value.
         Precondition: Value is an int"""
-        assert type(value) == int, "Value is not a int!"
-        logger.debug("Odorscene dim changed: [%s->%s]", self._dim, value)
+        value = int(value)
+        old = getattr(self, "_dim", None)
+        logger.debug("Odorscene dim changed: [%s->%s]", old, value)
         self._dim = value
 
     @property
@@ -386,9 +396,9 @@ class Odorscene:
     def odors(self, value: list[Ligand]) -> None:
         """Sets odors equal to value.
         Precondition: Value is a List and dim of elements are equal."""
-        assert type(value) == list, "Value is not a List!"
+        # TODO: simplify w/ checks using reduce
+        value = list(value)
         self._odors = []
-        # TODO: simplify
         i = 0
         while i < len(value):
             assert value[0].dim == value[i].dim, "Odors aren't all the same dim."
@@ -397,9 +407,9 @@ class Odorscene:
 
     def __init__(self, id_, odors: list[Ligand]):
         """Initializes odorscene"""
-        self._id = id_
-        self._dim = odors[0].dim
-        self._odors = odors
+        self.id = id_
+        self.dim = odors[0].dim
+        self.odors = odors
     
     @classmethod
     def create(cls, dim: int, conc: list[float], amt: list[int], qspace: QSpace, odor_id = 0):
@@ -461,7 +471,7 @@ class Odorscene:
         i = 0
         odors = []
         with open(name) as f:
-            for line in f.readline:
+            for line in f.readline():
                 if i == 1:
                     comma1 = line.find(",")
                     Id = int(line[:comma1])
@@ -521,8 +531,9 @@ class Receptor:
     def id(self, value):
         """Sets id to value
         Precondtion: value is an int"""
-        assert type(value) == int, "Value is not a int!"
-        logger.debug("Receptor id changed: [%s->%s]", self._id, value)
+        value = int(value)
+        old = getattr(self, "_id", None)
+        logger.debug("Receptor id changed: [%s->%s]", old, value)
         self._id = value
     
     @property
@@ -531,14 +542,14 @@ class Receptor:
         return self._mean
 
     @mean.setter
-    def mean(self, value):
+    def mean(self, value: Sequence):
         """Sets id to value
         Precondtion: value is an list"""
-        assert type(value) == list, "Value is not a float!"
-        logger.debug("Receptor mean changed: [%s->%s]", self._mean, value)
+        value = tuple(value)
+        old = getattr(self, "_mean", None)
+        logger.debug("Receptor mean changed: [%s->%s]", old, value)
         self._mean = value
-        self._scale = mvn.pdf(self.mean, self.mean, self.covA)
-        self._effScale = float(mvn.pdf(self.mean, self.mean, self.covE))
+        self._mean_sd_change = True
     
     @property
     def sdA(self) -> tuple:
@@ -549,14 +560,20 @@ class Receptor:
     def sdA(self, value: tuple):
         """Sets sdA equal to value.
         Precondition: Value is a List with dim Q"""
-        assert isinstance(value, Sequence), f"Value is not a List! ({type(value)})"
+        value = tuple(value)
         assert len(value) == len(self._mean), "Dimension is not consistent with dim of mean"
-        logger.debug("Receptor sdA changed: [%s->%s]", self._sdA, value)
+        old = getattr(self, "_sdA", None)
+        logger.debug("Receptor sdA changed: [%s->%s]", old, value)
         self._sdA = value
+        self._mean_sd_change = True
+
+    def _update_cov_scale(self):
         self._covA = [_sdA**2 for _sdA in self.sdA]
-        self._scale = mvn.pdf(self.mean, self.mean, self.covA)
-        self._effScale = float(mvn.pdf(self.mean, self.mean, self.covE))
-    
+        self._covE = [_sdE**2 for _sdE in self.sdE]
+        self._scale = mvn.pdf(self.mean, self.mean, self._covA)
+        self._effScale = float(mvn.pdf(self.mean, self.mean, self._covE))
+        self._mean_sd_change = False
+
     @property
     def sdE(self) -> tuple:
         """Returns the standard deviations for Efficacy."""
@@ -566,31 +583,40 @@ class Receptor:
     def sdE(self, value: tuple):
         """Sets sdE equal to value.
         Precondition: Value is a List with dim Q"""
-        assert isinstance(value, Sequence), "Value is not a List!"
+        value = tuple(value)
         # TODO: assert it is a tuple
         assert len(value) == len(self._mean), "Dimension is not consistent with dim of mean"
-        logger.debug("Receptor sdE changed: [%s->%s]", self._sdE, value)
+        old = getattr(self, "_sdE", None)
+        logger.debug("Receptor sdE changed: [%s->%s]", old, value)
         self._sdE = value
-        self._covE = [_sdE**2 for _sdE in self.sdE]
+        self._mean_sd_change = True
     
     @property
     def covA(self):
         """Returns the covariance for affinity"""
+        if self._mean_sd_change:
+            self._update_cov_scale()
         return self._covA
     
     @property
     def covE(self):
         """Returns the covariance for Efficacy"""
+        if self._mean_sd_change:
+            self._update_cov_scale()
         return self._covE
     
     @property
     def scale(self):
         """Returns scale of receptor."""
+        if self._mean_sd_change:
+            self._update_cov_scale()
         return self._scale
 
     @property
     def effScale(self):
         """Returns eff scale of receptor."""
+        if self._mean_sd_change:
+            self._update_cov_scale()
         return self._effScale
 
     @property
@@ -636,11 +662,13 @@ class Receptor:
         self.id = id_
         # Note: have to manually set mean or else setter gets called before _covA has value
         # Resolves covA value when sdA is set using setter.
-        self._mean = mean
+        self.mean = mean
         self.sdA = sda
         self.sdE = sde
-        # FIXME: covA, covE, scale, and effScale are set when mean and (sdA | sdE) are set
-        # Sol. is probably to change getter to calculate the values automagically
+        self._covA: list
+        self._covE: list
+        self._scale: float
+        self._effScale: float
         self.activ = activ
         self.setOcc(occ)
         self.setOdoAmt(odoAmt)
@@ -759,8 +787,10 @@ class Epithelium:
     def recs(self, value):
         """Sets receptors equal to value.
         Precondition: Value is a List"""
-        assert isinstance(value, list), "Value is not a List!"
-        logger.debug("Epithelium receptors changed: [%s->%s]", self._recs, value)
+        # assert isinstance(value, Sequence), f"Value is not a Sequence! {type(value)}"
+        value = tuple(value)
+        old = getattr(self, "_recs", None)
+        logger.debug("Epithelium receptors changed: [%s->%s]", old, value)
         self._recs = value
     
     def __init__(self, recs):
@@ -791,10 +821,10 @@ class Epithelium:
             a = f"{a}, Aff {i}"
             e = f"{e}, Eff {i}"
             i += 1
-        st = st + "ID, Label" + m + a + e + '\n'
+        st = "ID, Label" + m + a + e + '\n'
         
         for rec in self.recs:
-            st = st + saveReceptor(rec, name, True) + '\n'
+            st = st + rec.save(name, True) + '\n'
         with open(name + ".csv", "w") as f:
             f.write(st)
 
@@ -808,7 +838,7 @@ class Epithelium:
         with open(name) as f:
             for line in f.readlines():
                 if i > 0:
-                    recs.append(loadReceptor(line, True))
+                    recs.append(Receptor.load(line, True))
                 i += 1
         return cls(recs)
 
@@ -1898,15 +1928,15 @@ def dPsiBarSaturation(epithelium: Epithelium, r, qspace: QSpace, pdfName: str, l
         count += 1
     
     #Saving Activated Epithelium data in excel
-    test = open(f"{excelName}.csv", "w")
-    test.write(text._st)
-    test.close
+    # print(text._st)
+    # input('Press enter to save data in excel')
+    with open(f"{excelName}.csv", "w") as f:
+        f.write(text._st)
     
     if c != 1:
         # FIXME: This seems incorrect. (only edit was updating name of qspace.size attr)
-        test = open("Glom_act with c=" + str(c) + " with " + str(qspace.size[0]) + " qspace.csv", "w")
-        test.write(text._st2)
-        test.close
+        with open("Glom_act with c=" + str(c) + " with " + str(qspace.size[0]) + " qspace.csv", "w") as f:
+            f.write(text._st2)
     
     #Saving dPsi data in excel
     st = "Odorscenes, dPsiBar" + '\n'
@@ -1916,7 +1946,7 @@ def dPsiBarSaturation(epithelium: Epithelium, r, qspace: QSpace, pdfName: str, l
         i += 1
     n = "dPsi, qspace=(0, " + str(qspace.size[0][1]) + ")" + purp
     with open(n + ".csv", "w") as f:
-        test.write(st)
+        f.write(st)
 
     if graphIt:
         plt.plot(xaxis,yaxis, label=labelName)

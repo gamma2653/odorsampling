@@ -7,7 +7,7 @@
 from __future__ import annotations
 
 from RnO import (
-    QSpace, Odorscene, Ligand, Epithelium, loadEpithelium,
+    QSpace, Odorscene, Ligand, Epithelium,
     dPsiBarSaturation, colorMapSumOfSquares, dPsiGraphFromExcel, graphFromExcel,
     dPsiOccActGraphFromExcel, glom_penetrance, peak_affinity
 )
@@ -62,7 +62,7 @@ def testdPsiBarSat(fixed, aff_sd=None, eff_sd=None, numRecs=30, c=1, dim=2, qspa
                 space.append((0,qspacesItem))
                 #j+=1
             qspace = QSpace(space)
-            epith = loadEpithelium("1. SavedEpi_" + str(qspace.size[0]) + purp + ".csv")
+            epith = Epithelium.load("1. SavedEpi_" + str(qspace.size[0]) + purp + ".csv")
 
             labelNames.append(str(qspace.size[0]) + " qspace")
             excelNames.append("LigandSat with " + str(qspace.size[0]) + " qspace" + purp)
@@ -132,7 +132,7 @@ def testdPsiBarSatColorMap(fixed, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=3
 
         print("QSPACE SIZE IS " + str(qspace.size[0]) + "????????")
 
-        epith = loadEpithelium("1. SavedEpi_" + str(qspace.size[0]) + purp + ".csv")
+        epith = Epithelium.load("1. SavedEpi_" + str(qspace.size[0]) + purp + ".csv")
 
         print("LOADED EPITHELIUM")
         labelNames.append(str(qspace.size[0]) + " qspace")

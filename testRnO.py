@@ -9,8 +9,8 @@ from __future__ import annotations
 
 import math
 from RnO import (
-    Ligand, QSpace, Odorscene, Receptor, Epithelium, saveEpithelium,
-    loadEpithelium, activateGL_QSpace, sumOfSquares, sumOfSquares2, modifyLoc, colorMapSumOfSquares,
+    Ligand, QSpace, Odorscene, Receptor, Epithelium,
+    activateGL_QSpace, sumOfSquares, sumOfSquares2, modifyLoc, colorMapSumOfSquares,
     sequentialOdorscenes, graphFromExcel, recDensityDpsiGraph, recInQspace,
     recDensityDpsiGraphRandomized, getLocations, glomRecConnNew, dPsiGraphFromExcel,
     dPsiOccActGraphFromExcel, dPsiBarCalcAngles, dPsiBarCalcDiag, dPsiBarSaturation
@@ -96,7 +96,7 @@ def testSaving():
     
     ##Testing Epithelium
     epi = Epithelium.create(4,3,qspace)
-    saveEpithelium(epi, "testEpi")
+    epi.save("testEpi")
     print(epi)
 
 
@@ -118,7 +118,7 @@ def testLoading():
     #print("eff is " + str(rec.sdE))
     
     ##Testing Epithelium
-    epi = loadEpithelium("testEpi.csv")
+    epi = Epithelium.load("testEpi.csv")
     print(epi)
 
 
@@ -450,10 +450,10 @@ def testGlomRecConnNew():
     #odorscene = Odorscene.create(2, [1e-5], [30], qspace, Id = 0)
     odorscene = sequentialOdorscenes(2, 30, 2, .01, qspace)
     
-    epi = loadEpithelium("1. SavedEpi_(0, 4).csv")
+    epi = Epithelium.load("1. SavedEpi_(0, 4).csv")
     activateGL_QSpace(epi, odorscene[0], glomLayer, fixed=True, c=1, sel="avg")
     
-    epi2 = loadEpithelium("1. SavedEpi_(0, 4).csv")
+    epi2 = Epithelium.load("1. SavedEpi_(0, 4).csv")
     activateGL_QSpace(epi2, odorscene[1], glomLayer, fixed=True, c=1, sel="avg")
     
     gl = layers.GlomLayer.create(30)
@@ -475,7 +475,7 @@ def testGlomRecConnNew2():
     """Prints out each glom's receptor connections and the associated weights"""
     qspace = QSpace([(0, 4), (0, 4)])
     
-    epi = loadEpithelium("1. SavedEpi_(0, 4).csv")
+    epi = Epithelium.load("1. SavedEpi_(0, 4).csv")
 
     glomLayer = layers.GlomLayer.create(30)
     odorscene = Odorscene.create(2, [1e-5], [30], qspace, Id = 0)
@@ -505,9 +505,9 @@ def testGlomRecConnNew3():
     
     epi = Epithelium.create(numRecs, 2, qspace, [.5,1.5], [.05,1.0])    
     activateGL_QSpace(epi, odorscene[0], glomLayer, fixed=True, c=1, sel="avg")
-    saveEpithelium(epi, "1. SavedEpi_(0, 4), 100 recs")
+    epi.save("1. SavedEpi_(0, 4), 100 recs")
     
-    epi2 = loadEpithelium("1. SavedEpi_(0, 4), 100 recs.csv")
+    epi2 = Epithelium.load("1. SavedEpi_(0, 4), 100 recs.csv")
     activateGL_QSpace(epi2, odorscene[1], glomLayer, fixed=True, c=1, sel="avg")
     
     gl = layers.GlomLayer.create(numRecs)

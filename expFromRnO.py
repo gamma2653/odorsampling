@@ -16,9 +16,9 @@ import random
 
 import layers
 from RnO import (
-    QSpace, Ligand, Odorscene, Receptor, Epithelium, ODOR_REPETITIONS, saveEpithelium,
-    loadEpithelium, dPsiBarSaturation, graphFromExcel, recDensityDpsiGraph,
-    activateGL_QSpace, dPsiOccActGraphFromExcel, peak_affinity, minimum_affinity, m, glom_penetrance
+    QSpace, Ligand, Odorscene, Receptor, Epithelium, 
+    dPsiBarSaturation, graphFromExcel, recDensityDpsiGraph, activateGL_QSpace, dPsiOccActGraphFromExcel,
+    ODOR_REPETITIONS, peak_affinity, minimum_affinity, m, glom_penetrance
 )
 
 # ####Below are two simulations for dPsiBarSaturation Graphs.
@@ -66,7 +66,7 @@ def testdPsiBarSaturation_Qspaces(fixed: bool, aff_sd=None, eff_sd=None, numRecs
             space.append((0,qspaces[i]))
             j+=1
         qspace = QSpace(space)
-        epith = loadEpithelium("1. SavedEpi_" + str(qspace.size[0]) + purp + ".csv")
+        epith = Epithelium.load("1. SavedEpi_" + str(qspace.size[0]) + purp + ".csv")
 
         labelNames.append(str(qspace.size[0]) + " qspace")
         excelNames.append("LigandSat with " + str(qspace.size[0]) + " qspace" + purp)
@@ -154,7 +154,7 @@ def testdPsiBarSaturationDim(dims: list[int], fixed=False, aff_sd=None, eff_sd=N
         qspace = QSpace(space)
         #epith = loadEpithelium("SavedEpi_(0,4)_" + str(dim) + "Dim.csv")
         epith = Epithelium.create(numRecs, dim, qspace, aff_sd, eff_sd)
-        saveEpithelium(epith, "1. SavedEpi_(0,4), dim=" + str(dim))
+        epith.save("1. SavedEpi_(0,4), dim=" + str(dim))
         
         labels.append(str(dim) + "D")
         excels.append("LigandSat with (0, 4) qspace, dim=" + str(dim))
@@ -213,7 +213,7 @@ def makeSimilar(numRecs: int, aff_sd: list[float], eff_sd: list[float], purpose=
         i+=1
     qspace = QSpace(space)
     epith = Epithelium.create(numRecs, dim, qspace, aff_sd, eff_sd) #amt, dim **amt = len(gl) and dim = dim of odorscene
-    saveEpithelium(epith, "1. SavedEpi_" + str(qspace.size[0]) + purp)
+    epith.save("1. SavedEpi_" + str(qspace.size[0]) + purp)
     
     i = 1
     while i < len(qspaces):
@@ -232,7 +232,7 @@ def makeSimilar(numRecs: int, aff_sd: list[float], eff_sd: list[float], purpose=
             rec.sdE = epith.recs[k].sdE     
             k += 1
     
-        saveEpithelium(epith2, "1. SavedEpi_" + str(qspace.size[0]) + purp)
+        epith2.save("1. SavedEpi_" + str(qspace.size[0]) + purp)
         
         i += 1
 
@@ -243,7 +243,7 @@ def changeOne(name: str, dim: int, col: str, scale):
     Precondition: col in ["aff", "eff"] and scale is a 2D list with a range
     AND the "name" file AND other qspace files are in the correct directory"""
     assert col in ["aff", "eff"]
-    epi = loadEpithelium(name + ".csv")
+    epi = Epithelium.load(name + ".csv")
     sdSave = []
 
     for rec in epi.recs:
@@ -261,7 +261,7 @@ def changeOne(name: str, dim: int, col: str, scale):
         sdSave.append(sd)
     
     name2 = name[:name.index("(")] + "(0, 10)"
-    epi2 = loadEpithelium(name2 + ".csv")
+    epi2 = Epithelium.load(name2 + ".csv")
     i=0
     for rec in epi2.recs:
         if col == "aff":
@@ -273,7 +273,7 @@ def changeOne(name: str, dim: int, col: str, scale):
         i += 1
     
     name3 = name[:name.index("(")] + "(0, 30)"
-    epi3 = loadEpithelium(name3 + ".csv")
+    epi3 = Epithelium.load(name3 + ".csv")
     i=0
     for rec in epi3.recs:
         if col == "aff":
@@ -284,9 +284,9 @@ def changeOne(name: str, dim: int, col: str, scale):
             rec.covE = None
         i += 1
 
-    saveEpithelium(epi, name +  ", " + col + "_sd=" + str(scale))
-    saveEpithelium(epi2, name2 +  ", " + col + "_sd=" + str(scale))
-    saveEpithelium(epi3, name3 +  ", " + col + "_sd=" + str(scale))
+    epi.save(name +  ", " + col + "_sd=" + str(scale))
+    epi2.save(name2 +  ", " + col + "_sd=" + str(scale))
+    epi3.save(name3 +  ", " + col + "_sd=" + str(scale))
 
 def changeMean(name: str, dim: int, scale):
     """Given a file with name, change mean columns to new qspace scale
@@ -294,7 +294,7 @@ def changeMean(name: str, dim: int, scale):
     Precondition: scale = two extremes of the new qspace
     and the "name" file is in the correct directory"""
     
-    epi = loadEpithelium(name + ".csv")
+    epi = Epithelium.load(name + ".csv")
 
     for rec in epi.recs:
         i = 0
@@ -305,7 +305,7 @@ def changeMean(name: str, dim: int, scale):
             rec.mean = mean
     
     newName = "1. SavedEpi_(" + str(scale[0]) + ", " + str(scale[1]) + ")"
-    saveEpithelium(epi, newName)
+    epi.save(newName)
     
 #########Below are three simulations for RecDensity vs DpsiBar graphs
 #The first test varyling ligands from 200 to 50 and returns 4 graphs

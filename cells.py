@@ -56,8 +56,9 @@ class Glom:
     def id(self, value: int) -> None:
         """Sets value to id.
         Precondition: value is an integer"""
-        assert isinstance(value, int), "value is not an integer!"
-        logger.debug("Glom cell id changed: [%s->%s]", self._id, value)
+        value = int(value)
+        old = getattr(self, '_id', None)
+        logger.debug("Glom cell id changed: [%s->%s]", old, value)
         self._id = value    
 
     @property
@@ -70,10 +71,11 @@ class Glom:
         """Rounds value and sets it to activation level.
         Precondition: Value is a float between 0 and 1."""
         N_DIGITS = 6
-        assert isinstance(value, float), f"Not a float! ({type(value)})"
+        value = round(float(value), N_DIGITS)
         assert value <= 1 and value >= 0, "Not between 0 and 1"
-        logger.debug("Glom cell[%s] activ level changed: [%s->%s]", self._id, self._activ, value)
-        self._activ = round(value, N_DIGITS)
+        old = getattr(self, '_activ', None)
+        logger.debug("Glom cell[%s] activ level changed: [%s->%s]", self._id, old, value)
+        self._activ = value
 
     @property
     def loc(self) -> tuple[Real, Real]:
@@ -85,9 +87,10 @@ class Glom:
         """Sets value to loc.
         Precondition: value is a 2D list of numbers"""
         # FIXME: ensure tuple
-        assert isinstance(value, Sequence), f"value is not a list! ({type(value)})"
+        value = tuple(value)
+        old = getattr(self, '_loc', None)
         assert len(value) == 2 and isinstance(value[0], Real), "Not a 2D list of numbers!"
-        logger.debug("Glom cell[%s] loc changed: [%s->%s]", self._id, self._loc, value)
+        logger.debug("Glom cell[%s] loc changed: [%s->%s]", self._id, old, value)
         self._loc = value
 
     @property
@@ -99,9 +102,10 @@ class Glom:
     def dim(self, value: tuple[int]) -> None:
         """Sets value to dim.
         Precondition: value is a 2D list of numbers"""
-        assert isinstance(value, Sequence), "value is not a list!"
+        value = tuple(value)
         assert len(value) == 2 and isinstance(value[0], int), "Not a 2D list of numbers!"
-        logger.debug("Glom cell[%s] dim changed: [%s->%s]", self._id, self._dim, value)
+        old = getattr(self, '_dim', None)
+        logger.debug("Glom cell[%s] dim changed: [%s->%s]", self._id, old, value)
         self._dim = value
         
     @property
@@ -113,20 +117,22 @@ class Glom:
     def conn(self, value: int) -> None:
         """Sets value to conn.
         Precondition: value is an int"""
-        assert isinstance(value, int)
-        logger.debug("Glom cell[%s] connectivity changed: [%s->%s]", self._id, self._conn, value)
+        value = int(value)
+        old = getattr(self, '_conn', None)
+        logger.debug("Glom cell[%s] connectivity changed: [%s->%s]", self._id, old, value)
         self._conn = value
     
     def setRecConn(self, value: dict) -> dict:
         """Sets value to recConn"""
-        assert isinstance(value, dict), "value isn't a dictionary"
-        logger.debug("Glom cell[%s] receptor connectivity changed: [%s->%s]", self._id, self._recConn, value)
+        value = dict(value)
+        old = getattr(self, '_recConn', None)
+        logger.debug("Glom cell[%s] receptor connectivity changed: [%s->%s]", self._id, old, value)
         self._recConn = value
 
-    def addRecConn(self, value: dict, weight):
+    def addRecConn(self, key: dict, weight):
         """Sets value to recConn"""
-        logger.debug("Glom cell[%s] added receptivity connection: [%s]", self._id, value)
-        self._recConn[value] = weight
+        logger.debug("Glom cell[%s] added receptivity connection: [%s]", self._id, key)
+        self._recConn[key] = weight
     
 
     def __init__(self, id_, activ=0.0, loc=(0,0), dim=(0,0), conn=0):
@@ -169,8 +175,9 @@ class Mitral:
     def id(self, value: int) -> None:
         """Sets value to id.
         Precondition: value is an integer"""
-        assert isinstance(value, int), "value is not an integer!"
-        logger.debug("Mitral cell[%s] id changed: [%s->%s]", self._id, self._id, value)
+        value = int(value)
+        old = getattr(self, '_id', None)
+        logger.debug("Mitral cell[%s] id changed: [%s->%s]", old, old, value)
         self._id = value
 
     @property
@@ -182,11 +189,12 @@ class Mitral:
     def activ(self, value: float) -> None:
         """Rounds value and sets it to activation level.
         Precondition: Value is a float between 0 and 1."""
-        assert isinstance(value, float), "Not a float!"
-        assert value <= 1 and value >= 0, "Not between 0 and 1"
         N_DIGITS = 5
-        logger.debug("Mitral cell[%s] activ level changed: [%s->%s]", self._id, self._activ, value)
-        self._activ = round(value, N_DIGITS)
+        value = round(float(value), N_DIGITS)
+        assert value <= 1 and value >= 0, "Not between 0 and 1"
+        old = getattr(self, '_activ', None)
+        logger.debug("Mitral cell[%s] activ level changed: [%s->%s]", self._id, old, value)
+        self._activ = value
         
     @property
     def loc(self) -> tuple[Real, Real]:
@@ -197,9 +205,10 @@ class Mitral:
     def loc(self, value: tuple[Real, Real]) -> None:
         """Sets value to loc.
         Precondition: value is a 2D list of numbers"""
-        assert isinstance(value, Sequence), "value is not a list!"
-        assert len(value) == 2 and isinstance(value[0], Real), "Not a length: 2 list of numbers!"
-        logger.debug("Mitral cell[%s] loc changed: [%s->%s]", self._id, self._loc, value)
+        value = tuple(value)
+        assert len(value) == 2 and isinstance(value[0], Real), "Not a length: 2 tuple of numbers!"
+        old = getattr(self, '_loc', None)
+        logger.debug("Mitral cell[%s] loc changed: [%s->%s]", self._id, old, value)
         self._loc = value
         
     @property
@@ -211,16 +220,17 @@ class Mitral:
     def glom(self, value: MutableMapping[Glom, float]) -> None:
         """Sets glomeruli to value.
         Precondition: Value is a dict containing glomeruli id's and weights."""
-        assert isinstance(value, dict), "Not a dict!"
-        logger.debug("Mitral cell[%s] glom map changed: [%s->%s]", self._id, self._glom, value)
+        value = dict(value)
+        old = getattr(self, '_glom', None)
+        logger.debug("Mitral cell[%s] glom map changed: [%s->%s]", self._id, old, value)
         self._glom = value
 
-    def __init__(self, ID, activ=0.0, loc: tuple[float, float]=(0.0,0.0), glom=None):
+    def __init__(self, id_, activ=0.0, loc: tuple[float, float]=(0.0,0.0), glom=None):
         """Initializes a Mitral cell"""
-        self._id = ID
-        self._activ = activ
-        self._loc = loc
-        self._glom = {} if glom is None else glom
+        self.id = id_
+        self.activ = activ
+        self.loc = loc
+        self.glom = {} if glom is None else glom
 
     def __str__(self):
         """Returns a Mitral object description with activation energy and ID's 

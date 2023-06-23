@@ -168,7 +168,7 @@ class GlomLayer(list[cells.Glom]):
         """Returns GL with given name from directory
         precondition: name is a string with correct extension"""
         assert type(name) == str, "name isn't a string"
-        GL = []
+        glom_layer = []
         # TODO: regex it, and use a generator into GlomLayer constructor
         with open(name) as f:
             for line in f.readlines():
@@ -179,9 +179,9 @@ class GlomLayer(list[cells.Glom]):
                 semi = line.index(";", comma3+1)
                 loc = [int(line[comma2+1:colon]), int(line[colon+1:comma3])]
                 glom = cells.Glom(int(line[:comma1]), float(line[comma1+1:comma2]), loc, int(line[comma3+1:semi]))
-                GL.append(glom)
+                glom_layer.append(glom)
         logger.info("Glom layer loaded from `%s`.", name)
-        return GlomLayer(GL)
+        return cls(glom_layer)
     
     def addNoise(self, noise, mean=0, sd=0):
         """Increments activation levels in GL by a certain value
@@ -202,7 +202,7 @@ class GlomLayer(list[cells.Glom]):
 
 class MitralLayer(list[cells.Mitral]):
     def __init__(self, cells: Iterable[cells.Mitral]):
-        self.extend(cells)
+        super().__init__(cells)
 
     @classmethod
     def create(cls, n: Real):
