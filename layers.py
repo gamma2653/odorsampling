@@ -21,6 +21,8 @@ from __future__ import annotations
 
 import logging
 import random
+from enum import Enum
+
 import matplotlib.pyplot as plt
 import math
 import matplotlib.pylab
@@ -41,53 +43,33 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 config.default_log_setup(logger)
 
+class DistributionType(Enum):
+    """
+    Enum for distribution types.
+    """
+    UNIFORM = random.random
+    """
+    Activation levels are drawn from a random distribution.
+    """
+    GAUSSIAN = random.gauss
+    """
+    Activation levels are drawn from a Gaussian distribution with mean and sd.
+    """
+    EXPONENTIAL = random.expovariate
+    """
+    Activation levels are drawn from exponenial distribution with mean.
+    """
+
 class GlomLayer(list[cells.Glom]):
 
     def __init__(self, cells: Iterable[cells.Glom] = tuple()):
         super().__init__(cells)
     
-    @classmethod
-    def create(cls, n: int):
-        logger.debug("Creating glom layer of %s cells.", n)
-        return cls((cells.Glom(i) for i in range(n)))
-    
-    @classmethod
-    def createGL_dimensions(cls, x: int, y: int):
-        """
-        Returns an array of x number of glom objects with activation levels
-        and loc set to defaults. ID refers to its index in the array.
-        
-        PARAMETERS
-        ----------
-        x - int
-        
-        y - int
-
-        """
-        assert isinstance(x, int), "x is not an int"
-        assert isinstance(y, int), "y is not an int"
-        glom_layer: GlomLayer = GlomLayer()
-        countX = 0
-        countY = 0
-        glomID = 0
-        while countX<x:
-            while countY<y:
-                glom_layer.append(cells.Glom(glomID, 0.0, [countX, countY], [y, x], 0))
-                # TODO: derive glomID via county*x+county or autoset via GlomLayer.append
-                glomID += 1
-                countY += 1
-            countY = 0
-            countX += 1
-
-        for glom in glom_layer:
-            logger.debug("%s location: (%s)", glom, glom.loc)
-
-        return glom_layer
-
     def clearActiv(self):
+        """Clears activation levels for all glom in layer."""
         for glom in self:
-            glom.activ = 0.0
-            glom.setRecConn({})
+            glom.activation = 0.0
+            glom.recConn.clear()
         logger.debug("Glom cell layer activations cleared.")
 
     #The following function generates activation levels for a GL in different ways
@@ -95,13 +77,9 @@ class GlomLayer(list[cells.Glom]):
     #For now, if a number is generated to be over 1 or under 0 in Gaussian or
     #exponential, the function will be called again to generate a different number.
     # TODO: Change sel to an enum or some other fixed type
-    def activate_random(self, sel: str, mean=0, sd=0):
+    def activate_random(self, sel: DistributionType, mean=0, sd=0):
         """Initializes activation level for given GL (glom layer).
-        If sel = "u" then activation levels are drawn from a random distribution.
-        If sel = "g" then drawn from a Gaussian distribution with mean and sd.
-        If sel = "e", then drawn from exponenial distribution with mean.
         Precondition: GL is a list of Glom and sel is u, g, or e."""
-        assert sel in ['g','u', 'e'], "sel isn't g or u"
         assert (mean+sd) <= 1 and mean-sd >= 0, "Mean and SD are too high or low"
         for glom in self:
             if sel == 'u':
