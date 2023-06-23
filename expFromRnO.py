@@ -362,7 +362,7 @@ def effAnalysis(effSD, affSD=[2,2], qspace=(0,4), fixed=False):
     dim = 2
     qspace = QSpace([qspace, qspace])
     odorscenes: list[Odorscene] = []  #Create 1600 odorscenes (with 1 ligand each) that span qspace from 0,0 to 3.9,3.9
-    gl = layers.createGL(1)
+    gl = layers.GlomLayer.create(1)
     i = 0.0
     ID = 0
     while i < qspace.size[0][1]:
@@ -442,7 +442,7 @@ def occVsLocGraph(affList=[2,1.5,1,.5]):
     qspace = QSpace([(0,4)])
     # FIXME: THESE ARE NOT ODORSCENES EADJKFJASDJ
     odorscenes: list[Ligand] = []  #Create 1600 odorscenes (with 1 ligand each) that span qspace from 0 to 3.9
-    gl = layers.createGL(1)
+    gl = layers.GlomLayer.create(1)
     i = 0.0
     ID = 0
     while i < qspace.size[0][1]-.01:
@@ -499,7 +499,7 @@ def effVsLocGraph(effList=[.1,.5,1,2,3]):
     dim = 1
     qspace = QSpace([(0,4)])
     odorscenes: list[Ligand] = []  #Create 1600 odorscenes (with 1 ligand each) that span qspace from 0 to 3.9
-    gl = layers.createGL(1)
+    gl = layers.GlomLayer.create(1)
     i = 0.0
     ID = 0
     while i < qspace.size[0][1]-.01:

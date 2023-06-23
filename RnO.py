@@ -29,6 +29,7 @@ import matplotlib.pylab
 from matplotlib.backends.backend_pdf import PdfPages
 import copy
 import time
+import logging
 
 #from matplotlib import mlab, cm
 from matplotlib.patches import Ellipse
@@ -49,6 +50,9 @@ if TYPE_CHECKING:
     # from typing import Tuple
     # from typing import List
     # ^Removed in favor of Python 3.9 list generics (see PEP 585)
+
+logger = logging.getLogger(__name__)
+config.default_log_setup(logger)
 
 ###Global Variables
 peak_affinity = -8     # literally 10e-8, not influenced by minimum_affinity value
@@ -89,6 +93,7 @@ class QSpace:
         Precondition: Value is a list of tuples"""
         assert isinstance(value, list), "Value is not a list!"
         assert isinstance(value[0], tuple), "Elements aren't tuples!"
+        logger.debug("QSpace size changed: [%s->%s]", self._size, value)
         # TODO: assert values are floats for consistency
         self._size = value
     
@@ -138,6 +143,7 @@ class Ligand:
         """Sets id equal to value.
         Precondition: Value is an int"""
         assert isinstance(value, int), "Value is not a int!"
+        logger.debug("Ligand id changed: [%s->%s]", self._id, value)
         self._id = value
     
     @property
@@ -150,6 +156,7 @@ class Ligand:
         """Sets loc equal to value.
         Precondition: Value is a List"""
         # TODO: make tuple everywhere
+        logger.debug("Ligand loc changed: [%s->%s]", self._loc, value)
         assert isinstance(value, Sequence), f"Value is not a List! ({type(value)})"        
         self._loc = value
     
@@ -162,6 +169,7 @@ class Ligand:
     def dim(self, value: int) -> None:
         """Sets dim equal to value.
         Precondition: Value is an int"""
+        logger.debug("Ligand dim changed: [%s->%s]", self._dim, value)
         assert isinstance(value, int), "Value is not a int!"
         self._dim = value
     
@@ -176,46 +184,72 @@ class Ligand:
         Precondition: Value is a nonZero number"""
         assert isinstance(value, Real), "Value is not a number!"
         assert value != 0, "Conc can't be 0!"
+        logger.debug("Ligand conc changed: [%s->%s]", self._conc, value)
         self._conc = float(value)
     
-    def setAff(self, value: float) -> None:
+    @property
+    def aff(self) -> float:
+        """Returns the aff."""
+        return self._aff
+
+    @aff.setter
+    def aff(self, value: float) -> None:
         """Sets aff equal to value.
         Precondition: Value is a float"""
         assert type(value) == float, "Value is not a float!"
+        logger.debug("Ligand aff changed: [%s->%s]", self._aff, value)
         self._aff = value
     
-    def setEff(self, value: float) -> None:
+    @property
+    def eff(self) -> float:
+        """Returns the eff."""
+        return self._eff
+
+    @eff.setter
+    def eff(self, value: float) -> None:
         """Sets eff equal to value.
         Precondition: Value is a float btwn 0..1"""
         assert type(value) == float, "Value is not a float!"
         assert value >= 0 and value <= 1, "Eff is not btwn 0 and 1"
+        logger.debug("Ligand eff changed: [%s->%s]", self._eff, value)
         self._eff = value
     
-    def setOcc(self, value: float) -> None:
+    @property
+    def occ(self) -> float:
+        """Returns the occ."""
+        return self._occ
+
+    @occ.setter
+    def occ(self, value: float) -> None:
         """Sets occ equal to value.
         Precondition: Value is an float btwn 0..1"""
         assert type(value) == float, "Value is not a float!"
         assert value >= 0.0 and value <= 1.0, "Occ is not btwn 0 and 1"
+        logger.debug("Ligand occ changed: [%s->%s]", self._occ, value)
         self._occ = value
 
     def appendToAffs(self, value: float) -> None:
         """adds aff equal to value.
         Precondition: Value is a float"""
         assert type(value) == float, "Value is not a float!"
+        logger.debug("Ligand aff appended: [%s+%s]", self._affs, value)
         self._affs.append(value)
 
     def appendToEffs(self, value: float) -> None:
         """adds eff equal to value.
         Precondition: Value is a float"""
         assert type(value) == float, "Value is not a float!"
+        logger.debug("Ligand eff appended: [%s+%s]", self._effs, value)
         self._effs.append(value)
 
     def appendToOdors2(self, value: Ligand) -> None:
         """adds odor2 equal to value.
         Precondition: odor2 is type of Ligand"""
         assert type(value) == Ligand, "Value is not a Ligand!"
+        logger.debug("Ligand odor2 appended: [%s+%s]", self._odors2, value)
         self._odors2.append(value)
 
+    # TODO: return copy
     def getOdors2(self) -> list[Ligand]:
         """Returns _odors2."""
         return self._odors2
@@ -228,22 +262,76 @@ class Ligand:
         
         loc is randomly (uniformly) generated point coordinates in QSpace if None.
         """
-        self.id = id_
-        self.loc = loc
-        self.dim = len(loc)
-        self.conc = conc
+        self._id = id_
+        self._loc = loc
+        self._dim = len(loc)
+        self._conc = conc
         self._aff = 0.0
         self._eff = 0.0
         self._occ = 0.0
         self._affs: list[float] = []
         self._effs: list[float] = []
         self._odors2 = []
+        # TODO: rewrite to retroactively use setters to ensure checks
 
     # TODO: Change order to be more consistent with constructor
     @classmethod
     def create(cls, dim, conc, id_=0):
-        loc = [random.uniform(-1000, 1000) for i in range(dim)]
+        """
+        Returns a ligand with randomly (uniformly) generated ligand point coordinates
+        in Q space.
+        """
+        # TODO: make sure within bounds
+        loc = [random.uniform(-1000, 1000) for _ in range(dim)]
         return Ligand(id_, conc, loc)
+    
+    @classmethod
+    def load(cls, name: str, helper=False):
+        """Returns an ligand from a CSV file with the given name.
+        If helper is true, then it's being called from loadOdorscene and we
+        don't want to skip the first line.
+        Precondition: name exists and it's in CSV format AND the file is <= 2 lines"""
+        assert type(name) == str, "name isn't a string"
+
+        if not helper:
+            i = 0
+            with open(name) as f:
+                for l in f.readlines(): #essentially just skip the first line and save the second
+                    if i == 1:
+                        line = l
+                    i += 1
+        else:
+            line = name
+        comma1 = line.find(",")
+        comma2 = line.find(",", comma1+1)
+        comma3 = line.find(",", comma2+1)  #Comma before first loc coord
+        commas = [line.find(",", comma3+1)]
+        k = 0
+        while commas[-1] != -1:
+            commas.append(line.find(",", commas[k] + 1))
+            k+=1
+        id_ = int(line[:comma1])
+        conc = float(line[comma2+1:comma3])
+        index = 0
+        loc = [float(line[comma3+1:commas[index]])]
+        while commas[index] != -1:
+            loc.append(float(line[commas[index]+1:commas[index+1]])) #when commas[index+1]=-1 it cuts off the last digit
+            index += 1
+        loc[index] = float(str(loc[index]) + line[-1]) #Accounts for missing digit
+        return cls(id_, loc, conc)
+
+    def save(self, name: str):
+        """Stores odor as one row in a CSV file with the following columns:
+        A = ID# of ligand
+        B = text label ('odorant membership')
+        C = concentration of ligand in molar
+        D...(Q-3) = the Q coordinates of the ligand point
+        Precondtion: Name is a str"""
+        assert type(name) == str, "name is not a string"
+        content = (f"ID, Label, Conc {', coord '.join(map(str, self.dim))}\n {self.id}"
+                f",' ',{self.conc}, {','.join(map(str, self.loc))}")
+        with open(f"{name}.csv", "w") as f:
+            f.write(content)
 
     def __str__(self):
         """Returns description of Ligand"""
@@ -273,6 +361,7 @@ class Odorscene:
         """Sets id equal to value.
         Precondition: Value is an int"""
         assert isinstance(value, int), "Value is not a int!"
+        logger.debug("Odorscene id changed: [%s->%s]", self._id, value)
         self._id = value
 
     @property
@@ -285,6 +374,7 @@ class Odorscene:
         """Sets dim equal to value.
         Precondition: Value is an int"""
         assert type(value) == int, "Value is not a int!"
+        logger.debug("Odorscene dim changed: [%s->%s]", self._dim, value)
         self._dim = value
 
     @property
@@ -307,9 +397,9 @@ class Odorscene:
 
     def __init__(self, id_, odors: list[Ligand]):
         """Initializes odorscene"""
-        self.id = id_
-        self.dim = odors[0].dim
-        self.odors = odors
+        self._id = id_
+        self._dim = odors[0].dim
+        self._odors = odors
     
     @classmethod
     def create(cls, dim: int, conc: list[float], amt: list[int], qspace: QSpace, odor_id = 0):
@@ -334,7 +424,52 @@ class Odorscene:
                 lig_id += 1
             i += 1
         return cls(odor_id, odors)
+    
+    def save(self, name: str):
+        """
+        Stores odor as a CSV file with the following format:
+        First and second row: contains ID and dim of odorscene
+        Every row after that symbolizes an odor with the following columns:
+        A = ID# of ligand
+        B = text label ('odorant membership')
+        C = concentration of ligand in molar
+        D...(Q-3) = the Q coordinates of the ligand point
+        Precondition: Name is a str
+        """
+        assert type(name) == str, "name is not a string"
+        st = "\n OdorSceneID, dim \n"
+        st = f"{st}{self.id},{len(self.odors)}\n"
+        st = st + "ID, Label, Conc "
         
+        i = 0
+        while i < self.odors[0].dim:
+            st = f"{st}, coord {i}"
+            i += 1
+        for odor in self.odors:
+            st = f"{st}\n{odor.id},' ',{odor.conc}"
+            for _, loc in enumerate(odor.loc):
+                st = st + "," + str(loc)
+
+        with open(f"{name}.csv", "a") as f:
+            f.write(st)
+
+    @classmethod
+    def load(cls, name: str):
+        """Returns an odorscene from a CSV file with the given name.
+        Precondtion: name existsand it's in CSV format"""
+        assert type(name) == str, "name isn't a string"
+        i = 0
+        odors = []
+        with open(name) as f:
+            for line in f.readline:
+                if i == 1:
+                    comma1 = line.find(",")
+                    Id = int(line[:comma1])
+                if i > 2:
+                    odors.append(Ligand.load(line, True))
+                i += 1
+        return Odorscene(Id, odors)
+
     def __str__(self):
         """Returns description of Odor"""
         # Hotfix until Python 3.12
@@ -360,6 +495,7 @@ class Receptor:
         sdA ^^ 2
     _covE : list
         sdE ^^ 2
+    # TODO: change _scale to _affScale
     _scale : float
         A heuristic scalar value for the "strongest available affinity"
     _effScale : float
@@ -386,6 +522,7 @@ class Receptor:
         """Sets id to value
         Precondtion: value is an int"""
         assert type(value) == int, "Value is not a int!"
+        logger.debug("Receptor id changed: [%s->%s]", self._id, value)
         self._id = value
     
     @property
@@ -398,8 +535,10 @@ class Receptor:
         """Sets id to value
         Precondtion: value is an list"""
         assert type(value) == list, "Value is not a float!"
+        logger.debug("Receptor mean changed: [%s->%s]", self._mean, value)
         self._mean = value
-        self._update_scale()
+        self._scale = mvn.pdf(self.mean, self.mean, self.covA)
+        self._effScale = float(mvn.pdf(self.mean, self.mean, self.covE))
     
     @property
     def sdA(self) -> tuple:
@@ -412,9 +551,11 @@ class Receptor:
         Precondition: Value is a List with dim Q"""
         assert isinstance(value, Sequence), f"Value is not a List! ({type(value)})"
         assert len(value) == len(self._mean), "Dimension is not consistent with dim of mean"
+        logger.debug("Receptor sdA changed: [%s->%s]", self._sdA, value)
         self._sdA = value
         self._covA = [_sdA**2 for _sdA in self.sdA]
-        self._update_scale()
+        self._scale = mvn.pdf(self.mean, self.mean, self.covA)
+        self._effScale = float(mvn.pdf(self.mean, self.mean, self.covE))
     
     @property
     def sdE(self) -> tuple:
@@ -428,6 +569,7 @@ class Receptor:
         assert isinstance(value, Sequence), "Value is not a List!"
         # TODO: assert it is a tuple
         assert len(value) == len(self._mean), "Dimension is not consistent with dim of mean"
+        logger.debug("Receptor sdE changed: [%s->%s]", self._sdE, value)
         self._sdE = value
         self._covE = [_sdE**2 for _sdE in self.sdE]
     
@@ -446,19 +588,10 @@ class Receptor:
         """Returns scale of receptor."""
         return self._scale
 
-    def _update_scale(self):
-        """Sets scale based on mean"""
-        self._scale = mvn.pdf(self.mean, self.mean, self.covA)
-
     @property
     def effScale(self):
         """Returns eff scale of receptor."""
         return self._effScale
-
-    @effScale.setter
-    def effScale(self, value):
-        """Sets eff scale based on mean"""
-        self._effScale = float(mvn.pdf(self.mean, self.mean, self.covE))
 
     @property
     def activ(self):
@@ -497,9 +630,8 @@ class Receptor:
         """Sets effs for all ordors"""
         self._effs = value
 
-
 #Initializer
-    def __init__(self, id_, mean, sda, sde):
+    def __init__(self, id_, mean, sda, sde, activ=0, occ=0, odoAmt=0):
         """Initializes a receptor."""
         self.id = id_
         # Note: have to manually set mean or else setter gets called before _covA has value
@@ -507,12 +639,11 @@ class Receptor:
         self._mean = mean
         self.sdA = sda
         self.sdE = sde
-        # FIXME: Hotfix until getters and setters are fixed for covA, covE, scale, and effScale (are autoassigned by setter)
+        # FIXME: covA, covE, scale, and effScale are set when mean and (sdA | sdE) are set
         # Sol. is probably to change getter to calculate the values automagically
-        self.activ = 0
-        self.setOcc(0)
-        self.setOdoAmt(0)
-        self.effScale = None
+        self.activ = activ
+        self.setOcc(occ)
+        self.setOdoAmt(odoAmt)
 
     @classmethod
     def create(cls, dim: int, qspace: QSpace, scale: tuple[float, float] = (0.5,1.5),
@@ -526,6 +657,83 @@ class Receptor:
         sdA = _distributeSD(dim, scale)
         sdE = _distributeSD(dim, scaleEff) if scaleEff is not None else sdA
         return cls(id_, mean, sdA, sdE)
+
+    def save(self, name: str, helper=False):
+        """Stores receptor as one row in a CSV file with the following columns:
+        A = ID# of receptor
+        B = text label ('receptor membership')
+        C...X = list of mean
+        X...Y = list of SD for affinity
+        y...Z = list of SD for efficacy
+        Precondtion: Name is a str"""
+        assert type(name) == str, "name is not a string"
+        dim = len(self.mean)
+        i = 0
+        st = ''
+        m = ''
+        a = ''
+        e = ''
+        mean = ''
+        aff = ''
+        eff = ''
+        while i < dim:
+            m = m + ", Mean " + str(i)
+            a = a + ", Aff " + str(i)
+            e = e + ", Eff " + str(i)
+            mean = mean + "," + str(self.mean[i])
+            aff = aff + "," + str(self.sdA[i])
+            eff = eff + "," + str(self.sdE[i])
+            i += 1
+        if helper == False:
+            st = st + "ID, Label" + m + a + e + '\n'
+        st = st + str(self.id) + ",' '" + mean + aff + eff
+        if helper:
+            return st
+        with open(name + ".csv", "w") as f:
+            f.write(st)
+
+    @classmethod
+    def load(cls, name: str, helper=False) -> Receptor:
+        """Returns a receptor from a CSV file with the given name.
+        If helper is true, then it's being called from loadEpithelium and some
+        adjustments are made.
+        Precondition: name exists and it's in CSV format AND the file is <= 2 lines"""
+        assert type(name) == str, "name isn't a string"
+        if helper == False:
+            text = open(name)
+            i = 0
+            for l in text: #essentially just skip the first line and save the second
+                if i == 1:
+                    line = l
+                i += 1
+        else:
+            line = name
+        comma1 = line.find(",")
+        comma2 = line.find(",", comma1+1) #Comma before first mean coord
+        commas = [line.find(",", comma2+1)]
+        i = 0
+        while commas[i] != -1:
+            commas.append(line.find(",", commas[i]+1))
+            i += 1
+        dim = len(commas) // 3
+        Id = int(line[:comma1])
+        mean = [float(line[comma2+1:commas[0]])]
+        index = 1
+        while index < dim:
+            mean.append(float(line[commas[index-1]+1:commas[index]]))
+            index += 1
+        aff = []
+        while index < (2*dim):
+            aff.append(float(line[commas[index-1]+1:commas[index]]))
+            index += 1
+        eff = []
+        while index < (3*dim):
+            eff.append(float(line[commas[index-1]+1:commas[index]])) #Last index of aff loses last digit due to -1
+            index += 1
+        eff[dim-1] = float(str(eff[dim-1]) + line[-1]) #Accounts for missing digit
+        if helper == False:
+            text.close()
+        return Receptor(Id, mean, aff, eff)
 
     def __str__(self):
         """Returns receptor description"""
@@ -552,6 +760,7 @@ class Epithelium:
         """Sets receptors equal to value.
         Precondition: Value is a List"""
         assert isinstance(value, list), "Value is not a List!"
+        logger.debug("Epithelium receptors changed: [%s->%s]", self._recs, value)
         self._recs = value
     
     def __init__(self, recs):
@@ -564,13 +773,51 @@ class Epithelium:
         SD of each receptor is a uniformly chosen # btwn scale[0] and scale[1]
         Precondition: n is an int"""
         assert type(n) == int, "n is not an integer"
-        return Epithelium([Receptor.create(dim, qspace, scale, scaleEff, constMean, i) for i in range(n)])
+        return Epithelium((Receptor.create(dim, qspace, scale, scaleEff, constMean, i) for i in range(n)))
+
+    def save(self, name : str):
+        """Stores each receptor as one row in a CSV file with the following columns:
+        A = ID# of receptor
+        B = text label ('receptor membership')
+        C...X = list of mean
+        X...Y = list of SD for affinity
+        y...Z = list of SD for efficacy
+        Precondtion: Name is a str"""
+        assert type(name) == str, "name is not a string"
+        m, a , e = "", "", ""
+        i = 0
+        while i < len(self.recs[0].mean):
+            m = f"{m}, Mean {i}"
+            a = f"{a}, Aff {i}"
+            e = f"{e}, Eff {i}"
+            i += 1
+        st = st + "ID, Label" + m + a + e + '\n'
+        
+        for rec in self.recs:
+            st = st + saveReceptor(rec, name, True) + '\n'
+        with open(name + ".csv", "w") as f:
+            f.write(st)
+
+    @classmethod
+    def load(cls, name: str) -> Epithelium:
+        """Returns an epithelium from a CSV file with the given name.
+        Precondition: name exists and it's in CSV format"""
+        assert type(name) == str, "name isn't a string"
+        recs = []
+        i = 0
+        with open(name) as f:
+            for line in f.readlines():
+                if i > 0:
+                    recs.append(loadReceptor(line, True))
+                i += 1
+        return cls(recs)
 
     def __str__(self):
         """Returns epithelium description"""
         n_ = '\n'
         return f"Epithelium contains the following receptors: \n{n_.join(map(str, self.recs))}"
 
+# TODO: delete this class
 class Text:
     """Holding experimental text to later store in text file"""
     
@@ -590,8 +837,8 @@ def modifyLoc(odorant: Ligand, qspace: QSpace, dim: int):
     i = 0
     loc = odorant.loc
     while i < dim:
-        loc[i] = ((loc[i] + (abs(qspace.size[i][0]))) % (abs(qspace.size[i][0]) +
-                                abs(qspace.size[i][1]))) + -1 * abs(qspace.size[i][0])
+        loc[i] = ((loc[i] + abs(qspace.size[i][0])) % abs(qspace.size[i][0]) +
+                                abs(qspace.size[i][1])) + -1 * abs(qspace.size[i][0])
         i += 1
     odorant.loc = loc
     return odorant
@@ -622,7 +869,7 @@ def _distributeSD(dim, scale: tuple[float, float]):
     """Returns a list of standard deviations between scale[0] and scale[1] randomly distributed based on the Type
     Precondition: scale is a 2d list with #'s>=0"""
     assert scale[0] > 0, "scale is not a valid list"
-    return tuple(random.uniform(*scale) for _ in range(dim))
+    return [random.uniform(*scale) for _ in range(dim)]
 
 
 ######## Activating Receptors/corresponding GL
@@ -644,7 +891,7 @@ def activateGL_QSpace(epith: Epithelium, odorscene: Odorscene, gl: layers.GlomLa
         odors: list[Ligand] = []
         df = 0
         
-        effScale = float(mvn.pdf(rec.mean, rec.mean, rec.covE)  )
+        effScale = float(mvn.pdf(rec.mean, rec.mean, rec.covE))
         
         for odor in odorscene.odors:
             #First odorscene
@@ -654,14 +901,14 @@ def activateGL_QSpace(epith: Epithelium, odorscene: Odorscene, gl: layers.GlomLa
             
             aff = 10**((aff * (peak_affinity - minimum_affinity)) + minimum_affinity) ##peak_affinity etc. are global variables
             #print("aff is " + str(aff))
-            odor.setAff(float(aff))
+            odor.aff = float(aff)
             
             if fixed:
-                odor.setEff(1.0)
+                odor.eff = 1.0
             else:
                 eff = mvn.pdf(odor.loc, rec.mean, rec.covE)
                 eff = float(eff) / effScale #Scales it from 0 to 1
-                odor.setEff(eff)
+                odor.eff = eff
                 #print("eff is " + str(eff))
             odors.append(odor)
             # TODO: Move all private attribute handling to the class responsible (Ligand) or just create Ligand._aff getter
@@ -669,8 +916,8 @@ def activateGL_QSpace(epith: Epithelium, odorscene: Odorscene, gl: layers.GlomLa
         
         i = 1
         for odor in odors:
-            odor.setOcc( (1) / (1 + ( (odor._aff/odor.conc) * (1 + df - (odor.conc / odor._aff ) ) ) **m) ) #m=1
-            activ += odor._eff * odor._occ
+            odor.occ = 1/(1+((odor._aff/odor.conc)*(1+df-odor.conc/odor._aff))**m) #m=1
+            activ += odor.eff * odor.occ
             
             #print("Occ is: " + str(odor._occ))
             #print(str(i) + " activation due to odorscene 1: " + str(activ_1))
@@ -683,237 +930,6 @@ def activateGL_QSpace(epith: Epithelium, odorscene: Odorscene, gl: layers.GlomLa
         glomRecConnNew(epith.recs, gl, c)
 
 #######Loading and Saving objecsts using CSV files
-
-def saveLigand(odor: Ligand, name: str):
-    """Stores odor as one row in a CSV file with the following columns:
-    A = ID# of ligand
-    B = text label ('odorant membership')
-    C = concentration of ligand in molar
-    D...(Q-3) = the Q coordinates of the ligand point
-    Precondtion: Name is a str"""
-    assert type(name) == str, "name is not a string"
-    content = (f"ID, Label, Conc {', coord '.join(map(str, odor.dim))}\n {odor.id}"
-               f",' ',{odor.conc}, {','.join(map(str, odor.loc))}")
-    test = open(name + ".csv", "w")
-    test.write(content)
-    test.close
-
-def saveOdorscene(odorScene: Odorscene, name: str):
-    """Stores odor as a CSV file with the following format:
-    First and second row: contains ID and dim of odorscene
-    Every row after that symbolizes an odor with the following columns:
-    A = ID# of ligand
-    B = text label ('odorant membership')
-    C = concentration of ligand in molar
-    D...(Q-3) = the Q coordinates of the ligand point
-    Precondtion: Name is a str"""
-    assert type(name) == str, "name is not a string"
-    st = "\n OdorSceneID, dim \n"
-    st = f"{st}{odorScene.id},{len(odorScene.odors)}\n"
-    st = st + "ID, Label, Conc "
-    
-    i = 0
-    while i < odorScene.odors[0].dim:
-        st = f"{st}, coord {i}"
-        i += 1
-    for odor in odorScene.odors:
-        st = f"{st}\n{odor.id},' ',{odor.conc}"
-        for ii, loc in enumerate(odor.loc):
-            st = st + "," + str(loc)
-
-    test = open(f"{name}.csv", "a")
-    test.write(st)
-    test.close
-
-    """
-    plt.plot(xaxis,yaxis, label="Odor Locations")
-    plt.legend()
-    plt.title("All Odors")
-    plt.xlabel("x coordinates")
-        
-    plt.ylabel("y coordinates")
-    #Set y_axis limit
-    #axes = plt.gca()
-    #axes.set_ylim([0,1.0]) #*****Change if using >30 recs
-    
-    pp = PdfPages('All Odors.pdf')
-    pp.savefig()
-    pp.close()
-    if close == True: #No more data to add to the graph
-        plt.close()
-    """
-
-def loadLigand(name: str, helper=False):
-    """Returns an ligand from a CSV file with the given name.
-    If helper is true, then it's being called from loadOdorscene and we
-    don't want to skip the first line.
-    Precondition: name exists and it's in CSV format AND the file is <= 2 lines"""
-    assert type(name) == str, "name isn't a string"
-
-    if helper == False:
-        text = open(name)
-        i = 0
-        for l in text: #essentially just skip the first line and save the second
-            if i == 1:
-                line = l
-            i += 1
-    else:
-        line = name
-    comma1 = line.find(",")
-    comma2 = line.find(",", comma1+1)
-    comma3 = line.find(",", comma2+1)  #Comma before first loc coord
-    commas = [line.find(",", comma3+1)]
-    k = 0
-    while commas[-1] != -1:
-        commas.append(line.find(",", commas[k] + 1))
-        k+=1
-    ID = int(line[:comma1])
-    conc = float(line[comma2+1:comma3])
-    index = 0
-    loc = [float(line[comma3+1:commas[index]])]
-    while commas[index] != -1:
-        loc.append(float(line[commas[index]+1:commas[index+1]])) #when commas[index+1]=-1 it cuts off the last digit
-        index += 1
-    loc[index] = float(str(loc[index]) + line[-1]) #Accounts for missing digit
-    if helper == False:
-        text.close()
-    return Ligand(ID, loc, conc)
-
-
-def loadOdorscene(name: str):
-    """Returns an odorscene from a CSV file with the given name.
-    Precondtion: name existsand it's in CSV format"""
-    assert type(name) == str, "name isn't a string"
-    text = open(name)
-    i = 0
-    odors = []
-    for line in text:
-        if i == 1:
-            comma1 = line.find(",")
-            Id = int(line[:comma1])
-        if i > 2:
-            odors.append(loadLigand(line, True))
-        i += 1
-    text.close()
-    return Odorscene(Id, odors)
-
-def saveReceptor(rec: Receptor, name: str, helper=False):
-    """Stores receptor as one row in a CSV file with the following columns:
-    A = ID# of receptor
-    B = text label ('receptor membership')
-    C...X = list of mean
-    X...Y = list of SD for affinity
-    y...Z = list of SD for efficacy
-    Precondtion: Name is a str"""
-    assert type(name) == str, "name is not a string"
-    dim = len(rec.mean)
-    i = 0
-    st = ''
-    m = ''
-    a = ''
-    e = ''
-    mean = ''
-    aff = ''
-    eff = ''
-    while i < dim:
-        m = m + ", Mean " + str(i)
-        a = a + ", Aff " + str(i)
-        e = e + ", Eff " + str(i)
-        mean = mean + "," + str(rec.mean[i])
-        aff = aff + "," + str(rec.sdA[i])
-        eff = eff + "," + str(rec.sdE[i])
-        i += 1
-    if helper == False:
-        st = st + "ID, Label" + m + a + e + '\n'
-    st = st + str(rec.id) + ",' '" + mean + aff + eff
-    if helper:
-        return st
-    test = open(name + ".csv", "w")
-    test.write(st)
-    test.close
-
-def saveEpithelium(epi: Epithelium, name : str):
-    """Stores each receptor as one row in a CSV file with the following columns:
-    A = ID# of receptor
-    B = text label ('receptor membership')
-    C...X = list of mean
-    X...Y = list of SD for affinity
-    y...Z = list of SD for efficacy
-    Precondtion: Name is a str"""
-    assert type(name) == str, "name is not a string"
-    st = ''
-    m = ''
-    a = ''
-    e = ''
-    i = 0
-    while i < len(epi.recs[0].mean):
-        m = m + ", Mean " + str(i)
-        a = a + ", Aff " + str(i)
-        e = e + ", Eff " + str(i)
-        i += 1
-    st = st + "ID, Label" + m + a + e + '\n'
-    
-    for rec in epi.recs:
-        st = st + saveReceptor(rec, name, True) + '\n'
-    test = open(name + ".csv", "w")
-    test.write(st)
-    test.close
-
-def loadReceptor(name: str, helper=False) -> Receptor:
-    """Returns a receptor from a CSV file with the given name.
-    If helper is true, then it's being called from loadEpithelium and some
-    adjustments are made.
-    Precondition: name exists and it's in CSV format AND the file is <= 2 lines"""
-    assert type(name) == str, "name isn't a string"
-    if helper == False:
-        text = open(name)
-        i = 0
-        for l in text: #essentially just skip the first line and save the second
-            if i == 1:
-                line = l
-            i += 1
-    else:
-        line = name
-    comma1 = line.find(",")
-    comma2 = line.find(",", comma1+1) #Comma before first mean coord
-    commas = [line.find(",", comma2+1)]
-    i = 0
-    while commas[i] != -1:
-        commas.append(line.find(",", commas[i]+1))
-        i += 1
-    dim = len(commas) // 3
-    Id = int(line[:comma1])
-    mean = [float(line[comma2+1:commas[0]])]
-    index = 1
-    while index < dim:
-        mean.append(float(line[commas[index-1]+1:commas[index]]))
-        index += 1
-    aff = []
-    while index < (2*dim):
-        aff.append(float(line[commas[index-1]+1:commas[index]]))
-        index += 1
-    eff = []
-    while index < (3*dim):
-        eff.append(float(line[commas[index-1]+1:commas[index]])) #Last index of aff loses last digit due to -1
-        index += 1
-    eff[dim-1] = float(str(eff[dim-1]) + line[-1]) #Accounts for missing digit
-    if helper == False:
-        text.close()
-    return Receptor(Id, mean, aff, eff)
-
-def loadEpithelium(name: str) -> Epithelium:
-    """Returns an epithelium from a CSV file with the given name.
-    Precondition: name exists and it's in CSV format"""
-    assert type(name) == str, "name isn't a string"
-    recs = []
-    text = open(name)
-    i = 0
-    for line in text:
-        if i > 0:
-            recs.append(loadReceptor(line, True))
-        i += 1.
-    text.close()
-    return Epithelium(recs)
 
 ##### Making a list of sequentially different odorscenes
 #createOdorscene(dim, conc, amt, qspace, Id = 0)
@@ -999,13 +1015,13 @@ def sumOfSquares(epithelium: Epithelium, odorscene: Odorscene, dn: list[int], fi
             aff = 10**((aff * (peak_affinity - minimum_affinity)) + minimum_affinity) ##peak_affinity etc. are global variables
             
             #print("aff is " + str(aff))
-            odor.setAff(float(aff))
+            odor.aff = float(aff)
             if fixed:
-                odor.setEff(1.0)
+                odor.eff = 1.0
             else:
                 eff = mvn.pdf(odor.loc, rec.mean, rec.covE)
                 eff = float(eff) / effScale #Scales it from 0 to 1
-                odor.setEff(eff)
+                odor.eff = eff
             odors.append(odor)
             df += odor.conc/odor._aff
                 
@@ -1019,42 +1035,41 @@ def sumOfSquares(epithelium: Epithelium, odorscene: Odorscene, dn: list[int], fi
             newOdor = Ligand(odor.id, newLoc, odor.conc)
             
             aff2 = mvn.pdf(newLoc, rec.mean, rec.covA)
-            aff2 = aff2 / rec.scale #Scales it from 0 to 1
+            aff2 = aff2/rec.scale #Scales it from 0 to 1
             aff2 = 10**((aff2 * (peak_affinity - minimum_affinity)) + minimum_affinity)
             #print("aff2 is " + str(aff2))
-            newOdor.setAff(float(aff2))
+            newOdor.aff = float(aff2)
             if fixed:
-                newOdor.setEff(1.0)
+                newOdor.eff = 1.0
             else:
                 eff2 = mvn.pdf(newLoc, rec.mean, rec.covE)
                 eff2 = float(eff2) / effScale #Scales it from 0 to 1
-                newOdor.setEff(eff2)
+                newOdor.eff = eff2
             odors2.append(newOdor)
             df2 += newOdor.conc/newOdor._aff
                 
         i = 1
         for odor in odors:
-            odor.setOcc( (1) / (1 + ( (odor._aff/odor.conc) * (1 + df - (odor.conc / odor._aff ) ) ) **m) ) #m=1
-            activ_1 += odor._eff * odor._occ
-            rec._occ += odor._occ #Solely for printing individual receptor activations in experiments
+            odor.occ = 1/(1+((odor.aff/odor.conc)*(1+df-odor.conc/odor.aff))**m) #m=1
+            activ_1 += odor.eff*odor._occ
+            rec._occ += odor.occ #Solely for printing individual receptor activations in experiments
             rec._odoAmt += adjOdors(rec, odor)
             #print(str(i) + " activation due to odorscene 1: " + str(activ_1))
             i += 1
         i = 1
         
-        rec.setActiv(activ_1) #Solely for printing individual receptor activations in experiments
+        rec.activ = activ_1 #Solely for printing individual receptor activations in experiments
         
         for odor2 in odors2:
-            odor2.setOcc( (1) / (1 + ( (odor2._aff/odor2.conc) * (1 + df2 - (odor2.conc / odor2._aff ) ) ) **m) ) #m=1
-            activ_2 += odor2._eff * odor2._occ
-            #print(str(i) + " activation due to odorscene 2: " + str(activ_2))
+            odor2.occ = (1/(1+((odor2.aff/odor2.conc)*(1+df2-odor2.conc/odor2.aff))**m)) #m=1
+            activ_2 += odor2.eff*odor2.occ
             i += 1
         
         recs2[counter].activ = activ_2
         
         #print("activ_1 is " + str(activ_1))
         #print("activ_2 is " + str(activ_2))
-        dPhi = (activ_1 - activ_2) #########(Maximum value will be 1 or -1 = make sure this is true)
+        dPhi = activ_1-activ_2 #########(Maximum value will be 1 or -1 = make sure this is true)
         dPsi += dPhi**2
         
         
@@ -1094,7 +1109,6 @@ def sumOfSquares(epithelium: Epithelium, odorscene: Odorscene, dn: list[int], fi
 
 def sumOfSquaresVectorized(epithelium: Epithelium, odorscene: Odorscene, dn, repIndex: int, fixed=False, c=1, gl: layers.GlomLayer=None): 
     
-    #print("CALLED AGAIN!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
     """Calculates differentiation between epithelium activation of odorscene before
     and after dn using sum of squares. Returns dpsi of the epithelium.
     If fixed=true, then efficacy will be fixed at 1 (only agonists)
@@ -1116,7 +1130,6 @@ def sumOfSquaresVectorized(epithelium: Epithelium, odorscene: Odorscene, dn, rep
         #Set everything to 0
         activ_1 = 0.0
         activ_2 = 0.0
-        totOcc = 0.0
         odors: list[Ligand] = []
         odors2: list[Ligand] = []
         rec._activ = 0.0
@@ -1124,14 +1137,6 @@ def sumOfSquaresVectorized(epithelium: Epithelium, odorscene: Odorscene, dn, rep
         rec._odoAmt = 0.0
         df = 0
         df2 = 0
-        dphi = 0
-        
-        #print("mean=" + str(rec.mean) + "TIME:"+ str(time.time()))
-        #print("covE=" + str(rec.covE) + "TIME:"+ str(time.time()))
-        
-        #effScale = float(mvn.pdf(rec.mean, rec.mean, rec.covE)  )
-        effScale = rec.effScale
-        #print("effScal=" + str(effScale) + "TIME:"+ str(time.time()))
         
         '''
         affs = rec.affs
@@ -1139,19 +1144,15 @@ def sumOfSquaresVectorized(epithelium: Epithelium, odorscene: Odorscene, dn, rep
         '''
         oi = 0
         for odor in odorscene.odors:
-            #First odorscene
-            startTime = time.time()
 
-            odor.setAff(odor._affs[counter])
-            odor.setEff(odor._effs[counter])
-            
+            odor.aff = odor._affs[counter]
+            odor.eff = odor._effs[counter]
             
             newOdors = odor.getOdors2()
             odor2 = newOdors[repIndex]
-                
-
-            odor2.setAff(odor2._affs[counter])
-            odor2.setEff(odor2._effs[counter])
+            
+            odor2.aff = odor2._affs[counter]
+            odor2.eff = odor2._effs[counter]
                 
             #df += prepareOdor(odor, rec, fixed, odors, effScale) 
             odors.append(odor)
@@ -1159,19 +1160,7 @@ def sumOfSquaresVectorized(epithelium: Epithelium, odorscene: Odorscene, dn, rep
             #print("time elapsed prepareOdor:"+ str((time.time() - startTime)))
             
             #Second Odorscene
-            '''
-            newLoc = []  #Calculating new location
-            #index = 0
-            #while index < len(dn):
-            for index, dnItem in enumerate(dn):    
-                #newLoc.append(odor.loc[index] + dn[index])
-                newLoc.append(odor.loc[index] + dnItem)
-                #index += 1
-            newOdor = Ligand(odor.id, newLoc, odor.conc)
-            
-            startTime = time.time()
-            '''
-                
+
             odors2.append(odor2)
             df2 += odor2.conc/odor2._aff
             
@@ -1183,10 +1172,10 @@ def sumOfSquaresVectorized(epithelium: Epithelium, odorscene: Odorscene, dn, rep
         for odor in odors:
         # for odor in odorscene.odors:    
             #startTime = time.time()
-            odor.setOcc( (1) / (1 + ( (odor._aff/odor.conc) * (1 + df - (odor.conc / odor._aff ) ) ) **m) ) #m=1
+            odor.occ = 1/(1+((odor.aff/odor.conc)*(1+df-odor.conc/odor.aff))**m) # m=1
             # print("time elapsed odor setOcc:"+ str((time.time() - startTime)))
-            activ_1 += odor._eff * odor._occ
-            rec._occ += odor._occ #Solely for printing individual receptor activations in experiments
+            activ_1 += odor.eff * odor.occ
+            rec._occ += odor.occ #Solely for printing individual receptor activations in experiments
             #startTime = time.time()
             rec._odoAmt += adjOdors(rec, odor)
             #print("time elapsed adjOdors:"+ str((time.time() - startTime)))
@@ -1197,50 +1186,27 @@ def sumOfSquaresVectorized(epithelium: Epithelium, odorscene: Odorscene, dn, rep
         rec.activ = activ_1 #Solely for printing individual receptor activations in experiments
         
         for odor2 in odors2:
-            #startTime = time.time()
-            odor2.setOcc( (1) / (1 + ( (odor2._aff/odor2.conc) * (1 + df2 - (odor2.conc / odor2._aff ) ) ) **m) ) #m=1
-            #print("time elapsed odor2 setOcc:"+ str((time.time() - startTime)))
-            activ_2 += odor2._eff * odor2._occ
-            #print(str(i) + " activation due to odorscene 2: " + str(activ_2))
-            #i += 1
+            odor2.occ = 1/(1+((odor2.aff/odor2.conc)*(1+df2-odor2.conc/odor2.aff))**m) # m=1
+            activ_2 += odor2.eff * odor2.occ
         
         recs2[counter].activ = activ_2
         
-        #print("activ_1 is " + str(activ_1))
-        #print("activ_2 is " + str(activ_2))
-        dPhi = (activ_1 - activ_2) #########(Maximum value will be 1 or -1 = make sure this is true)
+        dPhi = activ_1-activ_2 #########(Maximum value will be 1 or -1 = make sure this is true)
         dPsi += dPhi**2
         
-        
         counter += 1
-        #print("counter is:" + str(counter) + ":::"+ str(time.time()))
-    
-    #print("after loop levl 1:" + str(time.time()))
-    #print("rec dPsi is: " + str(math.sqrt(dPsi)))
     
     if c != 1:
-        
         gl2 = copy.deepcopy(gl)
-        
+
         conn = glomRecConnNew(epithelium.recs, gl, c, [])
         glomRecConnNew(recs2, gl2, c, conn)
 
         #count = 0
         dPsi = 0
         for count, glItem in enumerate(gl):
-        #while count < len(gl):
-            #dPhi = (gl[count].activ - gl2[count].activ)
-            dPhi = (glItem.activ - gl2[count].activ)
-
-            #print("gl 1 activ is " + str(gl[count].activ))
-            #print("gl 2 activ is " + str(gl2[count].activ))
+            dPhi = glItem.activ-gl2[count].activ
             dPsi += dPhi**2
-            #count += 1
-        #print("dPsi is " + str(math.sqrt(dPsi)))
-        #print("END OF sumOfSquares:" + str(time.time()))
-        #return math.sqrt(dPsi)
-    #else:
-    #print("END OF sumOfSquares:" + str(time.time()))
     return math.sqrt(dPsi)
 
 # TODO: double check effScale type, and perhaps decouple odor preparation from addition to odors collection
@@ -1248,25 +1214,21 @@ def prepareOdor(odor: Ligand, rec: Receptor, fixed: bool, odors: list[Ligand], e
     
     aff = mvn.pdf(odor.loc, rec.mean, rec.covA)
     #print("time elapsed odor pdf:"+ str((time.time() - startTime)))
-    aff = aff / rec.scale #Scales it from 0 to 1
+    aff = aff/rec.scale #Scales it from 0 to 1
     #Now convert gaussian aff to kda
     #startTime = time.time()
     aff = 10**((aff * (peak_affinity - minimum_affinity)) + minimum_affinity) ##peak_affinity etc. are global variables
     #print("time elapsed odor aff:"+ str((time.time() - startTime)))        
     #print("aff is " + str(aff))
-    odor.setAff(float(aff))
+    odor.aff = float(aff)
     if fixed:
-        odor.setEff(1.0)
+        odor.eff = 1.0
     else:
         eff = mvn.pdf(odor.loc, rec.mean, rec.covE)
         eff = float(eff) / effScale #Scales it from 0 to 1
-        odor.setEff(eff)
+        odor.eff = eff
     odors.append(odor)
-    return odor.conc/odor._aff
-
-
-
-
+    return odor.conc/odor.aff
 
 def adjOdors(rec: Receptor, odor: Ligand):
     """Returns 1 if odor is within 2 SD of the rec mean. Otherwise returns 0"""
@@ -1276,18 +1238,16 @@ def adjOdors(rec: Receptor, odor: Ligand):
     avg = 0
     dim = odor.dim
     while i < dim:
-        avg += rec._sdA[i]
+        avg += rec.sdA[i]
         i += 1
     avg = float(avg)/float(dim)
     #Find Euc distance
     index = 0
     num = 0.0
     while index < dim:
-        num += (float(rec._mean[index]) - float(odor.loc[index]))**2
+        num += (float(rec._mean[index])-float(odor.loc[index]))**2
         index += 1
     num = math.sqrt(num)
-    #print("euc dist is " + str(num))
-    #print("avg aff is " + str(avg))
     if num <= (2.0*avg):
         return 1
     else:
@@ -1322,15 +1282,15 @@ def sumOfSquares2(epithelium: Epithelium, odorscene1: Odorscene, odorscene2: Odo
             #if aff > 1e-128:   #Need so don't divide by 0 when calc df
             #Now convert gaussian aff to kda
             aff = 10**((aff * (peak_affinity - minimum_affinity)) + minimum_affinity)
-            odor.setAff(float(aff))
+            odor.aff = float(aff)
             if fixed:
-                odor.setEff(1.0)
+                odor.eff = 1.0
             else:
                 eff = mvn.pdf(odor.loc, rec.mean, rec.covE)
                 eff = float(eff) / effScale #Scales it from 0 to 1
-                odor.setEff(eff)
+                odor.eff = eff
             odors.append(odor)
-            df += odor.conc/odor._aff
+            df += odor.conc/odor.aff
               
             odor2 = odorscene2.odors[i]
             aff2 = mvn.pdf(odor2.loc, rec.mean, rec.covA)
@@ -1338,29 +1298,29 @@ def sumOfSquares2(epithelium: Epithelium, odorscene1: Odorscene, odorscene2: Odo
             #if aff2 > 1e-128:   #Need so don't divide by 0 when calc df
             #Now convert gaussian aff to kda
             aff2 = 10**((aff2 * (peak_affinity - minimum_affinity)) + minimum_affinity)
-            odor2.setAff(float(aff2))
+            odor2.aff = float(aff2)
             if fixed:
-                odor2.setEff(1.0)
+                odor2.eff = 1.0
             else:
                 eff2 = mvn.pdf(odor2.loc, rec.mean, rec.covE)
                 eff2 = float(eff2) / effScale #Scales it from 0 to 1
-                odor2.setEff(eff2)
+                odor2.eff = eff2
             odors2.append(odor2)
-            df2 += odor2.conc/odor2._aff
+            df2 += odor2.conc/odor2.aff
             i += 1
             
         i = 0
         while i < len(odors):
             odor = odors[i]
-            odor.setOcc( (1) / (1 + ( (odor._aff/odor.conc) * (1 + df - (odor.conc / odor._aff ) ) ) **m) ) #m=1
-            activ_1 += odor._eff * odor._occ
+            odor.occ = 1/(1+((odor.aff/odor.conc)*(1+df-odor.conc/odor.aff))**m) # m=1
+            activ_1 += odor.eff * odor.occ
                 
             odor2 = odors2[i]
-            odor2.setOcc( (1) / (1 + ( (odor2._aff/odor2.conc) * (1 + df2 - (odor2.conc / odor2._aff ) ) ) **m) ) #m=1
-            activ_2 += odor2._eff * odor2._occ                
+            odor2.occ = 1/(1+((odor2.aff/odor2.conc)*(1+df2-(odor2.conc/odor2.aff)))**m) # m=1
+            activ_2 += odor2.eff * odor2.occ                
             i+=1
                 
-        dPhi = (activ_1 - activ_2) #########(Maximum value will be 1 or -1 = make sure this is true)
+        dPhi = activ_1-activ_2 #########(Maximum value will be 1 or -1 = make sure this is true)
         dPsi += dPhi**2
     return math.sqrt(dPsi)
 
@@ -1401,8 +1361,6 @@ def dPsiBarCalcAnglesOrig(epithelium: Epithelium, odorscene: Odorscene, r, fixed
     rep = 10.0
     amtOfDir = 0
     totalDpsi = 0
-    totalAct = [] #Solely for recording rec activ in text file
-    totalOcc = [] #Solely for recording rec occupance in text file
     dim = odorscene.dim
     while amtOfDir < rep:
         #Create randomized list of angles
@@ -1446,54 +1404,12 @@ def dPsiBarCalcAngles(epithelium: Epithelium, odorscene: Odorscene, r, fixed=Fal
     rep = ANGLES_REP
     amtOfDir = 0
     totalDpsi = 0
-    totalAct = [] #Solely for recording rec activ in text file
-    totalOcc = [] #Solely for recording rec occupance in text file
-    dim = odorscene.dim
     
-    while amtOfDir < rep:
-        '''
-        startTime = time.time()
-        print("start of a rep:" + str(startTime))
-
-        #Create randomized list of angles
-        angles = []
-        for i in range(dim-1):
-            #print("start of first for:" + str(i) +":"+ str(time.time()))
-
-            if i == dim-2: #if last angle
-                angles.append(random.uniform(0,(2*math.pi)))
-            else:
-                angles.append(random.uniform(0, math.pi))
-        #Create dn = amount of change (length of line in each dim given vector r)
-            #print("end of first for:" + str(i) +":"+ str(time.time()))
-
+    while amtOfDir < rep: 
         dn = []
-        for i in range(dim):
-            #print("start of 2nd for:" + str(i) +":"+ str(time.time()))
-
-            dn.append(r)
-            if i == dim-1: #if last angle
-                for angle in angles:
-                    dn[dim-1] *= math.sin(angle)
-            else:
-                j=0
-                while j < i:
-                    dn[i] *= math.sin(angles[j])
-                    j+=1
-                dn[i] *= math.cos(angles[i])
-                
-            #print("end of 2nd for:" + str(i) +":"+ str(time.time()))
-        '''    
-        dn = []
-
-        #print("bfore sumOfSquares:" +str(amtOfDir) + ":"+ str(time.time()))
         totalDpsi += sumOfSquaresVectorized(epithelium, odorscene, dn, amtOfDir, fixed, c, gl)
-        #print("after sumOfSquares:" +str(amtOfDir) + ":"+ str(time.time()))
-       
-        amtOfDir += 1
         
-        #print("end of a rep:" + str(time.time()))
-        #print("time elapsed a rep:" + str(time.time() - startTime))
+        amtOfDir += 1
         
     if text != None:
         recToText(epithelium, gl, c, text)
@@ -1563,11 +1479,6 @@ def colorMapSumOfSquares(epithelium: Epithelium, odorscenes: list[Odorscene], r,
     print(len(odorscenes))
     ##Similar code to above - calc individual dPsi for ligands
     for odorscene in odorscenes:
-
-        # eff != 1
-        # dPsiBar = dPsiBarCalcAnglesOrig(epithelium, odorscene, r)  ####Or use diaganols
-        
-        # eff = 1
         dPsiBar = dPsiBarCalcAnglesOrig(epithelium, odorscene, r, True) 
         print(odorscene.odors[0].loc)
 
@@ -1718,28 +1629,6 @@ def colorMapSumOfSquares(epithelium: Epithelium, odorscenes: list[Odorscene], r,
         ax.set_xlim(qspace.size[0])
         ax.set_ylim(qspace.size[0])
 
-
-    # PLOT ODORS
-        #draw odor locations for specified odorscene
-    #     locXaxis = []
-    #     locYaxis = []
-    #     for odorscene in odorscenes:
-    #         for odor in odorscene.odors:
-    #             print(odor.loc)
-    #             locXaxis.append(odor.loc[0])
-    #             locYaxis.append(odor.loc[1])
-
-    # plt.scatter(locXaxis,locYaxis, s=4, c='black')
-
-    # #END TESTING
- 
-
-
-
-    #ColorMap
-    #matplotlib.pylab.matshow(graph, fignum="Research", cmap=matplotlib.pylab.cm.Greys) #Black = fully active
-    #matplotlib.pylab.matshow(graph, fignum="Research", cmap=matplotlib.pylab.cm.YlOrRd) #Black = fully active
-
     im = matplotlib.pylab.imshow(graph, cmap=matplotlib.pylab.cm.YlOrRd, interpolation="nearest", vmin=0, vmax=1, origin="lower", extent=[0,4,0,4]) #Black = fully active
 
     plt.title("Differentiation in QSpace")
@@ -1762,12 +1651,7 @@ def dPsiBarCalcDns(odorscene: Odorscene, r, rep: int):
     #print("start of dPsiBarCalcDns")
 
     
-    #rep = 10.0
-    #rep = 2.0
     amtOfDir = 0
-    #totalDpsi = 0
-    #totalAct = [] #Solely for recording rec activ in text file
-    #totalOcc = [] #Solely for recording rec occupance in text file
     dim = odorscene.dim
     
     while amtOfDir < rep:
@@ -1811,12 +1695,14 @@ def dPsiBarCalcDns(odorscene: Odorscene, r, rep: int):
 
 def dPsiBarSaturation(epithelium: Epithelium, r, qspace: QSpace, pdfName: str, labelName: str,
                       excelName: str, fixed=False, c=1, plotTitle="", close=False, purp='', graphIt=True):
-    """Define x amount of odorscenes with one ligand per odorscene, then with two ligands...
+    """
+    Define x amount of odorscenes with one ligand per odorscene, then with two ligands...
     then calculate dPsibar for each group of odorscene and graph to find saturation at certain
     ligand number.
     if fixed=true than efficacy=1
     if close = True, then graph is closed after this round of data.
-    precondition: c = integer, fixed and close = Boolean"""
+    precondition: c = integer, fixed and close = Boolean
+    """
     
     startTime = time.time()
     print("start of dPsiBarSaturation:" + str(startTime))
@@ -1825,66 +1711,6 @@ def dPsiBarSaturation(epithelium: Epithelium, r, qspace: QSpace, pdfName: str, l
     #conc = 1e-5
     conc = config.ODOR_CONCENTRATION
     gl = layers.GlomLayer.create(len(epithelium.recs)) #Only if using newly modified gl:rec n:1 ratio
-    
-    
-    #Instantiate odorscene and ligand lists
-    '''
-    odorscenes1 = []
-    ligands2 = []
-    odorscenes2 = []
-    ligands3 = []
-    odorscenes3 = []
-    ligands4 = []
-    odorscenes4 = []
-    ligands5 = []
-    odorscenes5 = []
-    ligands7 = []
-    odorscenes7 = []
-    ligands10 = []
-    odorscenes10 = []
-    ligands15 = []
-    odorscenes15 = []
-    ligands20 = []
-    odorscenes20 = []
-    ligands25 = []
-    odorscenes25 = []
-    ligands30 = []
-    odorscenes30 = []
-    ligands35 = []
-    odorscenes35 = []
-    ligands40 = []
-    odorscenes40 = []
-    ligands45 = []
-    odorscenes45 = []
-    ligands50 = []
-    odorscenes50 = []
-    ligands60 = [] ###
-    odorscenes60 = []
-    ligands70 = []
-    odorscenes70 = []
-    ligands80 = []
-    odorscenes80 = []
-    ligands90 = []
-    odorscenes90 = []
-    ligands100 = []
-    odorscenes100 = []
-    ligands120 = []
-    odorscenes120 = []
-    ligands140 = []
-    odorscenes140 = []
-    ligands160 = []
-    odorscenes160 = []
-    ligands200 = []
-    odorscenes200 = []
-    ligands250 = []
-    odorscenes250 = []
-    ligands300 = []
-    odorscenes300 = []
-    ligands350 = []
-    odorscenes350 = []
-    ligands400 = []
-    odorscenes400 = []
-    '''
     
     #Holds data for odorscene activations
     st = "Odorscenes,"
@@ -1915,7 +1741,6 @@ def dPsiBarSaturation(epithelium: Epithelium, r, qspace: QSpace, pdfName: str, l
     
     # TODO: Make this more clear
     odorscenesArray: list[list[Odorscene]] = [[]*size for x in range(len(xaxis))]
-    #odorscenesArray = [[]]
     pdfOdorLocsInput = []
     affs = np.array([])
     effs = np.array([])
@@ -1926,16 +1751,10 @@ def dPsiBarSaturation(epithelium: Epithelium, r, qspace: QSpace, pdfName: str, l
     effs2 = np.array([])
 
     dns = []
-    #rep = 10.0
     rep = ANGLES_REP
 
-
-    
     ligandsArray =[]    
     
-    #creating ligand  and odorscene lists
-    #i = 0
-    #while i < size:
     for i in range(size):    
         #k = 0
         #while k < len(xaxis):
@@ -1964,15 +1783,7 @@ def dPsiBarSaturation(epithelium: Epithelium, r, qspace: QSpace, pdfName: str, l
                     newOdor = Ligand(oriOdor.id, newLoc, oriOdor.conc)
                     pdfOdorLocsInput2.append(newOdor.loc)
                     oriOdor.appendToOdors2(newOdor)
-                    
             
-            #text._st += "Odorscene"+str(k+1)
-            
-            
-            #this call moves to after affs and effs are calc'ed and populated to odors below 
-            #yaxis[k] += dPsiBarCalcAngles(epithelium, odorscenesArray[k][i], r, fixed, text, c, gl)
-
-            #k+=1
             ligandsArray =[]
 
         #i += 1
@@ -1982,11 +1793,6 @@ def dPsiBarSaturation(epithelium: Epithelium, r, qspace: QSpace, pdfName: str, l
     #draw ellispse for all receptors
     drawEllipseGraph(qspace, epithelium, odorscenesArray, useMockData=False)
     
-
-    #print("locsInput size=:" + str(len(pdfOdorLocsInput)))
-    #print("locsInput2 size=:" + str(len(pdfOdorLocsInput2)))
-    ##############################################################
-    #'''
     for rec in epithelium.recs:
         affs_rec = mvn.pdf(pdfOdorLocsInput, rec.mean, rec.covA)
         
@@ -2022,10 +1828,6 @@ def dPsiBarSaturation(epithelium: Epithelium, r, qspace: QSpace, pdfName: str, l
         #Now convert gaussian aff to kda
         #startTime = time.time()
         affs_rec2 = 10**((affs_rec2 * (peak_affinity - minimum_affinity)) + minimum_affinity) ##peak_affinity etc. are global variables
-        #print("time elapsed odor aff:"+ str((time.time() - startTime)))
-        #print("aff is " + str(aff))
-        
-        #rec.setAffs(affs_rec2)
         affs2 = np.append(affs2,affs_rec2)
         
         
@@ -2039,22 +1841,6 @@ def dPsiBarSaturation(epithelium: Epithelium, r, qspace: QSpace, pdfName: str, l
         else:
             effs_rec2 = np.repeat(1.0, affs_rec2.size)
             effs2 = np.repeat(1.0, affs2.size)
-
-
-        #rec.setEffs(effs_rec)
-           
-    #print("affs size=:" + str(affs.size))
-    #print("effs size=:" + str(effs.size))
-
-    #print("affs2 size=:" + str(affs2.size))
-    #print("effs2 size=:" + str(effs2.size))
-            
-            #effs = np.asarray(effs,dtype=np.float) / rec.effScale #Scales it from 0 to 1
-    #affs = np.asarray(affs,dtype=np.float)
-    #effs = np.asarray(effs,dtype=np.float)       
-
-
-    #zAffs = []
 
     locXaxis = []
     locYaxis = []
@@ -2106,132 +1892,10 @@ def dPsiBarSaturation(epithelium: Epithelium, r, qspace: QSpace, pdfName: str, l
             text._st += "Odorscene"+str(k+1)    
             yaxis[k] += dPsiBarCalcAngles(epithelium, odorscenesArray[k][i], r, fixed, text, c, gl)
 
-
-            
-    '''
-    odor.setAff(float(aff))
-    if fixed:
-        odor.setEff(1.0)
-    else:
-        eff = mvn.pdf(odor.loc, rec.mean, rec.covE)
-        eff = float(eff) / effScale #Scales it from 0 to 1
-        odor.setEff(eff)
-    odors.append(odor)
-    return odor.conc/odor._aff
-    '''
-
-        
-    '''
-    #Holds data for odorscene activations
-    st = "Odorscenes,"
-    st2 = ""
-    st3 = ""
-    p = 0
-    while p < len(epithelium.recs):
-        st += "activ " + str(p) + ","
-        st2 += "occ " + str(p) + ","
-        st3 += "odoAmt " +str(p) + ","
-        p += 1
-    text = Text(st + st2 +st3[:-1] + '\n', "exp1")
-    
-    #If c!=1, also hold info about glom activ
-    if c!=1:
-        string = "Glom,"
-        string2 = ""
-        p=0
-        while p < len(gl):
-            string2 += "activ " + str(p) + ","
-            p += 1
-        text._st2 = string + string2 +'\n'
-    '''
-
-    '''    
-    #Calculate averages of dPsiBar
-    i = 0
-    while i < size:
-        print("bebinning of " + str(i))
-
-        text._st += "Odorscene1"
-        yaxis[0] += dPsiBarCalcAngles(epithelium, odorscenes1[i], r, fixed, text, c, gl)
-        print("after " + str(yaxis[0]))
-
-        text._st += "Odorscene2"
-        yaxis[1] += dPsiBarCalcAngles(epithelium, odorscenes2[i], r, fixed, text, c, gl)
-        print("after " + str(yaxis[1]))
-
-
-        text._st += "Odorscene3"
-        yaxis[2] += dPsiBarCalcAngles(epithelium, odorscenes3[i], r, fixed, text, c, gl)
-        print("after " + str(yaxis[2]))
-
-        text._st += "Odorscene4"
-        yaxis[3] += dPsiBarCalcAngles(epithelium, odorscenes4[i], r, fixed, text, c, gl)
-        print("after " + str(yaxis[3]))
-
-        text._st += "Odorscene5"
-        yaxis[4] += dPsiBarCalcAngles(epithelium, odorscenes5[i], r, fixed, text, c, gl)
-        text._st += "Odorscene7"
-        yaxis[5] += dPsiBarCalcAngles(epithelium, odorscenes7[i], r, fixed, text, c, gl)
-        print("after " + str(yaxis[5]))
-        
-        text._st += "Odorscene10"
-        d = dPsiBarCalcAngles(epithelium, odorscenes10[i], r, fixed, text, c, gl)
-        print("dPsi for odorscene10: " + str(d))
-        yaxis[6] += d
-        text._st += "Odorscene15"
-        yaxis[7] += dPsiBarCalcAngles(epithelium, odorscenes15[i], r, fixed, text, c, gl)
-        text._st += "Odorscene20"
-        yaxis[8] += dPsiBarCalcAngles(epithelium, odorscenes20[i], r, fixed, text, c, gl)
-        text._st += "Odorscene25"
-        yaxis[9] += dPsiBarCalcAngles(epithelium, odorscenes25[i], r, fixed, text, c, gl)
-        text._st += "Odorscene30"
-        yaxis[10] += dPsiBarCalcAngles(epithelium, odorscenes30[i], r, fixed, text, c, gl)
-        text._st += "Odorscene35"
-        yaxis[11] += dPsiBarCalcAngles(epithelium, odorscenes35[i], r, fixed, text, c, gl)
-        text._st += "Odorscene40"
-        yaxis[12] += dPsiBarCalcAngles(epithelium, odorscenes40[i], r, fixed, text, c, gl)
-        text._st += "Odorscene45"
-        yaxis[13] += dPsiBarCalcAngles(epithelium, odorscenes45[i], r, fixed, text, c, gl)
-        text._st += "Odorscene50"
-        yaxis[14] += dPsiBarCalcAngles(epithelium, odorscenes50[i], r, fixed, text, c, gl)
-        text._st += "Odorscene60"
-        yaxis[15] += dPsiBarCalcAngles(epithelium, odorscenes60[i], r, fixed, text, c, gl)
-        text._st += "Odorscene70"
-        yaxis[16] += dPsiBarCalcAngles(epithelium, odorscenes70[i], r, fixed, text, c, gl)
-        print("after " + str(yaxis[16]))
-        
-        text._st += "Odorscene80"
-        yaxis[17] += dPsiBarCalcAngles(epithelium, odorscenes80[i], r, fixed, text, c, gl)
-        text._st += "Odorscene90"
-        yaxis[18] += dPsiBarCalcAngles(epithelium, odorscenes90[i], r, fixed, text, c, gl)
-        text._st += "Odorscene100"
-        yaxis[19] += dPsiBarCalcAngles(epithelium, odorscenes100[i], r, fixed, text, c, gl)
-        text._st += "Odorscene120"
-        yaxis[20] += dPsiBarCalcAngles(epithelium, odorscenes120[i], r, fixed, text, c, gl)
-        text._st += "Odorscene140"
-        yaxis[21] += dPsiBarCalcAngles(epithelium, odorscenes140[i], r, fixed, text, c, gl)
-        text._st += "Odorscene160"
-        yaxis[22] += dPsiBarCalcAngles(epithelium, odorscenes160[i], r, fixed, text, c, gl)
-        text._st += "Odorscene200"
-        yaxis[23] += dPsiBarCalcAngles(epithelium, odorscenes200[i], r, fixed, text, c, gl)
-        print("after " + str(yaxis[23]))
-        
-        text._st += "Odorscene250"
-        yaxis[24] += dPsiBarCalcAngles(epithelium, odorscenes250[i], r, fixed, text, c, gl)
-        text._st += "Odorscene300"
-        yaxis[25] += dPsiBarCalcAngles(epithelium, odorscenes300[i], r, fixed, text, c, gl)
-        text._st += "Odorscene350"
-        yaxis[26] += dPsiBarCalcAngles(epithelium, odorscenes350[i], r, fixed, text, c, gl)
-        text._st += "Odorscene400"
-        yaxis[27] += dPsiBarCalcAngles(epithelium, odorscenes400[i], r, fixed, text, c, gl)
-        print("i is " + str(i))
-        i += 1
-        '''
     count = 0
     while count < len(yaxis):
         yaxis[count] = yaxis[count]/float(size)
         count += 1
-    print(yaxis)
     
     #Saving Activated Epithelium data in excel
     test = open(f"{excelName}.csv", "w")
@@ -2251,9 +1915,8 @@ def dPsiBarSaturation(epithelium: Epithelium, r, qspace: QSpace, pdfName: str, l
         st += str(xaxis[i]) + "," + str(yaxis[i]) + '\n'
         i += 1
     n = "dPsi, qspace=(0, " + str(qspace.size[0][1]) + ")" + purp
-    test = open(n + ".csv", "w")
-    test.write(st)
-    test.close
+    with open(n + ".csv", "w") as f:
+        test.write(st)
 
     if graphIt:
         plt.plot(xaxis,yaxis, label=labelName)
@@ -2267,35 +1930,18 @@ def dPsiBarSaturation(epithelium: Epithelium, r, qspace: QSpace, pdfName: str, l
         axes.set_ylim([0,0.1]) #*****Change if using >30 recs
     
         #plt.show()
-        pp = PdfPages(pdfName + '.pdf')
-        pp.savefig()
-        pp.close()
+        with PdfPages(pdfName + '.pdf') as f:
+            f.savefig()
         if close == True:
             plt.close()
 
-
-
-
-    #drawContourGraph(qspace)
-
-    #draw ellispse for all receptors
-    #drawEllipseGraph(qspace, epithelium, odorscenesArray, False)
-
-
-    #draw odor locs
-    #drawOdorLocations(locXaxis,locYaxis, qspace, False)
-
-    ##########################################
-    #'''
-    print("time elapsed each qspace:"+ str((time.time() - startTime)))
+    print("time elapsed each qspace:"+ str(time.time() - startTime))
 
 def createLoc(qspace: QSpace):
     """Given a qspace, return a list of randomized numbers (len=dim) within the qspace"""
     loc = []
     for tup in qspace.size:
-        a1 = tup[0]
-        a2 = tup[1]
-        loc.append(random.uniform(a1,a2))
+        loc.append(random.uniform(*tup))
     return loc
 
 #NOT IN USE
@@ -2865,29 +2511,29 @@ def _parseAndSum(line: str, numCommas: int, toggle: str):
     Example: if numCommas = 30, then summate all numbers between comma 1 and comma 31
     If activ=True, than 
     Return summation"""
-    Sum = 0
+    sum_ = 0
     track = 0
 
     while track < numCommas:
         comma1 = line.find(",")
         comma2 = line.find(",", comma1+1)
-        Sum += float(line[comma1+1:comma2])
+        sum_ += float(line[comma1+1:comma2])
         
         line = line[comma2:]
         track += 1
 
     if toggle=="Occ":
-        Sum = 0
+        sum_ = 0
         track = 0
         while track < numCommas:
             comma1 = line.find(",")
             comma2 = line.find(",", comma1+1)
-            Sum += float(line[comma1+1:comma2])
+            sum_ += float(line[comma1+1:comma2])
         
             line = line[comma2:]
             track += 1
         
-    return Sum
+    return sum_
 
 
 def recDensityDpsiGraph(r, qspace: QSpace, odorscene: Odorscene, dim: int, name: str,
@@ -2902,6 +2548,7 @@ def recDensityDpsiGraph(r, qspace: QSpace, odorscene: Odorscene, dim: int, name:
     
     #Create a list of receptors
     receptors = []
+    # TODO: Remove magic numbers
     receptors.append(35**2)
     receptors.append(30**2)
     i = 20
@@ -2955,8 +2602,8 @@ def recInQspace(n: int, dimen: Real, qspace: QSpace, sd=.5):
     numInRow = math.floor(n**(1/dimen))
     safe = numInRow**dimen
     resetChgDim = (numInRow**(dimen-1)) + 1
-    dHigh = length / (math.floor(n**(1/dimen)))
-    dLow = length / (math.ceil(n**(1/dimen)))
+    dHigh = length / math.floor(n**(1/dimen))
+    dLow = length / math.ceil(n**(1/dimen))
     switch = safe + 1
     dimen = int(dimen)
     
@@ -2972,9 +2619,7 @@ def recInQspace(n: int, dimen: Real, qspace: QSpace, sd=.5):
     
     repeat = True
     while repeat:
-        switch2 = switch
         r = 2
-        c = 1
         repeat = False
         d = dimen
         while r <= n:
@@ -3129,14 +2774,14 @@ def glomRecConnNew(recs: list[Receptor], gl: list[cells.Glom], c=9, conn: list[l
     while row < numRow:
         col = 0
         while col < numCol:
-            gl[i]._loc = [row,col]
-            gl[i]._recConn[recs[i]] = glom_penetrance
+            gl[i].loc = [row,col]
+            gl[i].setRecConn[recs[i]](glom_penetrance)
             col += 1
             i += 1
         row += 1
     
     if s_weights == []:
-        w = (float(1-glom_penetrance)) / (float(c-1))
+        w = float(1-glom_penetrance)/float(c-1)
         for i in range(c):
             s_weights.append(w)
 
@@ -3149,9 +2794,8 @@ def glomRecConnNew(recs: list[Receptor], gl: list[cells.Glom], c=9, conn: list[l
     for glom in gl:
         activ = 0.0
         for rec in glom._recConn.keys():
-            activ += float(rec._activ )* float(glom._recConn[rec]) #rec Activ * weight of conn
-            #print("rec id: " + str(float(rec._id )) + " weight is: " + str(float(glom._recConn[rec])))
-        glom.setActiv(min(activ, 1.0))
+            activ += float(rec.activ)*float(glom._recConn[rec]) #rec Activ * weight of conn
+        glom.activ = min(activ, 1.0)
         #print("ACTIV IS:" + str(min(activ, 1.0)))
     
     return conn
@@ -3169,6 +2813,7 @@ def attachSecondaryRecs(gl: list[cells.Glom], recs: list[Receptor], c: int, conn
             for glom2 in gl:
                 if glom2.loc in locations:
                     for rec in glom2._recConn.keys():
+                        # FIXME: Shouldn't access private vars outside of class
                         if glom2._recConn[rec] == glom_penetrance:
                             glom._recConn[rec] = s_weights[i]
                     i += 1

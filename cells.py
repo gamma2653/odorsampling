@@ -69,10 +69,11 @@ class Glom:
     def activ(self, value: float) -> None:
         """Rounds value and sets it to activation level.
         Precondition: Value is a float between 0 and 1."""
+        N_DIGITS = 6
         assert isinstance(value, float), f"Not a float! ({type(value)})"
         assert value <= 1 and value >= 0, "Not between 0 and 1"
         logger.debug("Glom cell[%s] activ level changed: [%s->%s]", self._id, self._activ, value)
-        self._activ = round(value, 6)
+        self._activ = round(value, N_DIGITS)
 
     @property
     def loc(self) -> tuple[Real, Real]:
@@ -128,13 +129,13 @@ class Glom:
         self._recConn[value] = weight
     
 
-    def __init__(self, ID, activ=0.0, loc=(0,0), dim=(0,0), conn=0):
+    def __init__(self, id_, activ=0.0, loc=(0,0), dim=(0,0), conn=0):
         """Initializes Glom object"""
-        self._id = ID
-        self._activ = activ
-        self._loc = loc
-        self._dim = dim
-        self._conn = conn
+        self._id: int = id_
+        self._activ: float = activ
+        self._loc: tuple[float, float] = loc
+        self._dim: tuple[float, float] = dim
+        self._conn: int = conn
         # TODO: Took me some time to track down this type. Would be a circular import,
         # but possible using PEP 484#forward-references. Still, best to remove potentially
         # circular import when possible
@@ -183,8 +184,9 @@ class Mitral:
         Precondition: Value is a float between 0 and 1."""
         assert isinstance(value, float), "Not a float!"
         assert value <= 1 and value >= 0, "Not between 0 and 1"
+        N_DIGITS = 5
         logger.debug("Mitral cell[%s] activ level changed: [%s->%s]", self._id, self._activ, value)
-        self._activ = round(value, 5)
+        self._activ = round(value, N_DIGITS)
         
     @property
     def loc(self) -> tuple[Real, Real]:

@@ -7,7 +7,7 @@
 from __future__ import annotations
 
 from RnO import (
-    QSpace, Odorscene, Ligand, createEpithelium, saveEpithelium, loadEpithelium,
+    QSpace, Odorscene, Ligand, Epithelium, loadEpithelium,
     dPsiBarSaturation, colorMapSumOfSquares, dPsiGraphFromExcel, graphFromExcel,
     dPsiOccActGraphFromExcel, glom_penetrance, peak_affinity
 )
@@ -205,8 +205,8 @@ def testdPsiBarSaturationDim(dims, fixed=False, aff_sd=[.5,1.5], eff_sd=[.05,1.0
             i+=1
         qspace = QSpace(space)
         #epith = loadEpithelium("SavedEpi_(0,4)_" + str(dim) + "Dim.csv")
-        epith = createEpithelium(numRecs, dim, qspace, aff_sd, eff_sd)
-        saveEpithelium(epith, "1. SavedEpi_(0, 4), dim=" + str(dim))
+        epith = Epithelium.create(numRecs, dim, qspace, aff_sd, eff_sd)
+        epith.save("1. SavedEpi_(0, 4), dim=" + str(dim))
         
         labels.append(str(dim) + "D")
         excels.append("LigandSat with (0, 4) qspace, dim=" + str(dim))
@@ -381,8 +381,8 @@ def makeSimilar(numRecs, aff_sd, eff_sd, purpose="eff", qspaces=[4,10,30], dim=2
         space.append((0,qspaces[0]))
         i+=1
     qspace = QSpace(space)
-    epith = createEpithelium(numRecs, dim, qspace, aff_sd, eff_sd) #amt, dim **amt = len(gl) and dim = dim of odorscene
-    saveEpithelium(epith, "1. SavedEpi_" + str(qspace.size[0]) + purp)
+    epith = Epithelium.create(numRecs, dim, qspace, aff_sd, eff_sd) #amt, dim **amt = len(gl) and dim = dim of odorscene
+    epith.save("1. SavedEpi_" + str(qspace.size[0]) + purp)
     
     i = 1
     while i < len(qspaces):
@@ -393,7 +393,7 @@ def makeSimilar(numRecs, aff_sd, eff_sd, purpose="eff", qspaces=[4,10,30], dim=2
             space.append((0,qspaces[i]))
             k+=1
         qspace = QSpace(space)
-        epith2 = createEpithelium(numRecs, dim, qspace, aff_sd, eff_sd)
+        epith2 = Epithelium.create(numRecs, dim, qspace, aff_sd, eff_sd)
     
         k = 0
         for rec in epith2.recs:
@@ -403,7 +403,7 @@ def makeSimilar(numRecs, aff_sd, eff_sd, purpose="eff", qspaces=[4,10,30], dim=2
             rec.covE = None       
             k += 1
     
-        saveEpithelium(epith2, "1. SavedEpi_" + str(qspace.size[0]) + purp)
+        epith2.save("1. SavedEpi_" + str(qspace.size[0]) + purp)
         
         i += 1
 

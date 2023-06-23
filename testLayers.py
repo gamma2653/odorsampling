@@ -74,7 +74,7 @@ def testGraphGLArraySimilarity(gl, x, opt, sel, num=0, mean=0, sd=0 ):
     while inc <= x:
         y.append(inc)
         inc += 1
-    layers = GlomLayer.createGLArray(gl, x, opt, sel, num, mean, sd)
+    layers = GlomLayer.create_array(gl, x, opt, sel, num, mean, sd)
     inc = 0
     axis = []
     assert x == len(layers), "Worst."
