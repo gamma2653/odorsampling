@@ -11,8 +11,11 @@ import logging
 from dataclasses import dataclass, field
 from collections import Counter
 import random
+import copy
 import re
 from enum import Enum
+
+from scipy.stats import multivariate_normal as mvn
 
 import config
 
@@ -80,24 +83,138 @@ class Mitral(Cell):
         gstring = self.glomConn.keys()
         return f"Mitral ID: {self.id} Mitral Activ: {self.activation} Glom: {gstring}"
 
+@dataclass
 class QSpace:
-    @property
-    def dim(self):
-        return self._dim
+    dims: list[tuple[int, int]] = field(default_factory=list)
     
-    def __init__(self, dims: list[tuple[int, int]]):
-        self._dims = dims
-        self.q = len(dims)
+    @property
+    def q(self) -> int:
+        return len(self.dims)
+
 
 class Receptor:
     
-    @property
-    def qspace(self):
-        return self._qspace
-
-    def __init__(self, qspace: QSpace, id_=None):
+    def __init__(self, qspace, mean, sda, sde, id_=None):
         self._id = id_ if id_ is not None else get_id(Receptor)
         self._qspace = qspace
+        self._mean = mean
+        self._sdA = sda
+        self._sdE = sde
+    
+    def _distribute(self, qspace: QSpace, constMean, scaleAff, scaleEff):
+        """Returns a list of means randomly distributed within the qspace based on the Type"""
+        if constMean:
+            self._mean = tuple(qspace.q[i][1]/2.0 for i in range(qspace.q))
+        else:
+            if config.DIST_TYPE_UNIF:
+                self._mean = tuple(random.uniform(*qspace.q[i]) for i in range(qspace.q))
+            elif config.DIST_TYPE_GAUSS:
+                mean = []
+                for i in range(qspace.q):
+                    while True:
+                        g = random.gauss(config.MU, config.SIG)
+                        if g <= qspace.q[i][1] and g >= 0:
+                            break
+                    mean.append(g)
+                self._mean = tuple(mean)
+            else:
+                raise Exception("No distribution type selected in config.")
+        self._sdA = tuple(random.uniform(*scaleAff) for _ in range(qspace.q))
+        self._sdE = tuple(random.uniform(*scaleEff) for _ in range(qspace.q))
+
+
+    @property
+    def id(self) -> int:
+        return self._id
+    
+    @property
+    def qspace(self) -> QSpace:
+        """
+        Returns a deep copy of the QSpace object.
+        """
+        return copy.deepcopy(self._qspace)
+
+    # @classmethod
+    # def create(cls, qspace: QSpace, scaleAff, scaleEff):
+        
+
+    @property
+    def mean(self):
+        """Returns mean of receptor."""
+        return self._mean
+
+    @mean.setter
+    def mean(self, value: tuple[float, float]):
+        """
+        Sets mean equal to value.
+        """
+        logger.debug("Receptor mean changed: [%s->%s]", self._mean, value)
+        self._mean = value
+        self._mean_sd_change = True
+    
+    @property
+    def sdA(self) -> tuple[float, float]:
+        """Returns the standard deviations for Affinity."""
+        return self._sdA
+
+    @sdA.setter
+    def sdA(self, value: tuple[float, float]):
+        """
+        Sets sdA equal to value.
+        """
+        logger.debug("Receptor sdA changed: [%s->%s]", self._sdA, value)
+        self._sdA = value
+        self._mean_sd_change = True
+
+    # TODO: Make thread safe
+    def _update_cov_scale(self) -> None:
+        self._covA = [_sdA**2 for _sdA in self.sdA]
+        self._covE = [_sdE**2 for _sdE in self.sdE]
+        self._affScale = float(mvn.pdf(self.mean, self.mean, self._covA))
+        self._effScale = float(mvn.pdf(self.mean, self.mean, self._covE))
+        self._mean_sd_change = False
+
+    @property
+    def sdE(self) -> tuple:
+        """Returns the standard deviations for Efficacy."""
+        return self._sdE
+
+    @sdE.setter
+    def sdE(self, value: tuple):
+        """
+        Sets sdE equal to value.
+        """
+        logger.debug("Receptor sdE changed: [%s->%s]", self._sdE, value)
+        self._sdE = value
+        self._mean_sd_change = True
+    
+    @property
+    def covA(self):
+        """Returns the covariance for affinity"""
+        if self._mean_sd_change:
+            self._update_cov_scale()
+        return self._covA
+    
+    @property
+    def covE(self):
+        """Returns the covariance for Efficacy"""
+        if self._mean_sd_change:
+            self._update_cov_scale()
+        return self._covE
+    
+    @property
+    def affScale(self):
+        """Returns scale of receptor."""
+        if self._mean_sd_change:
+            self._update_cov_scale()
+        return self._affScale
+
+    @property
+    def effScale(self):
+        """Returns eff scale of receptor."""
+        if self._mean_sd_change:
+            self._update_cov_scale()
+        return self._effScale
 
 class Ligand:
     pass
