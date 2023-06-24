@@ -44,17 +44,17 @@ class DistributionType(Enum):
     Activation levels are drawn from exponenial distribution with mean.
     """
 
-cell_counter = Counter()
-def inc_and_get(key):
-    cell_counter[type(key)] += 1
-    return cell_counter[type(key)]
+id_tracker = Counter()
+def get_id(key):
+    id_tracker[type(key)] += 1
+    return id_tracker[type(key)]
 
 @dataclass
 class Cell:
     """
     Baseclass for cells.
     """
-    id: int = field(default_factory=lambda: inc_and_get(Cell))
+    id: int = field(default_factory=lambda: get_id(Cell))
     loc: tuple[float, float] = (0.0, 0.0)
     conn: int = 0
     activation: float = 0.0
@@ -64,13 +64,13 @@ class Cell:
         return f"Id: {self.id} activ: {self.activation}"
 
 class Glom(Cell):
-    id: int = field(default_factory=lambda: inc_and_get(Glom))
+    id: int = field(default_factory=lambda: get_id(Glom))
     dim: tuple[int, int] = (0, 0)
     recConn: MutableMapping[Receptor, float] = field(default_factory=dict)
 
 
 class Mitral(Cell):
-    id: int = field(default_factory=lambda: inc_and_get(Mitral))
+    id: int = field(default_factory=lambda: get_id(Mitral))
     glomConn: MutableMapping[Glom, float] = field(default_factory=dict)
 
     def __str__(self):
@@ -80,6 +80,32 @@ class Mitral(Cell):
         gstring = self.glomConn.keys()
         return f"Mitral ID: {self.id} Mitral Activ: {self.activation} Glom: {gstring}"
 
+class QSpace:
+    @property
+    def dim(self):
+        return self._dim
+    
+    def __init__(self, dims: list[tuple[int, int]]):
+        self._dims = dims
+        self.q = len(dims)
+
+class Receptor:
+    
+    @property
+    def qspace(self):
+        return self._qspace
+
+    def __init__(self, qspace: QSpace, id_=None):
+        self._id = id_ if id_ is not None else get_id(Receptor)
+        self._qspace = qspace
+
+class Ligand:
+    pass
+
+class Odorscene(list[Ligand]):
+    pass
+
+#### Not defined in paper but useful structures for modelling
 class GlomLayer(list[Glom]):
     """
     """

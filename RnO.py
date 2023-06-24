@@ -36,7 +36,7 @@ from matplotlib.patches import Ellipse
 import numpy.random as rnd
 
 import config
-import cells
+import objects
 
 # Used for asserts
 from numbers import Real
@@ -1008,7 +1008,7 @@ def sequentialOdorscenes(n: int, amt: int, dim: int, change: int, qspace: QSpace
 ## Maximum dpsi value = # of receptors in epithelium (if the first odorscene
 ## always activates the receptor = 1.0 and the other activates = 0.0)
 
-def sumOfSquares(epithelium: Epithelium, odorscene: Odorscene, dn: list[int], fixed=False, c=1, gl: list[cells.Glom]=[]): 
+def sumOfSquares(epithelium: Epithelium, odorscene: Odorscene, dn: list[int], fixed=False, c=1, gl: list[objects.Glom]=[]): 
     """Calculates differentiation between epithelium activation of odorscene before
     and after dn using sum of squares. Returns dpsi of the epithelium.
     If fixed=true, then efficacy will be fixed at 1 (only agonists)
@@ -1383,7 +1383,7 @@ def dPsiBarCalcDiag(epithelium: Epithelium, odorscene: Odorscene, r, fixed=False
     
     return totalDpsi/4.0
 
-def dPsiBarCalcAnglesOrig(epithelium: Epithelium, odorscene: Odorscene, r, fixed=False, text=None, c=1, gl: list[cells.Glom]=[]):
+def dPsiBarCalcAnglesOrig(epithelium: Epithelium, odorscene: Odorscene, r, fixed=False, text=None, c=1, gl: list[objects.Glom]=[]):
     """Calculates dPsiBar = the average dPsi value of an odorscene that
     changes location by the same amplitude r but "rep" different directions based on
     randomized angles."""
@@ -1422,7 +1422,7 @@ def dPsiBarCalcAnglesOrig(epithelium: Epithelium, odorscene: Odorscene, r, fixed
 
 
 
-def dPsiBarCalcAngles(epithelium: Epithelium, odorscene: Odorscene, r, fixed=False, text=None, c=1, gl: list[cells.Glom] = []):
+def dPsiBarCalcAngles(epithelium: Epithelium, odorscene: Odorscene, r, fixed=False, text=None, c=1, gl: list[objects.Glom] = []):
     """Calculates dPsiBar = the average dPsi value of an odorscene that
     changes location by the same amplitude r but "rep" different directions based on
     randomized angles."""
@@ -1446,7 +1446,7 @@ def dPsiBarCalcAngles(epithelium: Epithelium, odorscene: Odorscene, r, fixed=Fal
     return totalDpsi/rep
 
 # TODO: Rewrite all of this. (conversions, string handling, etc)
-def recToText(epithelium: Epithelium, gl: list[cells.Glom], c: int, text: Text):
+def recToText(epithelium: Epithelium, gl: list[objects.Glom], c: int, text: Text):
     """Stores rec activ and rec occ from epi into a text obj"""
     if c != 1:
         num = convStrToNum(text._st[-4:])
@@ -2782,7 +2782,7 @@ def recDensityDpsiGraphRandomized(r, qspace: QSpace, odorscene: Odorscene, dim: 
     plt.ylabel("dPsiBar")
     plt.show()
 
-def glomRecConnNew(recs: list[Receptor], gl: list[cells.Glom], c=9, conn: list[list[int]] = []) -> list[list[int]]:
+def glomRecConnNew(recs: list[Receptor], gl: list[objects.Glom], c=9, conn: list[list[int]] = []) -> list[list[int]]:
     """New function that deploys gl into olfactory bulb space (numRow X numCol)
     and connects to primary and secondary recs with given weights.
     c = num of recs connected to each glom
@@ -2830,7 +2830,7 @@ def glomRecConnNew(recs: list[Receptor], gl: list[cells.Glom], c=9, conn: list[l
     
     return conn
 
-def attachSecondaryRecs(gl: list[cells.Glom], recs: list[Receptor], c: int, conn: list[list[int]]) -> list[list[int]]:
+def attachSecondaryRecs(gl: list[objects.Glom], recs: list[Receptor], c: int, conn: list[list[int]]) -> list[list[int]]:
     """Given gl with primary rec attachments, this function attaches the remaining recs
     if constant=true, then attaches surrounding 8 recs, otherwise it's random assignment.
     If conn = [], randomly assign. If conn isn't empty, than use the given conn info to attach recs

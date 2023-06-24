@@ -28,7 +28,7 @@ import math
 import matplotlib.pylab
 from matplotlib.backends.backend_pdf import PdfPages
 
-import cells
+import objects
 import config
 
 # Used for asserts
@@ -43,26 +43,11 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 config.default_log_setup(logger)
 
-class DistributionType(Enum):
-    """
-    Enum for distribution types.
-    """
-    UNIFORM = random.random
-    """
-    Activation levels are drawn from a random distribution.
-    """
-    GAUSSIAN = random.gauss
-    """
-    Activation levels are drawn from a Gaussian distribution with mean and sd.
-    """
-    EXPONENTIAL = random.expovariate
-    """
-    Activation levels are drawn from exponenial distribution with mean.
-    """
 
-class GlomLayer(list[cells.Glom]):
 
-    def __init__(self, cells: Iterable[cells.Glom] = tuple()):
+class GlomLayer(list[objects.Glom]):
+
+    def __init__(self, cells: Iterable[objects.Glom] = tuple()):
         super().__init__(cells)
     
     def clearActiv(self):
@@ -156,7 +141,7 @@ class GlomLayer(list[cells.Glom]):
                 colon = line.index(":", comma2+1)
                 semi = line.index(";", comma3+1)
                 loc = [int(line[comma2+1:colon]), int(line[colon+1:comma3])]
-                glom = cells.Glom(int(line[:comma1]), float(line[comma1+1:comma2]), loc, int(line[comma3+1:semi]))
+                glom = objects.Glom(int(line[:comma1]), float(line[comma1+1:comma2]), loc, int(line[comma3+1:semi]))
                 glom_layer.append(glom)
         logger.info("Glom layer loaded from `%s`.", name)
         return cls(glom_layer)
@@ -178,15 +163,15 @@ class GlomLayer(list[cells.Glom]):
 # TODO: Move following two functions into member functions of GlomLayer
 
 
-class MitralLayer(list[cells.Mitral]):
-    def __init__(self, cells: Iterable[cells.Mitral]):
+class MitralLayer(list[objects.Mitral]):
+    def __init__(self, cells: Iterable[objects.Mitral]):
         super().__init__(cells)
 
     @classmethod
     def create(cls, n: Real):
         assert isinstance(n, Real)
         logger.debug("Creating mitral layer of %s cells.", n)
-        return cls((cells.Mitral(i, 0.0, (0, 0), {}) for i in range(n)))
+        return cls((objects.Mitral(i, 0.0, (0, 0), {}) for i in range(n)))
     
     def save(self, name: str):
         """Saves MCL as a file on the computer with .MCL as extention.
@@ -238,7 +223,7 @@ class MitralLayer(list[cells.Mitral]):
                     val = line[middle+1:beg]
                     middle = line.find("|", middle+1)
                     glom[int(key)] = float(val)
-                mitral = cells.Mitral(int(line[:comma1]), float(line[comma1+1:comma2]), loc, glom)
+                mitral = objects.Mitral(int(line[:comma1]), float(line[comma1+1:comma2]), loc, glom)
                 mcl.append(mitral)
             return cls(mcl)
 
@@ -867,7 +852,7 @@ def ApplyMCLSamplingMap(gl: GlomLayer, mcl: MitralLayer, map_: list[list[int]]) 
 
 
 # FIXME: What is GL if not a list of glom cells?
-def addActivationMCL(m: cells.Mitral, gl: GlomLayer):
+def addActivationMCL(m: objects.Mitral, gl: GlomLayer):
     """Returns updated MCL where each mitral cell's activation level is calculated
     based on adding connecting glom activation levels*weight of connection"""
     glom = m.glom.keys()
@@ -929,7 +914,7 @@ def graphLayer(layer: Union[GlomLayer, MitralLayer], sort=False):
         y.append(layer[index].activ)
         index += 1
     plt.bar(x, y)
-    if type(layer[0]) == cells.Glom:
+    if type(layer[0]) == objects.Glom:
         plt.title("Activation Levels for a Given Glomeruli Layer")
     else:
         plt.title("Activation Levels for a Given Mitral Layer")    
