@@ -2,12 +2,14 @@
 #Mitchell Gronowitz
 #April and May 2015
 
+from __future__ import annotations
+
 from RnO import *
 import random
 import layers
 import copy
 from matplotlib.backends.backend_pdf import PdfPages
-import params
+import config
 
 from typing import TYPE_CHECKING
 
@@ -274,15 +276,15 @@ def testColorMapSumOfSquares():
     #Create an odorscene object with 25 ligands from 0,0 to 4,4
     # x = 0
     # y = 0
-    # x = 1/(2*params.PIXEL_PER_Q_UNIT)
-    # y = 1/(2*params.PIXEL_PER_Q_UNIT)
+    # x = 1/(2*config.PIXEL_PER_Q_UNIT)
+    # y = 1/(2*config.PIXEL_PER_Q_UNIT)
     y = 0
     x = 0
     ID = 0
     odorscenes = []
     while x < 80:
         y = 0
-        # y = 1/(2*params.PIXEL_PER_Q_UNIT)
+        # y = 1/(2*config.PIXEL_PER_Q_UNIT)
         while y < 80:
             # odorscenes.append(Odorscene(x,[Ligand(ID, [2.0*x/3.0 + 2.0/6.0, 2.0*y/3.0 + 2.0/6.0], .004)]))
             odorscenes.append(Odorscene(x,[Ligand(ID, [x/20.0, y/20.0], .004)]))
@@ -297,9 +299,9 @@ def testColorMapSumOfSquares():
 
     #Using mock receptors
     # recs= []
-    # recs.append(Receptor(0, params.MOCK_RECEPTOR_MEAN, params.MOCK_RECEPTOR_SDA, params.MOCK_RECEPTOR_SDE))
-    # recs.append(Receptor(1, params.MOCK_RECEPTOR_MEAN1, params.MOCK_RECEPTOR_SDA1, params.MOCK_RECEPTOR_SDE1))
-    # recs.append(Receptor(2, params.MOCK_RECEPTOR_MEAN2, params.MOCK_RECEPTOR_SDA2, params.MOCK_RECEPTOR_SDE2))
+    # recs.append(Receptor(0, config.MOCK_RECEPTOR_MEAN, config.MOCK_RECEPTOR_SDA, config.MOCK_RECEPTOR_SDE))
+    # recs.append(Receptor(1, config.MOCK_RECEPTOR_MEAN1, config.MOCK_RECEPTOR_SDA1, config.MOCK_RECEPTOR_SDE1))
+    # recs.append(Receptor(2, config.MOCK_RECEPTOR_MEAN2, config.MOCK_RECEPTOR_SDA2, config.MOCK_RECEPTOR_SDE2))
 
     # epith = Epithelium(recs)
 

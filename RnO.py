@@ -9,11 +9,15 @@ Index of document:
 3. Simple functions to create and activate each object
 4. Experiments/Simulations utilizing objects"""
 
+from __future__ import annotations
+
 import math
-import cells
 import random
-import layers
 import os
+import copy
+import time
+import logging
+
 #import matplotlib
 #matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
@@ -21,24 +25,21 @@ from scipy.stats import multivariate_normal as mvn
 import numpy as np
 import matplotlib.pylab
 from matplotlib.backends.backend_pdf import PdfPages
-import copy
-import time
-import logging
-from typing import TYPE_CHECKING
-
 #from matplotlib import mlab, cm
 from matplotlib import patches
 from matplotlib.patches import Ellipse
 import numpy.random as rnd
 
-import params
+import layers
+import config
 
-# if TYPE_CHECKING:
-from typing import Sequence
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from typing import Sequence
 
 
 logger = logging.getLogger(__name__)
-params.default_log_setup(logger)
+config.default_log_setup(logger)
 
 ###Global Variables
 peak_affinity = -8     # literally 10e-8, not influenced by minimum_affinity value
@@ -48,7 +49,7 @@ ODOR_REPETITIONS = 2 #Amount of odorscene repetitions to create a smooth graph
 ANGLES_REP = 2
 
 #SD_NUMBER = 1.5
-#SD_NUMBER = params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION
+#SD_NUMBER = config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION
 
 ###Global Variables when c!=1 (multiple conn between rec and glom)
 glom_penetrance = .68  # primary glom:rec connection weight if c != 1
@@ -615,16 +616,16 @@ def _distributeMean(dim, qspace, constMean):
             i+=1
     else:
         while i < dim:
-            if params.DIST_TYPE_UNIF:
+            if config.DIST_TYPE_UNIF:
                 mean.append(random.uniform(qspace.size[i][0], qspace.size[i][1]))
-            elif params.DIST_TYPE_GAUSS:
+            elif config.DIST_TYPE_GAUSS:
                 while True:
-                    g = random.gauss(params.MU, params.SIG)
+                    g = random.gauss(config.MU, config.SIG)
                     #if ((i==0 and g <= qspace.size[i][1] and g >= 0) or (i==1 and g <= qspace.size[i][1]) and g >= 0):
                     if (g <= qspace.size[i][1] and g >= 0):
                         mean.append(g)
                         break
-                #mean.append(random.gauss(params.MU, params.SIG))
+                #mean.append(random.gauss(config.MU, config.SIG))
 
             i += 1
     return mean
@@ -1516,10 +1517,10 @@ def colorMapSumOfSquares(epithelium, odorscenes, r, qspace):
     maxY = qspace.size[1][1]
     x = 0 
     y = 0
-    while y < maxY * params.PIXEL_PER_Q_UNIT:
+    while y < maxY * config.PIXEL_PER_Q_UNIT:
         row = []
         x = 0
-        while x < maxX * params.PIXEL_PER_Q_UNIT:
+        while x < maxX * config.PIXEL_PER_Q_UNIT:
             row.append(0)
             x += 1
         graph.append(row)
@@ -1533,7 +1534,7 @@ def colorMapSumOfSquares(epithelium, odorscenes, r, qspace):
         # eff = 1
         dPsiBar = dPsiBarCalcAnglesOrig(epithelium, odorscene, r, True) 
 
-        graph[int(params.PIXEL_PER_Q_UNIT*(odorscene.odors[0].loc[1]))][int(params.PIXEL_PER_Q_UNIT*(odorscene.odors[0].loc[0]))] = dPsiBar
+        graph[int(config.PIXEL_PER_Q_UNIT*(odorscene.odors[0].loc[1]))][int(config.PIXEL_PER_Q_UNIT*(odorscene.odors[0].loc[0]))] = dPsiBar
 
 
     #     #TESTING FOR RECEPTOR ELLIPSE ADD-ON
@@ -1541,10 +1542,10 @@ def colorMapSumOfSquares(epithelium, odorscenes, r, qspace):
     ells_sde = []
     ii = -1
     for i, rec in enumerate(epithelium.recs): 
-            if params.RECEPTOR_INDEX == 'ALL':
+            if config.RECEPTOR_INDEX == 'ALL':
                 ii=i
             else:
-                ii= params.RECEPTOR_INDEX      
+                ii= config.RECEPTOR_INDEX      
             if i == ii:
         
                 qspaceBoundary = qspace.size[1][1]
@@ -1557,72 +1558,72 @@ def colorMapSumOfSquares(epithelium, odorscenes, r, qspace):
                 ells.append(Ellipse(xy=rec.mean, width=rec.sdA[1]*standardDeviationNumber, height=rec.sdE[1]*standardDeviationNumber, angle=ang))
 
                 """
-                if params.SHOW_SDA_ELLIPSE:
-                    # ells_sda.append(Ellipse(xy=rec.mean, width=rec.sdA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang))
+                if config.SHOW_SDA_ELLIPSE:
+                    # ells_sda.append(Ellipse(xy=rec.mean, width=rec.sdA[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdA[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang))
                     
-                    ells_sda.append(Ellipse(xy=params.MOCK_RECEPTOR_MEAN, width=params.MOCK_RECEPTOR_SDA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=params.MOCK_RECEPTOR_SDA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
-                    ells_sda.append(Ellipse(xy=params.MOCK_RECEPTOR_MEAN1, width=params.MOCK_RECEPTOR_SDA1[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=params.MOCK_RECEPTOR_SDA1[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang1))
-                    ells_sda.append(Ellipse(xy=params.MOCK_RECEPTOR_MEAN2, width=params.MOCK_RECEPTOR_SDA2[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=params.MOCK_RECEPTOR_SDA2[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang2))
+                    ells_sda.append(Ellipse(xy=config.MOCK_RECEPTOR_MEAN, width=config.MOCK_RECEPTOR_SDA[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=config.MOCK_RECEPTOR_SDA[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
+                    ells_sda.append(Ellipse(xy=config.MOCK_RECEPTOR_MEAN1, width=config.MOCK_RECEPTOR_SDA1[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=config.MOCK_RECEPTOR_SDA1[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang1))
+                    ells_sda.append(Ellipse(xy=config.MOCK_RECEPTOR_MEAN2, width=config.MOCK_RECEPTOR_SDA2[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=config.MOCK_RECEPTOR_SDA2[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang2))
         
 
                     # ***************** UNCOMMENT HERE TO PLOT RECEPTORS IN TORUS **************************
                     # newMeanLeft = [rec.mean[0]-qspaceBoundary, rec.mean[1]]
-                    # ells_sda.append(Ellipse(xy=newMeanLeft, width=rec.sdA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
+                    # ells_sda.append(Ellipse(xy=newMeanLeft, width=rec.sdA[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdA[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
                     # newMeanRight = [rec.mean[0] + qspaceBoundary, rec.mean[1]]
-                    # ells_sda.append(Ellipse(xy=newMeanRight, width=rec.sdA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
+                    # ells_sda.append(Ellipse(xy=newMeanRight, width=rec.sdA[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdA[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
                     # newMeanBottom = [rec.mean[0], rec.mean[1]-qspaceBoundary]
-                    # ells_sda.append(Ellipse(xy=newMeanBottom, width=rec.sdA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
+                    # ells_sda.append(Ellipse(xy=newMeanBottom, width=rec.sdA[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdA[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
                     # newMeanTop = [rec.mean[0], rec.mean[1] + qspaceBoundary]
-                    # ells_sda.append(Ellipse(xy=newMeanTop, width=rec.sdA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
+                    # ells_sda.append(Ellipse(xy=newMeanTop, width=rec.sdA[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdA[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
                     # # bottom left
                     # newMean1bottomLeft=[rec.mean[0]-qspaceBoundary, rec.mean[1]-qspaceBoundary]
-                    # ells_sda.append(Ellipse(xy=newMean1bottomLeft, width=rec.sdA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))            
+                    # ells_sda.append(Ellipse(xy=newMean1bottomLeft, width=rec.sdA[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdA[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))            
 
                     # # bottom right
                     # newMean1bottomRight=[rec.mean[0] + qspaceBoundary, rec.mean[1]-qspaceBoundary]
-                    # ells_sda.append(Ellipse(xy=newMean1bottomRight, width=rec.sdA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))            
+                    # ells_sda.append(Ellipse(xy=newMean1bottomRight, width=rec.sdA[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdA[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))            
             
                     # # top left
                     # newMean1topLeft=[rec.mean[0]-qspaceBoundary, rec.mean[1] + qspaceBoundary]
-                    # ells_sda.append(Ellipse(xy=newMean1topLeft, width=rec.sdA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
+                    # ells_sda.append(Ellipse(xy=newMean1topLeft, width=rec.sdA[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdA[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
 
                     # # top right
                     # newMean1topRight=[rec.mean[0] + qspaceBoundary, rec.mean[1] + qspaceBoundary]
-                    # ells_sda.append(Ellipse(xy=newMean1topRight, width=rec.sdA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
+                    # ells_sda.append(Ellipse(xy=newMean1topRight, width=rec.sdA[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdA[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
 
                     
-                if params.SHOW_SDE_ELLIPSE:
-                    # ells_sde.append(Ellipse(xy=rec.mean, width=rec.sdE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
+                if config.SHOW_SDE_ELLIPSE:
+                    # ells_sde.append(Ellipse(xy=rec.mean, width=rec.sdE[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdE[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
                     
-                    ells_sde.append(Ellipse(xy=params.MOCK_RECEPTOR_MEAN, width=params.MOCK_RECEPTOR_SDE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=params.MOCK_RECEPTOR_SDE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
-                    ells_sde.append(Ellipse(xy=params.MOCK_RECEPTOR_MEAN1, width=params.MOCK_RECEPTOR_SDE1[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=params.MOCK_RECEPTOR_SDE1[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang1))
-                    ells_sde.append(Ellipse(xy=params.MOCK_RECEPTOR_MEAN2, width=params.MOCK_RECEPTOR_SDE2[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=params.MOCK_RECEPTOR_SDE2[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang2))
+                    ells_sde.append(Ellipse(xy=config.MOCK_RECEPTOR_MEAN, width=config.MOCK_RECEPTOR_SDE[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=config.MOCK_RECEPTOR_SDE[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
+                    ells_sde.append(Ellipse(xy=config.MOCK_RECEPTOR_MEAN1, width=config.MOCK_RECEPTOR_SDE1[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=config.MOCK_RECEPTOR_SDE1[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang1))
+                    ells_sde.append(Ellipse(xy=config.MOCK_RECEPTOR_MEAN2, width=config.MOCK_RECEPTOR_SDE2[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=config.MOCK_RECEPTOR_SDE2[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang2))
 
                     # ***************** UNCOMMENT HERE TO PLOT RECEPTORS IN TORUS **************************
                     # newMeanLeft = [rec.mean[0] - qspaceBoundary, rec.mean[1]]
-                    # ells_sde.append(Ellipse(xy=newMeanLeft, width=rec.sdE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
+                    # ells_sde.append(Ellipse(xy=newMeanLeft, width=rec.sdE[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdE[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
                     # newMeanRight = [rec.mean[0] + qspaceBoundary, rec.mean[1]]
-                    # ells_sde.append(Ellipse(xy=newMeanRight, width=rec.sdE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
+                    # ells_sde.append(Ellipse(xy=newMeanRight, width=rec.sdE[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdE[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
                     # newMeanBottom = [rec.mean[0], rec.mean[1] - qspaceBoundary]
-                    # ells_sde.append(Ellipse(xy=newMeanBottom, width=rec.sdE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
+                    # ells_sde.append(Ellipse(xy=newMeanBottom, width=rec.sdE[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdE[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
                     # newMeanTop = [rec.mean[0], rec.mean[1] + qspaceBoundary]
-                    # ells_sde.append(Ellipse(xy=newMeanTop, width=rec.sdE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
+                    # ells_sde.append(Ellipse(xy=newMeanTop, width=rec.sdE[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdE[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
                     
                     # # bottom left
                     # newMean1bottomLeft=[rec.mean[0]-qspaceBoundary, rec.mean[1]-qspaceBoundary]
-                    # ells_sde.append(Ellipse(xy=newMean1bottomLeft, width=rec.sdE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))            
+                    # ells_sde.append(Ellipse(xy=newMean1bottomLeft, width=rec.sdE[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdE[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))            
 
                     # # bottom right
                     # newMean1bottomRight=[rec.mean[0] + qspaceBoundary, rec.mean[1]-qspaceBoundary]
-                    # ells_sde.append(Ellipse(xy=newMean1bottomRight, width=rec.sdE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))            
+                    # ells_sde.append(Ellipse(xy=newMean1bottomRight, width=rec.sdE[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdE[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))            
             
                     # # top left
                     # newMean1topLeft=[rec.mean[0]-qspaceBoundary, rec.mean[1] + qspaceBoundary]
-                    # ells_sde.append(Ellipse(xy=newMean1topLeft, width=rec.sdE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
+                    # ells_sde.append(Ellipse(xy=newMean1topLeft, width=rec.sdE[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdE[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
 
                     # # top right
                     # newMean1topRight=[rec.mean[0] + qspaceBoundary, rec.mean[1] + qspaceBoundary]
-                    # ells_sde.append(Ellipse(xy=newMean1topRight, width=rec.sdE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
+                    # ells_sde.append(Ellipse(xy=newMean1topRight, width=rec.sdE[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdE[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
 
 
                 #ells.append(Ellipse(xy=rnd.rand(2)*10, width=rnd.rand(), height=rnd.rand(), angle=rnd.rand()*360))
@@ -1636,34 +1637,34 @@ def colorMapSumOfSquares(epithelium, odorscenes, r, qspace):
     #ax2=fig.add_subplot(111, label="2", frame_on=False)
 
 
-    if params.SHOW_SDA_ELLIPSE:
+    if config.SHOW_SDA_ELLIPSE:
         for e in ells_sda:
             ax.add_artist(e)
             e.set_clip_box(ax.bbox)
             #e.set_alpha(rnd.rand())
             #e.set_facecolor(rnd.rand(3))
             #e.set_facecolor('red')
-            e.set_edgecolor(params.SDA_COLOR)
-            e.set_fill(params.SDA_FILL)
-            if params.SDA_FILL:
-                e.set_facecolor(params.SDA_COLOR)
+            e.set_edgecolor(config.SDA_COLOR)
+            e.set_fill(config.SDA_FILL)
+            if config.SDA_FILL:
+                e.set_facecolor(config.SDA_COLOR)
             e.set_label("SDA")
-            e.set_linewidth (params.LINE_WIDTH)
+            e.set_linewidth (config.LINE_WIDTH)
             
     
-    if params.SHOW_SDE_ELLIPSE:
+    if config.SHOW_SDE_ELLIPSE:
         for e in ells_sde:
             ax.add_artist(e)
             e.set_clip_box(ax.bbox)
             #e.set_alpha(rnd.rand())
             #e.set_facecolor(rnd.rand(3))
             #e.set_facecolor('blue')
-            e.set_edgecolor(params.SDE_COLOR)
-            if params.SDE_FILL:
-                e.set_facecolor(params.SDE_COLOR)
-            e.set_fill(params.SDE_FILL)
+            e.set_edgecolor(config.SDE_COLOR)
+            if config.SDE_FILL:
+                e.set_facecolor(config.SDE_COLOR)
+            e.set_fill(config.SDE_FILL)
             e.set_label("SDE")
-            e.set_linewidth (params.LINE_WIDTH)
+            e.set_linewidth (config.LINE_WIDTH)
 
         ax.set_xlim(qspace.size[0])
         ax.set_ylim(qspace.size[0])
@@ -1771,7 +1772,7 @@ def dPsiBarSaturation(epithelium, r, qspace, pdfName, labelName, excelName, fixe
 
     size = ODOR_REPETITIONS #amount of odorscenes we want to avg out
     #conc = 1e-5
-    conc = params.ODOR_CONCENTRATION
+    conc = config.ODOR_CONCENTRATION
     gl = layers.createGL(len(epithelium.recs)) #Only if using newly modified gl:rec n:1 ratio
     
     
@@ -2153,10 +2154,10 @@ def runReceptorOdorGraphToolStandAlone():
     drawEllipseGraph('', '', '', True)
 
 def drawEllipseGraph(qspace, epithelium, odorscenesArray, useMockData=False):
-    assert params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION > 0, "Standard Deviation number must be greater than 0"
-    if useMockData == False and params.USE_MOCK_ODORS_EVEN_WHEN_RUNNING_CALCS == False:
-        assert params.ODORSCENE_INDEX >= 0 and params.ODORSCENE_INDEX < len(odorscenesArray), "Odorscene index must be within the range of xaxis"
-        assert params.ODORSCENE_REP_NUMBER >= 0 and params.ODORSCENE_REP_NUMBER < ODOR_REPETITIONS, "Odorscene rep number must be within the range 0 - number of repetitions"
+    assert config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION > 0, "Standard Deviation number must be greater than 0"
+    if useMockData == False and config.USE_MOCK_ODORS_EVEN_WHEN_RUNNING_CALCS == False:
+        assert config.ODORSCENE_INDEX >= 0 and config.ODORSCENE_INDEX < len(odorscenesArray), "Odorscene index must be within the range of xaxis"
+        assert config.ODORSCENE_REP_NUMBER >= 0 and config.ODORSCENE_REP_NUMBER < ODOR_REPETITIONS, "Odorscene rep number must be within the range 0 - number of repetitions"
 
     ells_sda = []
     ells_sde = []
@@ -2170,133 +2171,133 @@ def drawEllipseGraph(qspace, epithelium, odorscenesArray, useMockData=False):
     ang1 = rnd.rand()
     ang2 = rnd.rand()
 
-    if params.USE_MOCK_RECEPTORS_EVEN_WHEN_RUNNING_CALCS or useMockData:
-        if params.SHOW_SDA_ELLIPSE:
-            ells_sda.append(Ellipse(xy=params.MOCK_RECEPTOR_MEAN, width=params.MOCK_RECEPTOR_SDA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=params.MOCK_RECEPTOR_SDA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
-            ells_sda.append(Ellipse(xy=params.MOCK_RECEPTOR_MEAN1, width=params.MOCK_RECEPTOR_SDA1[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=params.MOCK_RECEPTOR_SDA1[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang1))
-            ells_sda.append(Ellipse(xy=params.MOCK_RECEPTOR_MEAN2, width=params.MOCK_RECEPTOR_SDA2[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=params.MOCK_RECEPTOR_SDA2[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang2))
+    if config.USE_MOCK_RECEPTORS_EVEN_WHEN_RUNNING_CALCS or useMockData:
+        if config.SHOW_SDA_ELLIPSE:
+            ells_sda.append(Ellipse(xy=config.MOCK_RECEPTOR_MEAN, width=config.MOCK_RECEPTOR_SDA[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=config.MOCK_RECEPTOR_SDA[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
+            ells_sda.append(Ellipse(xy=config.MOCK_RECEPTOR_MEAN1, width=config.MOCK_RECEPTOR_SDA1[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=config.MOCK_RECEPTOR_SDA1[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang1))
+            ells_sda.append(Ellipse(xy=config.MOCK_RECEPTOR_MEAN2, width=config.MOCK_RECEPTOR_SDA2[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=config.MOCK_RECEPTOR_SDA2[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang2))
         
-        #if params.MOCK_RECEPTOR_MEAN[0] + params.MOCK_RECEPTOR_SDA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION > params.MOCK_QSPACE_DIMENSION[1]:
+        #if config.MOCK_RECEPTOR_MEAN[0] + config.MOCK_RECEPTOR_SDA[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION > config.MOCK_QSPACE_DIMENSION[1]:
 
             # # left side
-            # newMean=[(params.MOCK_QSPACE_DIMENSION[1]-params.MOCK_RECEPTOR_MEAN[0])*-1,params.MOCK_RECEPTOR_MEAN[1]]
-            # ells_sda.append(Ellipse(xy=newMean, width=params.MOCK_RECEPTOR_SDA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=params.MOCK_RECEPTOR_SDA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang))            
+            # newMean=[(config.MOCK_QSPACE_DIMENSION[1]-config.MOCK_RECEPTOR_MEAN[0])*-1,config.MOCK_RECEPTOR_MEAN[1]]
+            # ells_sda.append(Ellipse(xy=newMean, width=config.MOCK_RECEPTOR_SDA[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=config.MOCK_RECEPTOR_SDA[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang))            
             # # right side
-            # newMean=[(params.MOCK_QSPACE_DIMENSION[1]+params.MOCK_RECEPTOR_MEAN[0]),params.MOCK_RECEPTOR_MEAN[1]]
-            # ells_sda.append(Ellipse(xy=newMean, width=params.MOCK_RECEPTOR_SDA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=params.MOCK_RECEPTOR_SDA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang))
+            # newMean=[(config.MOCK_QSPACE_DIMENSION[1]+config.MOCK_RECEPTOR_MEAN[0]),config.MOCK_RECEPTOR_MEAN[1]]
+            # ells_sda.append(Ellipse(xy=newMean, width=config.MOCK_RECEPTOR_SDA[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=config.MOCK_RECEPTOR_SDA[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang))
             
             # # Mean 1
             # # left side
-            # newMean1left=[(params.MOCK_QSPACE_DIMENSION[1]-params.MOCK_RECEPTOR_MEAN1[0])*-1,params.MOCK_RECEPTOR_MEAN1[1]]
-            # ells_sda.append(Ellipse(xy=newMean1left, width=params.MOCK_RECEPTOR_SDA1[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=params.MOCK_RECEPTOR_SDA1[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang1))            
+            # newMean1left=[(config.MOCK_QSPACE_DIMENSION[1]-config.MOCK_RECEPTOR_MEAN1[0])*-1,config.MOCK_RECEPTOR_MEAN1[1]]
+            # ells_sda.append(Ellipse(xy=newMean1left, width=config.MOCK_RECEPTOR_SDA1[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=config.MOCK_RECEPTOR_SDA1[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang1))            
             # # right side
-            # newMean1right=[(params.MOCK_QSPACE_DIMENSION[1]+params.MOCK_RECEPTOR_MEAN1[0]),params.MOCK_RECEPTOR_MEAN1[1]]
-            # ells_sda.append(Ellipse(xy=newMean1right, width=params.MOCK_RECEPTOR_SDA1[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=params.MOCK_RECEPTOR_SDA1[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang1))
+            # newMean1right=[(config.MOCK_QSPACE_DIMENSION[1]+config.MOCK_RECEPTOR_MEAN1[0]),config.MOCK_RECEPTOR_MEAN1[1]]
+            # ells_sda.append(Ellipse(xy=newMean1right, width=config.MOCK_RECEPTOR_SDA1[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=config.MOCK_RECEPTOR_SDA1[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang1))
 
             # # bottom side
-            # newMean1bottom=[params.MOCK_RECEPTOR_MEAN1[0], params.MOCK_RECEPTOR_MEAN1[1]-params.MOCK_QSPACE_DIMENSION[1]]
-            # ells_sda.append(Ellipse(xy=newMean1bottom, width=params.MOCK_RECEPTOR_SDA1[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=params.MOCK_RECEPTOR_SDA1[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang1))            
+            # newMean1bottom=[config.MOCK_RECEPTOR_MEAN1[0], config.MOCK_RECEPTOR_MEAN1[1]-config.MOCK_QSPACE_DIMENSION[1]]
+            # ells_sda.append(Ellipse(xy=newMean1bottom, width=config.MOCK_RECEPTOR_SDA1[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=config.MOCK_RECEPTOR_SDA1[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang1))            
             # # top side
-            # newMean1top=[params.MOCK_RECEPTOR_MEAN1[0], params.MOCK_QSPACE_DIMENSION[1]+params.MOCK_RECEPTOR_MEAN1[1]]
-            # ells_sda.append(Ellipse(xy=newMean1top, width=params.MOCK_RECEPTOR_SDA1[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=params.MOCK_RECEPTOR_SDA1[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang1))
+            # newMean1top=[config.MOCK_RECEPTOR_MEAN1[0], config.MOCK_QSPACE_DIMENSION[1]+config.MOCK_RECEPTOR_MEAN1[1]]
+            # ells_sda.append(Ellipse(xy=newMean1top, width=config.MOCK_RECEPTOR_SDA1[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=config.MOCK_RECEPTOR_SDA1[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang1))
 
             # # bottom left
-            # newMean1bottomLeft=[params.MOCK_RECEPTOR_MEAN1[0]-params.MOCK_QSPACE_DIMENSION[1], params.MOCK_RECEPTOR_MEAN1[1]-params.MOCK_QSPACE_DIMENSION[1]]
-            # ells_sda.append(Ellipse(xy=newMean1bottomLeft, width=params.MOCK_RECEPTOR_SDA1[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=params.MOCK_RECEPTOR_SDA1[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang1))            
+            # newMean1bottomLeft=[config.MOCK_RECEPTOR_MEAN1[0]-config.MOCK_QSPACE_DIMENSION[1], config.MOCK_RECEPTOR_MEAN1[1]-config.MOCK_QSPACE_DIMENSION[1]]
+            # ells_sda.append(Ellipse(xy=newMean1bottomLeft, width=config.MOCK_RECEPTOR_SDA1[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=config.MOCK_RECEPTOR_SDA1[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang1))            
 
             # # bottom right
-            # newMean1bottomRight=[params.MOCK_RECEPTOR_MEAN1[0]+params.MOCK_QSPACE_DIMENSION[1], params.MOCK_RECEPTOR_MEAN1[1]-params.MOCK_QSPACE_DIMENSION[1]]
-            # ells_sda.append(Ellipse(xy=newMean1bottomRight, width=params.MOCK_RECEPTOR_SDA1[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=params.MOCK_RECEPTOR_SDA1[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang1))            
+            # newMean1bottomRight=[config.MOCK_RECEPTOR_MEAN1[0]+config.MOCK_QSPACE_DIMENSION[1], config.MOCK_RECEPTOR_MEAN1[1]-config.MOCK_QSPACE_DIMENSION[1]]
+            # ells_sda.append(Ellipse(xy=newMean1bottomRight, width=config.MOCK_RECEPTOR_SDA1[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=config.MOCK_RECEPTOR_SDA1[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang1))            
             
             # # top left
-            # newMean1topLeft=[params.MOCK_RECEPTOR_MEAN1[0]-params.MOCK_QSPACE_DIMENSION[1], params.MOCK_QSPACE_DIMENSION[1]+params.MOCK_RECEPTOR_MEAN1[1]]
-            # ells_sda.append(Ellipse(xy=newMean1topLeft, width=params.MOCK_RECEPTOR_SDA1[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=params.MOCK_RECEPTOR_SDA1[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang1))
+            # newMean1topLeft=[config.MOCK_RECEPTOR_MEAN1[0]-config.MOCK_QSPACE_DIMENSION[1], config.MOCK_QSPACE_DIMENSION[1]+config.MOCK_RECEPTOR_MEAN1[1]]
+            # ells_sda.append(Ellipse(xy=newMean1topLeft, width=config.MOCK_RECEPTOR_SDA1[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=config.MOCK_RECEPTOR_SDA1[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang1))
 
             # # top right
-            # newMean1topRight=[params.MOCK_RECEPTOR_MEAN1[0]+params.MOCK_QSPACE_DIMENSION[1], params.MOCK_QSPACE_DIMENSION[1]+params.MOCK_RECEPTOR_MEAN1[1]]
-            # ells_sda.append(Ellipse(xy=newMean1topRight, width=params.MOCK_RECEPTOR_SDA1[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=params.MOCK_RECEPTOR_SDA1[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang1))
+            # newMean1topRight=[config.MOCK_RECEPTOR_MEAN1[0]+config.MOCK_QSPACE_DIMENSION[1], config.MOCK_QSPACE_DIMENSION[1]+config.MOCK_RECEPTOR_MEAN1[1]]
+            # ells_sda.append(Ellipse(xy=newMean1topRight, width=config.MOCK_RECEPTOR_SDA1[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=config.MOCK_RECEPTOR_SDA1[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang1))
 
             # # Mean 2
             # # left side
-            # newMean2left=[(params.MOCK_QSPACE_DIMENSION[1]-params.MOCK_RECEPTOR_MEAN2[0])*-1,params.MOCK_RECEPTOR_MEAN2[1]]
-            # ells_sda.append(Ellipse(xy=newMean2left, width=params.MOCK_RECEPTOR_SDA2[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=params.MOCK_RECEPTOR_SDA2[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang2))            
+            # newMean2left=[(config.MOCK_QSPACE_DIMENSION[1]-config.MOCK_RECEPTOR_MEAN2[0])*-1,config.MOCK_RECEPTOR_MEAN2[1]]
+            # ells_sda.append(Ellipse(xy=newMean2left, width=config.MOCK_RECEPTOR_SDA2[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=config.MOCK_RECEPTOR_SDA2[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang2))            
             # # right side
-            # newMean2right=[(params.MOCK_QSPACE_DIMENSION[1]+params.MOCK_RECEPTOR_MEAN2[0]),params.MOCK_RECEPTOR_MEAN2[1]]
-            # ells_sda.append(Ellipse(xy=newMean2right, width=params.MOCK_RECEPTOR_SDA2[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=params.MOCK_RECEPTOR_SDA2[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang2))
+            # newMean2right=[(config.MOCK_QSPACE_DIMENSION[1]+config.MOCK_RECEPTOR_MEAN2[0]),config.MOCK_RECEPTOR_MEAN2[1]]
+            # ells_sda.append(Ellipse(xy=newMean2right, width=config.MOCK_RECEPTOR_SDA2[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=config.MOCK_RECEPTOR_SDA2[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang2))
 
             # # bottom side
-            # newMean2bottom=[params.MOCK_RECEPTOR_MEAN2[0], params.MOCK_RECEPTOR_MEAN2[1]-params.MOCK_QSPACE_DIMENSION[1]]
-            # ells_sda.append(Ellipse(xy=newMean2bottom, width=params.MOCK_RECEPTOR_SDA2[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=params.MOCK_RECEPTOR_SDA2[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang2))            
+            # newMean2bottom=[config.MOCK_RECEPTOR_MEAN2[0], config.MOCK_RECEPTOR_MEAN2[1]-config.MOCK_QSPACE_DIMENSION[1]]
+            # ells_sda.append(Ellipse(xy=newMean2bottom, width=config.MOCK_RECEPTOR_SDA2[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=config.MOCK_RECEPTOR_SDA2[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang2))            
             # # top side
-            # newMean2top=[params.MOCK_RECEPTOR_MEAN2[0], params.MOCK_QSPACE_DIMENSION[1]+params.MOCK_RECEPTOR_MEAN2[1]]
-            # ells_sda.append(Ellipse(xy=newMean2top, width=params.MOCK_RECEPTOR_SDA2[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=params.MOCK_RECEPTOR_SDA2[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang2))
+            # newMean2top=[config.MOCK_RECEPTOR_MEAN2[0], config.MOCK_QSPACE_DIMENSION[1]+config.MOCK_RECEPTOR_MEAN2[1]]
+            # ells_sda.append(Ellipse(xy=newMean2top, width=config.MOCK_RECEPTOR_SDA2[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=config.MOCK_RECEPTOR_SDA2[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang2))
 
-        if params.SHOW_SDE_ELLIPSE:
-            ells_sde.append(Ellipse(xy=params.MOCK_RECEPTOR_MEAN, width=params.MOCK_RECEPTOR_SDE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=params.MOCK_RECEPTOR_SDE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
-            ells_sde.append(Ellipse(xy=params.MOCK_RECEPTOR_MEAN1, width=params.MOCK_RECEPTOR_SDE1[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=params.MOCK_RECEPTOR_SDE1[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
-            ells_sde.append(Ellipse(xy=params.MOCK_RECEPTOR_MEAN2, width=params.MOCK_RECEPTOR_SDE2[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=params.MOCK_RECEPTOR_SDE2[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
+        if config.SHOW_SDE_ELLIPSE:
+            ells_sde.append(Ellipse(xy=config.MOCK_RECEPTOR_MEAN, width=config.MOCK_RECEPTOR_SDE[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=config.MOCK_RECEPTOR_SDE[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
+            ells_sde.append(Ellipse(xy=config.MOCK_RECEPTOR_MEAN1, width=config.MOCK_RECEPTOR_SDE1[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=config.MOCK_RECEPTOR_SDE1[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
+            ells_sde.append(Ellipse(xy=config.MOCK_RECEPTOR_MEAN2, width=config.MOCK_RECEPTOR_SDE2[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=config.MOCK_RECEPTOR_SDE2[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
 
-        #if params.MOCK_RECEPTOR_MEAN[0] + params.MOCK_RECEPTOR_SDE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION > params.MOCK_QSPACE_DIMENSION[1]:
+        #if config.MOCK_RECEPTOR_MEAN[0] + config.MOCK_RECEPTOR_SDE[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION > config.MOCK_QSPACE_DIMENSION[1]:
             # # left side
-            # newMean=[(params.MOCK_QSPACE_DIMENSION[1]-params.MOCK_RECEPTOR_MEAN[0])*-1,params.MOCK_RECEPTOR_MEAN[1]]
-            # ells_sde.append(Ellipse(xy=newMean, width=params.MOCK_RECEPTOR_SDE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=params.MOCK_RECEPTOR_SDE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang))            
+            # newMean=[(config.MOCK_QSPACE_DIMENSION[1]-config.MOCK_RECEPTOR_MEAN[0])*-1,config.MOCK_RECEPTOR_MEAN[1]]
+            # ells_sde.append(Ellipse(xy=newMean, width=config.MOCK_RECEPTOR_SDE[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=config.MOCK_RECEPTOR_SDE[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang))            
             # # right side
-            # newMean=[(params.MOCK_QSPACE_DIMENSION[1]+params.MOCK_RECEPTOR_MEAN[0]),params.MOCK_RECEPTOR_MEAN[1]]
-            # ells_sde.append(Ellipse(xy=newMean, width=params.MOCK_RECEPTOR_SDE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=params.MOCK_RECEPTOR_SDE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang))
+            # newMean=[(config.MOCK_QSPACE_DIMENSION[1]+config.MOCK_RECEPTOR_MEAN[0]),config.MOCK_RECEPTOR_MEAN[1]]
+            # ells_sde.append(Ellipse(xy=newMean, width=config.MOCK_RECEPTOR_SDE[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=config.MOCK_RECEPTOR_SDE[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang))
 
             # # left side
-            # newMean1left=[(params.MOCK_QSPACE_DIMENSION[1]-params.MOCK_RECEPTOR_MEAN1[0])*-1,params.MOCK_RECEPTOR_MEAN1[1]]
-            # ells_sde.append(Ellipse(xy=newMean1left, width=params.MOCK_RECEPTOR_SDE1[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=params.MOCK_RECEPTOR_SDE1[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang1))            
+            # newMean1left=[(config.MOCK_QSPACE_DIMENSION[1]-config.MOCK_RECEPTOR_MEAN1[0])*-1,config.MOCK_RECEPTOR_MEAN1[1]]
+            # ells_sde.append(Ellipse(xy=newMean1left, width=config.MOCK_RECEPTOR_SDE1[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=config.MOCK_RECEPTOR_SDE1[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang1))            
             # # right side
-            # newMean1right=[(params.MOCK_QSPACE_DIMENSION[1]+params.MOCK_RECEPTOR_MEAN1[0]),params.MOCK_RECEPTOR_MEAN1[1]]
-            # ells_sde.append(Ellipse(xy=newMean1right, width=params.MOCK_RECEPTOR_SDE1[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=params.MOCK_RECEPTOR_SDE1[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang1))
+            # newMean1right=[(config.MOCK_QSPACE_DIMENSION[1]+config.MOCK_RECEPTOR_MEAN1[0]),config.MOCK_RECEPTOR_MEAN1[1]]
+            # ells_sde.append(Ellipse(xy=newMean1right, width=config.MOCK_RECEPTOR_SDE1[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=config.MOCK_RECEPTOR_SDE1[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang1))
 
             # # bottom side
-            # newMean1bottom=[params.MOCK_RECEPTOR_MEAN1[0], params.MOCK_RECEPTOR_MEAN1[1]-params.MOCK_QSPACE_DIMENSION[1]]
-            # ells_sde.append(Ellipse(xy=newMean1bottom, width=params.MOCK_RECEPTOR_SDE1[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=params.MOCK_RECEPTOR_SDE1[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang1))            
+            # newMean1bottom=[config.MOCK_RECEPTOR_MEAN1[0], config.MOCK_RECEPTOR_MEAN1[1]-config.MOCK_QSPACE_DIMENSION[1]]
+            # ells_sde.append(Ellipse(xy=newMean1bottom, width=config.MOCK_RECEPTOR_SDE1[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=config.MOCK_RECEPTOR_SDE1[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang1))            
             # # top side
-            # newMean1top=[params.MOCK_RECEPTOR_MEAN1[0], params.MOCK_QSPACE_DIMENSION[1]+params.MOCK_RECEPTOR_MEAN1[1]]
-            # ells_sde.append(Ellipse(xy=newMean1top, width=params.MOCK_RECEPTOR_SDE1[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=params.MOCK_RECEPTOR_SDE1[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang1))
+            # newMean1top=[config.MOCK_RECEPTOR_MEAN1[0], config.MOCK_QSPACE_DIMENSION[1]+config.MOCK_RECEPTOR_MEAN1[1]]
+            # ells_sde.append(Ellipse(xy=newMean1top, width=config.MOCK_RECEPTOR_SDE1[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=config.MOCK_RECEPTOR_SDE1[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang1))
             
             # # bottom left
-            # newMean1bottomLeft=[params.MOCK_RECEPTOR_MEAN1[0]-params.MOCK_QSPACE_DIMENSION[1], params.MOCK_RECEPTOR_MEAN1[1]-params.MOCK_QSPACE_DIMENSION[1]]
-            # ells_sde.append(Ellipse(xy=newMean1bottomLeft, width=params.MOCK_RECEPTOR_SDE1[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=params.MOCK_RECEPTOR_SDE1[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang1))            
+            # newMean1bottomLeft=[config.MOCK_RECEPTOR_MEAN1[0]-config.MOCK_QSPACE_DIMENSION[1], config.MOCK_RECEPTOR_MEAN1[1]-config.MOCK_QSPACE_DIMENSION[1]]
+            # ells_sde.append(Ellipse(xy=newMean1bottomLeft, width=config.MOCK_RECEPTOR_SDE1[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=config.MOCK_RECEPTOR_SDE1[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang1))            
 
             # # bottom right
-            # newMean1bottomRight=[params.MOCK_RECEPTOR_MEAN1[0]+params.MOCK_QSPACE_DIMENSION[1], params.MOCK_RECEPTOR_MEAN1[1]-params.MOCK_QSPACE_DIMENSION[1]]
-            # ells_sde.append(Ellipse(xy=newMean1bottomRight, width=params.MOCK_RECEPTOR_SDE1[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=params.MOCK_RECEPTOR_SDE1[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang1))            
+            # newMean1bottomRight=[config.MOCK_RECEPTOR_MEAN1[0]+config.MOCK_QSPACE_DIMENSION[1], config.MOCK_RECEPTOR_MEAN1[1]-config.MOCK_QSPACE_DIMENSION[1]]
+            # ells_sde.append(Ellipse(xy=newMean1bottomRight, width=config.MOCK_RECEPTOR_SDE1[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=config.MOCK_RECEPTOR_SDE1[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang1))            
             
             # # top left
-            # newMean1topLeft=[params.MOCK_RECEPTOR_MEAN1[0]-params.MOCK_QSPACE_DIMENSION[1], params.MOCK_QSPACE_DIMENSION[1]+params.MOCK_RECEPTOR_MEAN1[1]]
-            # ells_sde.append(Ellipse(xy=newMean1topLeft, width=params.MOCK_RECEPTOR_SDE1[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=params.MOCK_RECEPTOR_SDE1[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang1))
+            # newMean1topLeft=[config.MOCK_RECEPTOR_MEAN1[0]-config.MOCK_QSPACE_DIMENSION[1], config.MOCK_QSPACE_DIMENSION[1]+config.MOCK_RECEPTOR_MEAN1[1]]
+            # ells_sde.append(Ellipse(xy=newMean1topLeft, width=config.MOCK_RECEPTOR_SDE1[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=config.MOCK_RECEPTOR_SDE1[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang1))
 
             # # top right
-            # newMean1topRight=[params.MOCK_RECEPTOR_MEAN1[0]+params.MOCK_QSPACE_DIMENSION[1], params.MOCK_QSPACE_DIMENSION[1]+params.MOCK_RECEPTOR_MEAN1[1]]
-            # ells_sde.append(Ellipse(xy=newMean1topRight, width=params.MOCK_RECEPTOR_SDE1[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=params.MOCK_RECEPTOR_SDE1[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang1))
+            # newMean1topRight=[config.MOCK_RECEPTOR_MEAN1[0]+config.MOCK_QSPACE_DIMENSION[1], config.MOCK_QSPACE_DIMENSION[1]+config.MOCK_RECEPTOR_MEAN1[1]]
+            # ells_sde.append(Ellipse(xy=newMean1topRight, width=config.MOCK_RECEPTOR_SDE1[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=config.MOCK_RECEPTOR_SDE1[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang1))
 
             # # Mean 2
             # # left side
-            # newMean2left=[(params.MOCK_QSPACE_DIMENSION[1]-params.MOCK_RECEPTOR_MEAN2[0])*-1,params.MOCK_RECEPTOR_MEAN2[1]]
-            # ells_sde.append(Ellipse(xy=newMean2left, width=params.MOCK_RECEPTOR_SDE2[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=params.MOCK_RECEPTOR_SDE2[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang2))            
+            # newMean2left=[(config.MOCK_QSPACE_DIMENSION[1]-config.MOCK_RECEPTOR_MEAN2[0])*-1,config.MOCK_RECEPTOR_MEAN2[1]]
+            # ells_sde.append(Ellipse(xy=newMean2left, width=config.MOCK_RECEPTOR_SDE2[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=config.MOCK_RECEPTOR_SDE2[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang2))            
             # # right side
-            # newMean2right=[(params.MOCK_QSPACE_DIMENSION[1]+params.MOCK_RECEPTOR_MEAN2[0]),params.MOCK_RECEPTOR_MEAN2[1]]
-            # ells_sde.append(Ellipse(xy=newMean2right, width=params.MOCK_RECEPTOR_SDE2[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=params.MOCK_RECEPTOR_SDE2[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang2))
+            # newMean2right=[(config.MOCK_QSPACE_DIMENSION[1]+config.MOCK_RECEPTOR_MEAN2[0]),config.MOCK_RECEPTOR_MEAN2[1]]
+            # ells_sde.append(Ellipse(xy=newMean2right, width=config.MOCK_RECEPTOR_SDE2[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=config.MOCK_RECEPTOR_SDE2[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang2))
 
             # # bottom side
-            # newMean2bottom=[params.MOCK_RECEPTOR_MEAN2[0], params.MOCK_RECEPTOR_MEAN2[1]-params.MOCK_QSPACE_DIMENSION[1]]
-            # ells_sde.append(Ellipse(xy=newMean2bottom, width=params.MOCK_RECEPTOR_SDE2[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=params.MOCK_RECEPTOR_SDE2[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang2))            
+            # newMean2bottom=[config.MOCK_RECEPTOR_MEAN2[0], config.MOCK_RECEPTOR_MEAN2[1]-config.MOCK_QSPACE_DIMENSION[1]]
+            # ells_sde.append(Ellipse(xy=newMean2bottom, width=config.MOCK_RECEPTOR_SDE2[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=config.MOCK_RECEPTOR_SDE2[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang2))            
             # # top side
-            # newMean2top=[params.MOCK_RECEPTOR_MEAN2[0], params.MOCK_QSPACE_DIMENSION[1]+params.MOCK_RECEPTOR_MEAN2[1]]
-            # ells_sde.append(Ellipse(xy=newMean2top, width=params.MOCK_RECEPTOR_SDE2[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=params.MOCK_RECEPTOR_SDE2[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang2))
+            # newMean2top=[config.MOCK_RECEPTOR_MEAN2[0], config.MOCK_QSPACE_DIMENSION[1]+config.MOCK_RECEPTOR_MEAN2[1]]
+            # ells_sde.append(Ellipse(xy=newMean2top, width=config.MOCK_RECEPTOR_SDE2[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=config.MOCK_RECEPTOR_SDE2[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang2))
 
     else:
         #for rec in epithelium.recs:
         ii = -1
         for i, rec in enumerate(epithelium.recs): 
-            if params.RECEPTOR_INDEX == 'ALL':
+            if config.RECEPTOR_INDEX == 'ALL':
                 ii=i
             else:
-                ii= params.RECEPTOR_INDEX      
+                ii= config.RECEPTOR_INDEX      
             if i == ii:
         
                 qspaceBoundary = qspace.size[1][1]
@@ -2307,63 +2308,63 @@ def drawEllipseGraph(qspace, epithelium, odorscenesArray, useMockData=False):
                 ells.append(Ellipse(xy=rec.mean, width=rec.sdA[1]*standardDeviationNumber, height=rec.sdE[1]*standardDeviationNumber, angle=ang))
 
                 """
-                if params.SHOW_SDA_ELLIPSE:
-                    ells_sda.append(Ellipse(xy=rec.mean, width=rec.sdA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
+                if config.SHOW_SDA_ELLIPSE:
+                    ells_sda.append(Ellipse(xy=rec.mean, width=rec.sdA[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdA[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
                     
                     # newMeanLeft = [rec.mean[0]-qspaceBoundary, rec.mean[1]]
                     # print "newMeanLeft = " + str(newMeanLeft)
                     # print "newMeanLeft x value is " + str(rec.mean[0] - qspaceBoundary) + "!!!!! mean is " + str(rec.mean) + "!!!!! qspace boundary is " + str(qspaceBoundary)
-                    # ells_sda.append(Ellipse(xy=newMeanLeft, width=rec.sdA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
+                    # ells_sda.append(Ellipse(xy=newMeanLeft, width=rec.sdA[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdA[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
                     # newMeanRight = [rec.mean[0] + qspaceBoundary, rec.mean[1]]
-                    # ells_sda.append(Ellipse(xy=newMeanRight, width=rec.sdA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
+                    # ells_sda.append(Ellipse(xy=newMeanRight, width=rec.sdA[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdA[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
                     # newMeanBottom = [rec.mean[0], rec.mean[1]-qspaceBoundary]
-                    # ells_sda.append(Ellipse(xy=newMeanBottom, width=rec.sdA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
+                    # ells_sda.append(Ellipse(xy=newMeanBottom, width=rec.sdA[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdA[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
                     # newMeanTop = [rec.mean[0], rec.mean[1] + qspaceBoundary]
-                    # ells_sda.append(Ellipse(xy=newMeanTop, width=rec.sdA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
+                    # ells_sda.append(Ellipse(xy=newMeanTop, width=rec.sdA[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdA[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
                     # # bottom left
                     # newMean1bottomLeft=[rec.mean[0]-qspaceBoundary, rec.mean[1]-qspaceBoundary]
-                    # ells_sda.append(Ellipse(xy=newMean1bottomLeft, width=rec.sdA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))            
+                    # ells_sda.append(Ellipse(xy=newMean1bottomLeft, width=rec.sdA[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdA[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))            
 
                     # # bottom right
                     # newMean1bottomRight=[rec.mean[0] + qspaceBoundary, rec.mean[1]-qspaceBoundary]
-                    # ells_sda.append(Ellipse(xy=newMean1bottomRight, width=rec.sdA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))            
+                    # ells_sda.append(Ellipse(xy=newMean1bottomRight, width=rec.sdA[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdA[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))            
             
                     # # top left
                     # newMean1topLeft=[rec.mean[0]-qspaceBoundary, rec.mean[1] + qspaceBoundary]
-                    # ells_sda.append(Ellipse(xy=newMean1topLeft, width=rec.sdA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
+                    # ells_sda.append(Ellipse(xy=newMean1topLeft, width=rec.sdA[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdA[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
 
                     # # top right
                     # newMean1topRight=[rec.mean[0] + qspaceBoundary, rec.mean[1] + qspaceBoundary]
-                    # ells_sda.append(Ellipse(xy=newMean1topRight, width=rec.sdA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
+                    # ells_sda.append(Ellipse(xy=newMean1topRight, width=rec.sdA[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdA[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
 
                     
-                if params.SHOW_SDE_ELLIPSE:
-                    ells_sde.append(Ellipse(xy=rec.mean, width=rec.sdE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
+                if config.SHOW_SDE_ELLIPSE:
+                    ells_sde.append(Ellipse(xy=rec.mean, width=rec.sdE[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdE[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
                     
                     # newMeanLeft = [rec.mean[0] - qspaceBoundary, rec.mean[1]]
-                    # ells_sde.append(Ellipse(xy=newMeanLeft, width=rec.sdE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
+                    # ells_sde.append(Ellipse(xy=newMeanLeft, width=rec.sdE[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdE[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
                     # newMeanRight = [rec.mean[0] + qspaceBoundary, rec.mean[1]]
-                    # ells_sde.append(Ellipse(xy=newMeanRight, width=rec.sdE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
+                    # ells_sde.append(Ellipse(xy=newMeanRight, width=rec.sdE[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdE[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
                     # newMeanBottom = [rec.mean[0], rec.mean[1] - qspaceBoundary]
-                    # ells_sde.append(Ellipse(xy=newMeanBottom, width=rec.sdE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
+                    # ells_sde.append(Ellipse(xy=newMeanBottom, width=rec.sdE[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdE[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
                     # newMeanTop = [rec.mean[0], rec.mean[1] + qspaceBoundary]
-                    # ells_sde.append(Ellipse(xy=newMeanTop, width=rec.sdE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
+                    # ells_sde.append(Ellipse(xy=newMeanTop, width=rec.sdE[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdE[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
                     
                     # # bottom left
                     # newMean1bottomLeft=[rec.mean[0]-qspaceBoundary, rec.mean[1]-qspaceBoundary]
-                    # ells_sde.append(Ellipse(xy=newMean1bottomLeft, width=rec.sdE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))            
+                    # ells_sde.append(Ellipse(xy=newMean1bottomLeft, width=rec.sdE[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdE[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))            
 
                     # # bottom right
                     # newMean1bottomRight=[rec.mean[0] + qspaceBoundary, rec.mean[1]-qspaceBoundary]
-                    # ells_sde.append(Ellipse(xy=newMean1bottomRight, width=rec.sdE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))            
+                    # ells_sde.append(Ellipse(xy=newMean1bottomRight, width=rec.sdE[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdE[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))            
             
                     # # top left
                     # newMean1topLeft=[rec.mean[0]-qspaceBoundary, rec.mean[1] + qspaceBoundary]
-                    # ells_sde.append(Ellipse(xy=newMean1topLeft, width=rec.sdE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
+                    # ells_sde.append(Ellipse(xy=newMean1topLeft, width=rec.sdE[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdE[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
 
                     # # top right
                     # newMean1topRight=[rec.mean[0] + qspaceBoundary, rec.mean[1] + qspaceBoundary]
-                    # ells_sde.append(Ellipse(xy=newMean1topRight, width=rec.sdE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
+                    # ells_sde.append(Ellipse(xy=newMean1topRight, width=rec.sdE[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdE[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
 
 
                 #ells.append(Ellipse(xy=rnd.rand(2)*10, width=rnd.rand(), height=rnd.rand(), angle=rnd.rand()*360))
@@ -2371,38 +2372,38 @@ def drawEllipseGraph(qspace, epithelium, odorscenesArray, useMockData=False):
     fig = plt.figure()
     ax = fig.add_subplot(111, aspect='equal')
 
-    if params.SHOW_SDA_ELLIPSE:
+    if config.SHOW_SDA_ELLIPSE:
         for e in ells_sda:
             ax.add_artist(e)
             e.set_clip_box(ax.bbox)
             #e.set_alpha(rnd.rand())
             #e.set_facecolor(rnd.rand(3))
             #e.set_facecolor('red')
-            e.set_edgecolor(params.SDA_COLOR)
-            e.set_fill(params.SDA_FILL)
-            if params.SDA_FILL:
-                e.set_facecolor(params.SDA_COLOR)
+            e.set_edgecolor(config.SDA_COLOR)
+            e.set_fill(config.SDA_FILL)
+            if config.SDA_FILL:
+                e.set_facecolor(config.SDA_COLOR)
             e.set_label("SDA")
-            e.set_linewidth (params.LINE_WIDTH)
+            e.set_linewidth (config.LINE_WIDTH)
             
     
-    if params.SHOW_SDE_ELLIPSE:
+    if config.SHOW_SDE_ELLIPSE:
         for e in ells_sde:
             ax.add_artist(e)
             e.set_clip_box(ax.bbox)
             #e.set_alpha(rnd.rand())
             #e.set_facecolor(rnd.rand(3))
             #e.set_facecolor('blue')
-            e.set_edgecolor(params.SDE_COLOR)
-            if params.SDE_FILL:
-                e.set_facecolor(params.SDE_COLOR)
-            e.set_fill(params.SDE_FILL)
+            e.set_edgecolor(config.SDE_COLOR)
+            if config.SDE_FILL:
+                e.set_facecolor(config.SDE_COLOR)
+            e.set_fill(config.SDE_FILL)
             e.set_label("SDE")
-            e.set_linewidth (params.LINE_WIDTH)
+            e.set_linewidth (config.LINE_WIDTH)
 
     if useMockData:
-        ax.set_xlim(params.MOCK_QSPACE_DIMENSION)
-        ax.set_ylim(params.MOCK_QSPACE_DIMENSION)
+        ax.set_xlim(config.MOCK_QSPACE_DIMENSION)
+        ax.set_ylim(config.MOCK_QSPACE_DIMENSION)
         
     else:
         ax.set_xlim(qspace.size[0])
@@ -2421,18 +2422,18 @@ def drawEllipseGraph(qspace, epithelium, odorscenesArray, useMockData=False):
     locYaxis = []
     locSizes = []
 
-    if params.USE_MOCK_ODORS_EVEN_WHEN_RUNNING_CALCS or useMockData:
-        locSizes.append((math.log10(params.ODOR_CONCENTRATION)+10)*10)
-        #locXaxis = params.MOCK_ODORS_X
-        #locYaxis = params.MOCK_ODORS_Y
+    if config.USE_MOCK_ODORS_EVEN_WHEN_RUNNING_CALCS or useMockData:
+        locSizes.append((math.log10(config.ODOR_CONCENTRATION)+10)*10)
+        #locXaxis = config.MOCK_ODORS_X
+        #locYaxis = config.MOCK_ODORS_Y
 
-        for li, loc in enumerate(params.MOCK_ODORS):
+        for li, loc in enumerate(config.MOCK_ODORS):
 
                 locXaxis.append(loc[0])
                 locYaxis.append(loc[1])
 
     else:    
-        for odor in odorscenesArray[params.ODORSCENE_INDEX][params.ODORSCENE_REP_NUMBER].odors: #odorscenesArray[k][i].odors
+        for odor in odorscenesArray[config.ODORSCENE_INDEX][config.ODORSCENE_REP_NUMBER].odors: #odorscenesArray[k][i].odors
             locSizes.append((math.log10(odor.conc)+10)*10)
             for li, loc in enumerate(odor.loc):
 
@@ -2441,21 +2442,21 @@ def drawEllipseGraph(qspace, epithelium, odorscenesArray, useMockData=False):
                 if li == 1:    
                     locYaxis.append(loc)
     #plt.scatter(locXaxis,locYaxis, s=100, c='black')
-    plt.scatter(locXaxis,locYaxis, s=locSizes, c=params.ODOR_COLOR)
+    plt.scatter(locXaxis,locYaxis, s=locSizes, c=config.ODOR_COLOR)
 
 
     #plt.legend()
-    #plt.title("Receptors - QSpace "+ str(qspace.size[0])+ "Std Dev "+ str(params.ODORSCENE_REP_NUMBER))
-    plt.title(params.GRAPH_TITLE)
-    plt.xlabel(params.XLABEL)
-    plt.ylabel(params.YLABEL)
+    #plt.title("Receptors - QSpace "+ str(qspace.size[0])+ "Std Dev "+ str(config.ODORSCENE_REP_NUMBER))
+    plt.title(config.GRAPH_TITLE)
+    plt.xlabel(config.XLABEL)
+    plt.ylabel(config.YLABEL)
 
     #plt.show()
 
     if useMockData:
-        pp = PdfPages(params.GRAPH_FILE_NAME + str(params.MOCK_QSPACE_DIMENSION) + '.pdf')    
+        pp = PdfPages(config.GRAPH_FILE_NAME + str(config.MOCK_QSPACE_DIMENSION) + '.pdf')    
     else:    
-        pp = PdfPages(params.GRAPH_FILE_NAME + str(qspace.size[0]) + '.pdf')
+        pp = PdfPages(config.GRAPH_FILE_NAME + str(qspace.size[0]) + '.pdf')
         
     pp.savefig()
     pp.close()

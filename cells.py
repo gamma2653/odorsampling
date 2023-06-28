@@ -9,21 +9,20 @@ from __future__ import annotations
 
 import logging
 
-import params
+import config
 
 # Used for asserts
-from numbers import Real
-from typing import Sequence
 
 # Type checking
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import MutableMapping, Optional
+    from typing import MutableMapping
     from RnO import Receptor
+    from numbers import Real
 
 logger = logging.getLogger(__name__)
-params.default_log_setup(logger)
+config.default_log_setup(logger)
 
 # TODO: consider making these dataclasses
 

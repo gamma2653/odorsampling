@@ -13,53 +13,59 @@ Euclidean distance between two layers
 Graphical representations of a layer
 """
 
-import cells
+from __future__ import annotations
+
 import random
-import os
+
 import matplotlib.pyplot as plt
 import math
 import matplotlib.pylab
 from matplotlib.backends.backend_pdf import PdfPages
-import numpy as np
 
+import cells
 
-def createGL(x):
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from numbers import Real
+    # from typing import Sized
+
+def createGL(x: Real):
     """Returns an array of x number of glom objects with activation levels
     and loc set to defaults. ID refers to its index in the array.
     Precondition: x is an int or float"""
-    assert type(x) in [int, float], "x is not a number"
-    GL = []
+    # assert type(x) in [int, float], "x is not a number"
+    gl = []
     count = 0
     while count<x:
-        GL.append(cells.Glom(count, 0.0, [0,0], [0,0], 0))
+        gl.append(cells.Glom(count, 0.0, [0,0], [0,0], 0))
         count += 1
 
     # for glom in GL:
     #     print str(glom)
 
-    return GL
+    return gl
 
-def createGL_dimensions(x, y):
+def createGL_dimensions(x: Real, y: Real):
     """Returns an array of x number of glom objects with activation levels
     and loc set to defaults. ID refers to its index in the array.
     Precondition: x is an int or float"""
-    assert type(x) in [int, float], "x is not a number"
-    assert type(y) in [int, float], "y is not a number"
-    GL = []
+    # assert type(x) in [int, float], "x is not a number"
+    # assert type(y) in [int, float], "y is not a number"
+    glom_layer = []
     countX = 0
     countY = 0
     glomID = 0
     while countX<x:
         while countY<y:
-            GL.append(cells.Glom(glomID, 0.0, [countX, countY], [y, x], 0))
+            glom_layer.append(cells.Glom(glomID, 0.0, [countX, countY], [y, x], 0))
             glomID += 1
             countY += 1
         countY = 0
         countX += 1
 
-    return GL
+    return glom_layer
 
-def clearGLactiv(gl):
+def clearGLactiv(gl: list[cells.Glom]):
     """Given gl, clears all the activation lvls to 0.0"""
     for glom in gl:
         glom._activ = 0.0
@@ -69,19 +75,19 @@ def clearGLactiv(gl):
 
 #For now, if a number is generated to be over 1 or under 0 in Gaussian or
 #exponential, the function will be called again to generate a different number.
-def activateGL_Random(GL, sel, mean=0, sd=0):
+def activateGL_Random(gl: list[cells.Glom], sel: str, mean=0, sd=0):
     """Initializes activation level for given GL (glom layer).
     If sel = "u" then activation levels are drawn from a random distribution.
     If sel = "g" then drawn from a Gaussian distribution with mean and sd.
     If sel = "e", then drawn from exponenial distribution with mean.
     Precondition: GL is a list of Glom and sel is u, g, or e."""
-    assert type(GL) == list, "GL is not a list"
-    assert sel in ["g","u", "e"], "sel isn't g or u"
-    assert (mean+sd) <= 1 and mean-sd >= 0, "Mean and SD are too high or low"
-    for glom in GL:
-        if sel == "u":
+    # assert type(gl) == list, "GL is not a list"
+    # assert sel in ['g','u', 'e'], "sel isn't g or u"
+    # assert (mean+sd) <= 1 and mean-sd >= 0, "Mean and SD are too high or low"
+    for glom in gl:
+        if sel == 'u':
             x = random.random()
-        elif sel == "g":
+        elif sel == 'g':
             x = random.gauss(mean, sd)
             while x > 1 or x < 0:
                 x = random.gauss(mean, sd)
@@ -94,12 +100,12 @@ def activateGL_Random(GL, sel, mean=0, sd=0):
 
 
 #Creating array of GL's with similar activation
-def createGLArray(gl, x, opt, sel, num, mean=0, sd=0):
+def createGLArray(gl: list[cells.Glom], x: int, opt: str, sel: str, num, mean=0, sd=0):
     """Given a glomeruli layer, returns x amount of similar gl's using
     the similarity method specified with opt and sel. Original activ lvl is incremented by <= num.
     Preconditions: gl is a list of glomeruli, x is an int sel is star or ser"""
-    assert type(x) == int, "x is not an int"
-    assert  opt in ["star","ser"], "opt needs to be 'star' or 'ser'"
+    # assert type(x) == int, "x is not an int"
+    # assert  opt in ["star","ser"], "opt needs to be 'star' or 'ser'"
     #Everything else is asserted in helper function below
     if x == 0:
         return []
@@ -143,13 +149,13 @@ def createMCL(x):
     loc, and connecting glomeruli set to defaults. ID refers to its index in the array.
     Precondition: x is an int or float"""
     assert type(x) in [int, float], "x is not a number"
-    ML = []
+    mitral_layer = []
     count = 0
     while count<x:
-        ML.append(cells.Mitral(count, 0.0, [0,0], {}))
+        mitral_layer.append(cells.Mitral(count, 0.0, [0,0], {}))
         count += 1
 
-    return ML
+    return mitral_layer
 
 ######## Creating Map
 
