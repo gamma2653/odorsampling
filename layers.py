@@ -90,7 +90,7 @@ def activateGL_Random(GL, sel, mean=0, sd=0):
             #Maybe find a different function that'll be able input as a parameter the rate of decay
             while x > 1 or x < 0:
                 x = random.expovariate(1/mean)
-        glom.setActiv(x)
+        glom.activ = x
 
 
 #Creating array of GL's with similar activation
@@ -134,7 +134,7 @@ def activateGL_Similar(gl, num, sel, mean=0, sd= 0, gl2=[]):
             inc = 1.0
         if inc < 0:
             inc = 0.0
-        gl2[index].setActiv(inc)
+        gl2[index].activ = inc
     return gl2
 
 
@@ -797,17 +797,17 @@ def ApplyMCLSamplingMap(GL, MCL, Map):
     precondition: Map holds valid connections for GL and MCL"""
     assert Map[len(Map)-1][0] == len(MCL)-1, "dimensionality of Mitral cells is wrong"
     test = 0
-    MCL[Map[0][0]].setLoc(GL[Map[0][1]].loc)
+    MCL[Map[0][0]].loc = GL[Map[0][1]].loc
 
     for conn in Map:
 
         if conn[0] != test:
             test = test+1
-            MCL[conn[0]].setLoc(GL[conn[1]].loc)
-            MCL[conn[0]].setGlom({})
+            MCL[conn[0]].loc = GL[conn[1]].loc
+            MCL[conn[0]].glom = dict()
         MCL[conn[0]].glom[conn[1]]=conn[2]  #format: mc.glom[glom]=weight
-        MCL[conn[0]].setGlom(MCL[conn[0]].glom)
-        GL[conn[1]].setConn(GL[conn[1]].conn + 1)
+        MCL[conn[0]].glom = MCL[conn[0]].glom
+        GL[conn[1]].conn = GL[conn[1]].conn + 1
 
     return [MCL, GL]
         
@@ -828,7 +828,7 @@ def addNoise(GL, noise, mean=0, sd=0):
         inc = random.expovariate(1/mean)
     for g in GL:
         active = max(g.activ + random.choice([1,-1])*inc, 0.0)
-        g.setActiv(min(active, 1.0))
+        g.activ = min(active, 1.0)
     return GL
     
 def addActivationMCL(m, GL):
@@ -861,7 +861,7 @@ def normalize(MCL):
     if maxi != 0:
         scale = (1.0/maxi)  #If put mini back in then this line is 1/(maxi-mini)
         for m in MCL:
-            m.setActiv(m.activ*scale)  #Assertion now in place - all #'s should be btwn 0 and 1
+            m.activ = m.activ*scale  #Assertion now in place - all #'s should be btwn 0 and 1
         return MCL
     else:
         return MCL

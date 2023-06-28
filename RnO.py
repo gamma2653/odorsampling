@@ -49,7 +49,7 @@ numCol = 5 # num of cols of glom  (numRow*numCol = total number of Glom)
 constant_attachments = True
 
 
-class QSpace(object):
+class QSpace:
     """Defines the size of the sample space
     ***ex: [(0,5),(0,5)] means qspace extends from 0 to 5 (not including 5) 
     _size = [List of float tuples] defines the size of the sample space"""
