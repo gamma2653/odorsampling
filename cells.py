@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 
-import config
+import params
 
 # Used for asserts
 from numbers import Real
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from RnO import Receptor
 
 logger = logging.getLogger(__name__)
-config.default_log_setup(logger)
+params.default_log_setup(logger)
 
 # TODO: consider making these dataclasses
 
@@ -238,5 +238,4 @@ class Mitral:
         # *********************** From Python 3.6 onwards, the standard dict type maintains insertion order by default *****************************
         gstring = self.glom.keys()
         return f"Mitral ID: {self.id} Mitral Activ: {self.activ} Glom: {gstring}"
-
 

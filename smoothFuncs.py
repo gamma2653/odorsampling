@@ -1,20 +1,14 @@
-# Mitchell Gronowitz
-# Running dPsiSaturation with separate excel docs and graph functions
+#Mitchell Gronowitz
+#Running dPsiSaturation with separate excel docs and graph functions
 
-# Edited by Christopher De Jesus
-# Summer 2023
 
-from __future__ import annotations
-
-from RnO import (
-    QSpace, Odorscene, Ligand, Epithelium,
-    dPsiBarSaturation, colorMapSumOfSquares, dPsiGraphFromExcel, graphFromExcel,
-    dPsiOccActGraphFromExcel, glom_penetrance, peak_affinity
-)
-import time
+from RnO import *
+import random
+import layers
+import copy
 import multiprocessing
 
-def testdPsiBarSat(fixed, aff_sd=None, eff_sd=None, numRecs=30, c=1, dim=2, qspaces=None, purpose="standard"):
+def testdPsiBarSat(fixed, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, dim=2, qspaces=[4,10,30], purpose="standard"):
     """Runs multiple graphs of given qspaces at one time
     Optional - run makeSimilar (line 25), to create 3 epitheliums with equal eff and aff SD's (only rec means differ)
     Otherwise - make sure there are three saved epithelium files with correct names
@@ -26,14 +20,6 @@ def testdPsiBarSat(fixed, aff_sd=None, eff_sd=None, numRecs=30, c=1, dim=2, qspa
     purpose = reason for running simulation = either "eff", "aff", "c", "recs", "redAff", "dim", or 'standard'"""
     
     #Run this function if don't already have saved epithelium files to use
-
-    if aff_sd is None:
-        aff_sd = [0.5, 1.5]
-    if eff_sd is None:
-        eff_sd = [0.05, 1.0]
-    if qspaces is None:
-        qspaces = [4, 10, 30]
-
     makeSimilar(numRecs, aff_sd, eff_sd, purpose, qspaces, dim)
     
     startTime = time.time()
@@ -48,7 +34,7 @@ def testdPsiBarSat(fixed, aff_sd=None, eff_sd=None, numRecs=30, c=1, dim=2, qspa
     excelNames = []
     end = False
     
-    # FIXME: why
+    
     if __name__ == '__main__':
         jobs = []
     
@@ -62,10 +48,10 @@ def testdPsiBarSat(fixed, aff_sd=None, eff_sd=None, numRecs=30, c=1, dim=2, qspa
                 space.append((0,qspacesItem))
                 #j+=1
             qspace = QSpace(space)
-            epith = Epithelium.load("1. SavedEpi_" + str(qspace.size[0]) + purp + ".csv")
+            epith = loadEpithelium("1. SavedEpi_" + str(qspace.getSize()[0]) + purp + ".csv")
 
-            labelNames.append(str(qspace.size[0]) + " qspace")
-            excelNames.append("LigandSat with " + str(qspace.size[0]) + " qspace" + purp)
+            labelNames.append(str(qspace.getSize()[0]) + " qspace")
+            excelNames.append("LigandSat with " + str(qspace.getSize()[0]) + " qspace" + purp)
         
             if i == (len(qspaces) - 1):
                 end = True
@@ -79,16 +65,12 @@ def testdPsiBarSat(fixed, aff_sd=None, eff_sd=None, numRecs=30, c=1, dim=2, qspa
             #dPsiBarSaturation(epith, .01, qspace, pdfName, labelNames[i], excelNames[i], fixed ,c, plotTitle, end, purp, graphIt=False)
         
             #i += 1
-            print("Graph #" + str(i) + ": " + str((time.time() - startTime) / 60.0 ) + " minutes")
-
-            print("Overall time: " + str((time.time() - startTime) / 60.0 ) + " minutes")
         
         
         for j, job in enumerate(jobs):
             job.join()
         
-
-# FIXME: Lists in parameter space
+            
 def testdPsiBarSatColorMap(fixed, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, dim=2, qspaces=[4,10,30], purpose="standard", qunits = 3):
     """Runs multiple graphs of given qspaces at one time
     Optional - run makeSimilar (line 25), to create 3 epitheliums with equal eff and aff SD's (only rec means differ)
@@ -118,7 +100,6 @@ def testdPsiBarSatColorMap(fixed, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=3
     
     # if __name__ == '__main__':
     #     jobs = []
-    print("BEFORE FOR LOOP!!!!!!")
     
     #while i < len(qspaces):
     for i, qspacesItem in enumerate(qspaces):    
@@ -130,13 +111,11 @@ def testdPsiBarSatColorMap(fixed, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=3
             #j+=1
         qspace = QSpace(space)
 
-        print("QSPACE SIZE IS " + str(qspace.size[0]) + "????????")
 
-        epith = Epithelium.load("1. SavedEpi_" + str(qspace.size[0]) + purp + ".csv")
+        epith = loadEpithelium("1. SavedEpi_" + str(qspace.getSize()[0]) + purp + ".csv")
 
-        print("LOADED EPITHELIUM")
-        labelNames.append(str(qspace.size[0]) + " qspace")
-        excelNames.append("LigandSat with " + str(qspace.size[0]) + " qspace" + purp)
+        labelNames.append(str(qspace.getSize()[0]) + " qspace")
+        excelNames.append("LigandSat with " + str(qspace.getSize()[0]) + " qspace" + purp)
     
         # if i == (len(qspaces) - 1):
         #     end = True
@@ -145,16 +124,15 @@ def testdPsiBarSatColorMap(fixed, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=3
         y = 0
         ID = 0
         odorscenes = []
-        #while x < qspace.size[0][1]:
+        #while x < qspace.getSize()[0][1]:
         while x < qunits*10:
             y = 0
-            #while y < qspace.size[1][1]:
+            #while y < qspace.getSize()[1][1]:
             while y < qunits*10:
                 odorscenes.append(Odorscene(x,[Ligand(ID, [x/float(qunits),y/float(qunits)], .004)]))
                 y += 1
                 ID += 1
             x += 1
-        print("POPULATED ODORSCENES")
         colorMapSumOfSquares(epith, odorscenes, .3, qspace)
       
         # p = multiprocessing.Process(target=dPsiBarSaturation, args=(epith, .01, qspace, pdfName, labelNames[i], excelNames[i], fixed ,c, plotTitle, end, purp, False))
@@ -166,9 +144,6 @@ def testdPsiBarSatColorMap(fixed, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=3
         #dPsiBarSaturation(epith, .01, qspace, pdfName, labelNames[i], excelNames[i], fixed ,c, plotTitle, end, purp, graphIt=False)
     
         #i += 1
-        print("Graph #" + str(i) + ": " + str((time.time() - startTime) / 60.0 ) + " minutes")
-
-        print("Overall time: " + str((time.time() - startTime) / 60.0 ) + " minutes")
         
         
         # for j, job in enumerate(jobs):
@@ -205,8 +180,8 @@ def testdPsiBarSaturationDim(dims, fixed=False, aff_sd=[.5,1.5], eff_sd=[.05,1.0
             i+=1
         qspace = QSpace(space)
         #epith = loadEpithelium("SavedEpi_(0,4)_" + str(dim) + "Dim.csv")
-        epith = Epithelium.create(numRecs, dim, qspace, aff_sd, eff_sd)
-        epith.save("1. SavedEpi_(0, 4), dim=" + str(dim))
+        epith = createEpithelium(numRecs, dim, qspace, aff_sd, eff_sd)
+        saveEpithelium(epith, "1. SavedEpi_(0, 4), dim=" + str(dim))
         
         labels.append(str(dim) + "D")
         excels.append("LigandSat with (0, 4) qspace, dim=" + str(dim))
@@ -217,7 +192,6 @@ def testdPsiBarSaturationDim(dims, fixed=False, aff_sd=[.5,1.5], eff_sd=[.05,1.0
         dPsiBarSaturation(epith, .01, qspace, pdfName, labels[index], excels[index], fixed, c, plotTitle, end,  ', dim=' + str(dim), False)
         index += 1
         
-    print("Overall time: " + str((time.time() - startTime) / 60.0 ) + " minutes")
     
 
 def allGraphsFromExcel(aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, dim=2, qspaces=[4,10,30], purpose="standard", rep=200.0):
@@ -230,7 +204,7 @@ def allGraphsFromExcel(aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, dim
     i = 0
     pdfName = "LigandSat with varying qspaces" + purp
     titleName = "Saturation of dPsiBar" + purp
-    qspaceList: list[QSpace]=[]
+    qspaceList=[]
     dPsiName=[]
     end = False
     while i < len(qspaces):
@@ -241,7 +215,7 @@ def allGraphsFromExcel(aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, dim
             space.append((0,qspaces[i]))
             j+=1
         qspaceList.append(QSpace(space))
-        dPsiName.append("dPsi, qspace=" + str(qspaceList[i].size[0]) + purp + ".csv")
+        dPsiName.append("dPsi, qspace=" + str(qspaceList[i].getSize()[0]) + purp + ".csv")
 
         if i == (len(qspaces)-1):
             end = True
@@ -265,8 +239,8 @@ def allGraphsFromExcel(aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, dim
         excelName=[]
         end = False
         while k < len(qspaces):
-            labelNames.append(str(qspaceList[k].size[0]) + " qspace")
-            excelName.append("LigandSat with " + str(qspaceList[k].size[0]) + " qspace" + purp)
+            labelNames.append(str(qspaceList[k].getSize()[0]) + " qspace")
+            excelName.append("LigandSat with " + str(qspaceList[k].getSize()[0]) + " qspace" + purp)
             
             if k == (len(qspaces)-1):
                 end = True
@@ -297,7 +271,7 @@ def allGraphsFromExcel(aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, dim
         while k < len(qspaces):
             if k == (len(qspaces)-1):
                 end = True
-            name = "Glom_act with c=" + str(c) + " with " + str(qspaceList[k].size[0]) + " qspace"
+            name = "Glom_act with c=" + str(c) + " with " + str(qspaceList[k].getSize()[0]) + " qspace"
             graphFromExcel(name + ".csv", xaxis, numRecs, labelNames[k], titleName, pdfName, "Act", rep, end)
             k += 1
         
@@ -320,7 +294,7 @@ def dimAllGraphsFromExcel(numRecs=30, dims=[2,3,4,5], rep=200.0):
             k+=1
         qspace = QSpace(space)
 
-        dPsiName.append("dPsi, qspace=" + str(qspace.size[0]) + ", dim=" + str(dim) + ".csv")
+        dPsiName.append("dPsi, qspace=" + str(qspace.getSize()[0]) + ", dim=" + str(dim) + ".csv")
 
         if i == (len(dims)-1):
             end = True
@@ -381,8 +355,8 @@ def makeSimilar(numRecs, aff_sd, eff_sd, purpose="eff", qspaces=[4,10,30], dim=2
         space.append((0,qspaces[0]))
         i+=1
     qspace = QSpace(space)
-    epith = Epithelium.create(numRecs, dim, qspace, aff_sd, eff_sd) #amt, dim **amt = len(gl) and dim = dim of odorscene
-    epith.save("1. SavedEpi_" + str(qspace.size[0]) + purp)
+    epith = createEpithelium(numRecs, dim, qspace, aff_sd, eff_sd) #amt, dim **amt = len(gl) and dim = dim of odorscene
+    saveEpithelium(epith, "1. SavedEpi_" + str(qspace.getSize()[0]) + purp)
     
     i = 1
     while i < len(qspaces):
@@ -393,17 +367,17 @@ def makeSimilar(numRecs, aff_sd, eff_sd, purpose="eff", qspaces=[4,10,30], dim=2
             space.append((0,qspaces[i]))
             k+=1
         qspace = QSpace(space)
-        epith2 = Epithelium.create(numRecs, dim, qspace, aff_sd, eff_sd)
+        epith2 = createEpithelium(numRecs, dim, qspace, aff_sd, eff_sd)
     
         k = 0
-        for rec in epith2.recs:
-            rec.sdA = epith.recs[k].sdA
-            rec.sdE = epith.recs[k].sdE
-            rec.covA = None
-            rec.covE = None       
+        for rec in epith2.getRecs():
+            rec.setSdA(epith.getRecs()[k].getSdA())
+            rec.setSdE(epith.getRecs()[k].getSdE())
+            rec.setCovA()
+            rec.setCovE()        
             k += 1
     
-        epith2.save("1. SavedEpi_" + str(qspace.size[0]) + purp)
+        saveEpithelium(epith2, "1. SavedEpi_" + str(qspace.getSize()[0]) + purp)
         
         i += 1
 
@@ -430,7 +404,6 @@ def purpFunction(purpose, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, 
     
     
 def test():
-    print("start of smoothFuncs:"+str(time.time()))
 
     # runReceptorOdorGraphToolStandAlone()
 
@@ -445,6 +418,5 @@ def test():
     #testdPsiBarSaturationDim(dims=[2,3,4,5], fixed=False, aff_sd=[.5,1.5], eff_sd=[.05,1.0], numRecs=30, c=1)
     #dimAllGraphsFromExcel(numRecs=30, dims=[2,3,4,5], rep=200)
 
-    print("end of smoothFuncs:"+str(time.time()))
     
 test()

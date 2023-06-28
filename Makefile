@@ -1,3 +1,2 @@
 clean:
-	rm *.pdf *.csv
-	
+	rm *.pdf *.csv *.log
