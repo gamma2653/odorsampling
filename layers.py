@@ -129,7 +129,7 @@ def activateGL_Similar(gl, num, sel, mean=0, sd= 0, gl2=[]):
             rand = random.uniform(-num,num)
         else: # sel == "g"
             rand = random.choice([1,-1])*random.gauss(mean, sd)
-        inc = rand + gl[index].getActiv()
+        inc = rand + gl[index].activ
         if inc > 1:
             inc = 1.0
         if inc < 0:
@@ -178,7 +178,7 @@ def createMCLSamplingMap(gl, mcl, cr, fix, sel, sd=0, bias="lin"):
         assert (len(mcl)*cr)%len(gl) == 0, "cannot balance. recreate mitrals."
         Map = simpleSampleBalanced(gl, mcl, cr, fix, sd)
     elif sel == "location":
-        assert gl[0].getDim()[0]>=3 and gl[0].getDim()[1]>=3, "glom need to be at least 3X3. recreate gloms."
+        assert gl[0].dim[0]>=3 and gl[0].dim[1]>=3, "glom need to be at least 3X3. recreate gloms."
         Map = simpleSampleLocation(gl, mcl, cr, fix, sd)
     else: #sel == "biased
         Map = biasSample(gl, mcl, cr, fix, bias, sd)
@@ -195,7 +195,7 @@ def oneToOneSample(gl,mcl):
     for mitral in mcl:
         ind = random.choice(indexes)
         indexes.remove(ind)
-        Map.append([mitral.getId(), ind, 1])   #******Changed for weights to always be 1
+        Map.append([mitral.id, ind, 1])   #******Changed for weights to always be 1
     return Map
 
 def simpleSample(gl, mcl, cr, fix, sd=0):
@@ -212,7 +212,7 @@ def simpleSample(gl, mcl, cr, fix, sd=0):
             while inc < cr:
                 num = random.randint(0,len(gl)-1)
                 num = _prevDuplicates(num, conn, gl, "simple", [], 0) #Ensures that glom at num isn't connected to the mitral cell yet
-                Map.append([mcl[counter].getId(), num, random.uniform(0,.4)])
+                Map.append([mcl[counter].id, num, random.uniform(0,.4)])
                 inc += 1
                 conn.append(num)
             counter += 1
@@ -224,7 +224,7 @@ def simpleSample(gl, mcl, cr, fix, sd=0):
             while inc < rand:
                 num = random.randint(0,len(gl)-1)
                 num = _prevDuplicates(num, conn, gl, "simple", [], 0)
-                Map.append([mcl[counter].getId(), num, random.uniform(0,.4)])
+                Map.append([mcl[counter].id, num, random.uniform(0,.4)])
                 inc += 1
                 conn.append(num)
             counter += 1
@@ -251,7 +251,7 @@ def simpleSampleRandom(gl, mcl, cr, fix, sd=0):
                 else:
                     act = random.uniform(0, leftover)
                     leftover -= act
-                Map.append([mcl[counter].getId(), num, act])
+                Map.append([mcl[counter].id, num, act])
                 inc += 1
                 conn.append(num)
             counter += 1
@@ -263,7 +263,7 @@ def simpleSampleRandom(gl, mcl, cr, fix, sd=0):
             while inc < rand:
                 num = random.randint(0,len(gl)-1)
                 num = _prevDuplicates(num, conn, gl, "simple", [], 0)
-                Map.append([mcl[counter].getId(), num, random.uniform(0,.4)])
+                Map.append([mcl[counter].id, num, random.uniform(0,.4)])
                 inc += 1
                 conn.append(num)
             counter += 1
@@ -282,7 +282,7 @@ def simpleSampleBalanced(gl, mcl, cr, fix, sd=0):
     for g in gl:
         fanout = 0
         while fanout < F:
-            glomSelections.append(g.getId())
+            glomSelections.append(g.id)
             fanout += 1
 
     if fix:
@@ -303,7 +303,7 @@ def simpleSampleBalanced(gl, mcl, cr, fix, sd=0):
                 else:
                     act = random.uniform(0, leftover)
                     leftover -= act
-                Map.append([mcl[counter].getId(), num, act])
+                Map.append([mcl[counter].id, num, act])
                 inc += 1
                 conn.append(num)
             counter += 1
@@ -316,7 +316,7 @@ def simpleSampleBalanced(gl, mcl, cr, fix, sd=0):
         #     while inc < rand:
         #         num = random.randint(0,len(gl)-1)
         #         num = _prevDuplicates(num, conn, gl, "simple", [], 0)
-        #         Map.append([mcl[counter].getId(), num, random.uniform(0,.4)])
+        #         Map.append([mcl[counter].id, num, random.uniform(0,.4)])
         #         inc += 1
         #         conn.append(num)
         #     counter += 1
@@ -338,8 +338,8 @@ def simpleSampleLocation(gl, mcl, cr, fix, sd=0):
         while counter < len(mcl):
             conn = []
             num = random.randint(0,len(gl)-1)
-            x = gl[num].getLoc()[0]
-            y = gl[num].getLoc()[1]
+            x = gl[num].loc[0]
+            y = gl[num].loc[1]
             xUpperBound = numLayers+x
             xLowerBound = x-numLayers
             yUpperBound = numLayers+y
@@ -348,7 +348,7 @@ def simpleSampleLocation(gl, mcl, cr, fix, sd=0):
             inc = 0
             gloms = []
             act = random.uniform(0,1)
-            Map.append([mcl[counter].getId(), num, act])
+            Map.append([mcl[counter].id, num, act])
             leftover = 1-act
 
             # while inc < cr-1:
@@ -361,7 +361,7 @@ def simpleSampleLocation(gl, mcl, cr, fix, sd=0):
 
             if int(numLayers) == 1:
                 selected = 0
-                randomGlom = generateRandomGlom(xLowerBound, xUpperBound, yLowerBound, yUpperBound, gl[0].getDim()[1], gl[0].getDim()[0])
+                randomGlom = generateRandomGlom(xLowerBound, xUpperBound, yLowerBound, yUpperBound, gl[0].dim[1], gl[0].dim[0])
                 while selected < int(numToSelect):
                     if selected == int(numToSelect)-1:
                         act = leftover
@@ -369,15 +369,15 @@ def simpleSampleLocation(gl, mcl, cr, fix, sd=0):
                         act = random.uniform(0, leftover)
                         leftover -= act
                     while randomGlom in gloms:
-                        randomGlom = generateRandomGlom(xLowerBound, xUpperBound, yLowerBound, yUpperBound, gl[0].getDim()[1], gl[0].getDim()[0])
+                        randomGlom = generateRandomGlom(xLowerBound, xUpperBound, yLowerBound, yUpperBound, gl[0].dim[1], gl[0].dim[0])
                     gloms.append(randomGlom)
                     selected += 1
                     for g in gl:
-                        # if g.getLoc() == randomGlom:
-                        if g.getLoc() == [randomGlom[0]%(gl[0].getDim()[1]), randomGlom[1]%(gl[0].getDim()[0])]:
-                            num = g.getId()
+                        # if g.loc == randomGlom:
+                        if g.loc == [randomGlom[0]%(gl[0].dim[1]), randomGlom[1]%(gl[0].dim[0])]:
+                            num = g.id
 
-                    Map.append([mcl[counter].getId(), num, act])
+                    Map.append([mcl[counter].id, num, act])
 
             elif int(numLayers) == 2:
                 # get first layer first (the surrounding 8)
@@ -390,21 +390,21 @@ def simpleSampleLocation(gl, mcl, cr, fix, sd=0):
                     yInner = y-1
                     while yInner <= yOuter:
                         if not((xInner == x) and (yInner == y)):
-                            firstLayer.append([xInner%(gl[0].getDim()[1]), yInner%(gl[0].getDim()[0])])
+                            firstLayer.append([xInner%(gl[0].dim[1]), yInner%(gl[0].dim[0])])
                         yInner += 1
                     xInner += 1
 
                 for a in firstLayer:
                     for g in gl:
-                        if [a[0], a[1]] == g.getLoc():
-                            num = g.getId()
+                        if [a[0], a[1]] == g.loc:
+                            num = g.id
                             act = random.uniform(0, leftover)
                             leftover -= act
-                            Map.append([mcl[counter].getId(), num, act])
+                            Map.append([mcl[counter].id, num, act])
 
                 # second layer
                 selected = 0
-                randomGlom = generateRandomGlom(xLowerBound, xUpperBound, yLowerBound, yUpperBound, gl[0].getDim()[1], gl[0].getDim()[0])
+                randomGlom = generateRandomGlom(xLowerBound, xUpperBound, yLowerBound, yUpperBound, gl[0].dim[1], gl[0].dim[0])
                 while selected < int(numToSelect):
                     if selected == int(numToSelect)-1:
                         act = leftover
@@ -412,15 +412,15 @@ def simpleSampleLocation(gl, mcl, cr, fix, sd=0):
                         act = random.uniform(0, leftover)
                         leftover -= act
                     while randomGlom in gloms:
-                        randomGlom = generateRandomGlom(xLowerBound, xUpperBound, yLowerBound, yUpperBound, gl[0].getDim()[1], gl[0].getDim()[0])
+                        randomGlom = generateRandomGlom(xLowerBound, xUpperBound, yLowerBound, yUpperBound, gl[0].dim[1], gl[0].dim[0])
                     gloms.append(randomGlom)
                     selected += 1
                     for g in gl:
-                        # if g.getLoc() == randomGlom:
-                        if g.getLoc() == [randomGlom[0]%(gl[0].getDim()[1]), randomGlom[1]%(gl[0].getDim()[0])]:
-                            num = g.getId()
+                        # if g.loc == randomGlom:
+                        if g.loc == [randomGlom[0]%(gl[0].dim[1]), randomGlom[1]%(gl[0].dim[0])]:
+                            num = g.id
 
-                    Map.append([mcl[counter].getId(), num, act])
+                    Map.append([mcl[counter].id, num, act])
 
             counter+=1
 
@@ -594,16 +594,16 @@ def GraphMitralActivation(gl, mcl, n, m):
     mitralLocations = {}
     mitralActivations = {}
     for mitral in mcl:
-        if str(mitral.getLoc()) in mitralLocations:
-            val = mitralLocations.get(str(mitral.getLoc()))
-            activ = mitralActivations.get(str(mitral.getLoc()))
-            mitralLocations.update({str(mitral.getLoc()):val+1})
+        if str(mitral.loc) in mitralLocations:
+            val = mitralLocations.get(str(mitral.loc))
+            activ = mitralActivations.get(str(mitral.loc))
+            mitralLocations.update({str(mitral.loc):val+1})
 
-            activ.append(mitral.getActiv())
-            mitralActivations.update({str(mitral.getLoc()):activ})
+            activ.append(mitral.activ)
+            mitralActivations.update({str(mitral.loc):activ})
         else:
-            mitralLocations.update({str(mitral.getLoc()):1})
-            mitralActivations.update({str(mitral.getLoc()):[mitral.getActiv()]})
+            mitralLocations.update({str(mitral.loc):1})
+            mitralActivations.update({str(mitral.loc):[mitral.activ]})
 
     maxMitrals = mitralLocations.get(max(mitralLocations, key=mitralLocations.get))
 
@@ -658,9 +658,9 @@ def saveGL(GL, name):
     assert type(name) == str, "name is not a string"
     st = ""
     for glom in GL:
-        loc = glom.getLoc()
+        loc = glom.loc
         loc = str(loc[0]) + ":" + str(loc[1])
-        st = st + str(glom.getId()) + "," + str(glom.getActiv()) + "," + loc + "," + str(glom.getConn()) +";" + '\n'
+        st = st + str(glom.id) + "," + str(glom.activ) + "," + loc + "," + str(glom.conn) +";" + '\n'
     test = open(name + ".GL", "w")
     test.write(st)
     test.close
@@ -688,10 +688,10 @@ def saveMCL(MCL, name):
     assert type(name) == str, "name is not a string"
     st = ""
     for m in MCL:
-        loc = m.getLoc()
+        loc = m.loc
         loc = str(loc[0]) + ":" + str(loc[1])
         #Storing glom
-        glom = str(m.getGlom().items())
+        glom = str(m.glom.items())
         end = glom.index("]")
         i = 0
         s = ""
@@ -701,7 +701,7 @@ def saveMCL(MCL, name):
             ind2 = glom.index(")", ind1)
             s = s + glom[ind1+1:comma] + "|" + glom[comma+2:ind2] + "+"
             i = ind2
-        st = st + str(m.getId()) + "," + str(m.getActiv()) + "," + loc + "," + s +";" + '\n'
+        st = st + str(m.id) + "," + str(m.activ) + "," + loc + "," + s +";" + '\n'
     test = open(name + ".mcl", "w")
     test.write(st)
     test.close
@@ -784,7 +784,7 @@ def ActivateMCLfromGL(GL, MCL, sel, Map=[], noise="None", mean=0, sd=0):
         for m in MCL:
             activ = addActivationMCL(m, GL)
             if sel == "avg":
-                activ = activ/(len(m.getGlom()))
+                activ = activ/(len(m.glom))
             m._activ = activ   #Bypassing assertion that activ lvl < 1
         # MCL = normalize(MCL)
     if sel == "sat":
@@ -797,25 +797,25 @@ def ApplyMCLSamplingMap(GL, MCL, Map):
     precondition: Map holds valid connections for GL and MCL"""
     assert Map[len(Map)-1][0] == len(MCL)-1, "dimensionality of Mitral cells is wrong"
     test = 0
-    MCL[Map[0][0]].setLoc(GL[Map[0][1]].getLoc())
+    MCL[Map[0][0]].setLoc(GL[Map[0][1]].loc)
 
     for conn in Map:
 
         if conn[0] != test:
             test = test+1
-            MCL[conn[0]].setLoc(GL[conn[1]].getLoc())
+            MCL[conn[0]].setLoc(GL[conn[1]].loc)
             MCL[conn[0]].setGlom({})
-        MCL[conn[0]].getGlom()[conn[1]]=conn[2]  #format: mc.getGlom()[glom]=weight
-        MCL[conn[0]].setGlom(MCL[conn[0]].getGlom())
-        GL[conn[1]].setConn(GL[conn[1]].getConn() + 1)
+        MCL[conn[0]].glom[conn[1]]=conn[2]  #format: mc.glom[glom]=weight
+        MCL[conn[0]].setGlom(MCL[conn[0]].glom)
+        GL[conn[1]].setConn(GL[conn[1]].conn + 1)
 
     return [MCL, GL]
         
     """In List form:
-    glom = MCL[conn[0]].getGlom()
+    glom = MCL[conn[0]].glom
     glom.append([conn[1],conn[2]])
     MCL[conn[0]].setGlom(glom)
-    GL[conn[1]].setConn(GL[conn[1]].getConn() + 1)"""
+    GL[conn[1]].setConn(GL[conn[1]].conn + 1)"""
 
 def addNoise(GL, noise, mean=0, sd=0):
     """Increments activation levels in GL by a certain value
@@ -827,17 +827,17 @@ def addNoise(GL, noise, mean=0, sd=0):
     else:
         inc = random.expovariate(1/mean)
     for g in GL:
-        active = max(g.getActiv() + random.choice([1,-1])*inc, 0.0)
+        active = max(g.activ + random.choice([1,-1])*inc, 0.0)
         g.setActiv(min(active, 1.0))
     return GL
     
 def addActivationMCL(m, GL):
     """Returns updated MCL where each mitral cell's activation level is calculated
     based on adding connecting glom activation levels*weight of connection"""
-    glom = m.getGlom().keys()
+    glom = m.glom.keys()
     activ = 0
     for g in glom:
-        temp = GL[g].getActiv()*m.getGlom()[g]  #Activ lvl of attached glom * weight
+        temp = GL[g].activ*m.glom[g]  #Activ lvl of attached glom * weight
         activ = activ + temp
     return activ
 
@@ -851,17 +851,17 @@ def normalize(MCL):
     maxi = 0
     #mini = 100
     for m in MCL:
-        assert m.getActiv() >= 0, "Activation value was negative!"
-        if maxi < m.getActiv():
-            maxi = m.getActiv()
-        #if mini > m.getActiv():
-        #    mini = m.getActiv()
+        assert m.activ >= 0, "Activation value was negative!"
+        if maxi < m.activ:
+            maxi = m.activ
+        #if mini > m.activ:
+        #    mini = m.activ
     #for m in MCL:
-    #    m._activ = m.getActiv() - mini   #By passing assertion that activ btwn 0 and 1
+    #    m._activ = m.activ - mini   #By passing assertion that activ btwn 0 and 1
     if maxi != 0:
         scale = (1.0/maxi)  #If put mini back in then this line is 1/(maxi-mini)
         for m in MCL:
-            m.setActiv(m.getActiv()*scale)  #Assertion now in place - all #'s should be btwn 0 and 1
+            m.setActiv(m.activ*scale)  #Assertion now in place - all #'s should be btwn 0 and 1
         return MCL
     else:
         return MCL
@@ -877,7 +877,7 @@ def euclideanDistance(layer1, layer2):
     index = 0
     num = 0.0
     while index < len(layer1):
-        num = num + (layer1[index].getActiv() - layer2[index].getActiv())**2
+        num = num + (layer1[index].activ - layer2[index].activ)**2
         index += 1
     return math.sqrt(num)
 
@@ -885,7 +885,7 @@ def graphLayer(layer, sort=False):
     """Returns a graph of Layer (GL or MCL) with ID # as the x axis and Activ
     level as the y axis. If sort is true, layer is sorted based on act. lvl.
     Precondition: Layer is a valid GL or MCL in order of ID with at least one element"""
-    assert layer[0].getId() == 0, "ID's are not in order!"
+    assert layer[0].id == 0, "ID's are not in order!"
     l = len(layer)
     assert l > 0, "length of layer is 0."
     if sort:
@@ -894,7 +894,7 @@ def graphLayer(layer, sort=False):
     index = 0
     y = []
     while index < l:
-        y.append(layer[index].getActiv())
+        y.append(layer[index].activ)
         index += 1
     plt.bar(x, y)
     if type(layer[0]) == cells.Glom:
@@ -918,11 +918,11 @@ def sel_sort(layer):
 def _max_index(layer,i,end):
     """Returns: the index of the minimum value in b[i..end]
     Precondition: b is a mutable sequence (e.g. a list)."""
-    maxi = layer[i].getActiv()
+    maxi = layer[i].activ
     index = i
     while i <= end:
-        if layer[i].getActiv() > maxi:
-            maxi = layer[i].getActiv()
+        if layer[i].activ > maxi:
+            maxi = layer[i].activ
             index = i
         i += 1
     return index

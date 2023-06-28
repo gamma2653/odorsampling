@@ -1,3 +1,35 @@
+import logging
+
+LOG_MSG_FMT: str = '[%(asctime)s] [%(name)s]: [%(levelname)s] %(message)s'
+LOG_DATE_FMT: str = '%m-%d-%Y %H:%M:%S'
+LOG_FILE_NAME: str = 'output.log'
+
+LOG_FORMATTER = logging.Formatter(LOG_MSG_FMT, LOG_DATE_FMT)
+
+LOG_STREAM_HANDLER = logging.StreamHandler()
+LOG_FILE_HANDLER = logging.FileHandler(LOG_FILE_NAME)
+
+LOG_STREAM_HANDLER.setFormatter(LOG_FORMATTER)
+LOG_FILE_HANDLER.setFormatter(LOG_FORMATTER)
+
+LOG_LEVEL = logging.INFO
+
+def default_log_setup(logger: logging.Logger, log_level: int = None):
+    """
+    Automatically adds LOG_FILE_HANDLER and LOG_STREAM_HANDLER as handlers.
+
+    Parameters
+    ----------
+    logger - logging.Logger
+        The logger to setup with the default configuration.
+    """
+    log_level = LOG_LEVEL if log_level is None else log_level
+    logger.addHandler(LOG_FILE_HANDLER)
+    logger.addHandler(LOG_STREAM_HANDLER)
+    logger.setLevel(log_level)
+
+DEBUG = False
+
 #parameters for odor/recepter coverage ellipse graph
 RECEPTOR_ELLIPSE_STANDARD_DEVIATION = 1.5
 ODORSCENE_INDEX = 12 # e.g., 0 - 27 odorscenes
