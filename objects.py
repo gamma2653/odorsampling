@@ -48,14 +48,22 @@ class DistributionType(Enum):
     """
 
 id_tracker = Counter()
-def get_id(key):
-    id_tracker[type(key)] += 1
-    return id_tracker[type(key)]
+def get_id(key, type=True):
+    """
+    Parameters
+    ----------
+    key - 
+        key to get id for
+    type -
+        if True, key is a type, else key is an instance
+    """
+    id_tracker[key if type else type(key)] += 1
+    return id_tracker[key if type else type(key)]
 
 @dataclass
 class Cell:
     """
-    Baseclass for cells.
+    Base class for cells.
     """
     id: int = field(default_factory=lambda: get_id(Cell))
     loc: tuple[float, float] = (0.0, 0.0)
