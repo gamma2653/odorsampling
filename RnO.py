@@ -23,6 +23,8 @@ import matplotlib.pylab
 from matplotlib.backends.backend_pdf import PdfPages
 import copy
 import time
+import logging
+from typing import TYPE_CHECKING
 
 #from matplotlib import mlab, cm
 from matplotlib import patches
@@ -30,6 +32,13 @@ from matplotlib.patches import Ellipse
 import numpy.random as rnd
 
 import params
+
+# if TYPE_CHECKING:
+from typing import Sequence
+
+
+logger = logging.getLogger(__name__)
+params.default_log_setup(logger)
 
 ###Global Variables
 peak_affinity = -8     # literally 10e-8, not influenced by minimum_affinity value
@@ -54,25 +63,26 @@ class QSpace:
     ***ex: [(0,5),(0,5)] means qspace extends from 0 to 5 (not including 5) 
     _size = [List of float tuples] defines the size of the sample space"""
     
-    def getSize(self):
+    @property
+    def size(self) -> list[tuple[float, float]]:
         #Returns the odors.
         return self._size
 
-    def setSize(self, value):
+    @size.setter
+    def size(self, value: list[tuple[float, float]]) -> None:
         """Sets size equal to value.
         Precondition: Value is a list of tuples"""
-        assert type(value) == list, "Value is not a list!"
-        assert type(value[0] == tuple), "Elements aren't tuples!"
+        value = list(map(tuple, value))
+        old = getattr(self, "_size", None)
+        logger.debug("QSpace size changed: [%s->%s]", old, value)
+        # TODO: assert values are floats for consistency
         self._size = value
     
-    def __init__(self, size):
-        self.setSize(size)
+    def __init__(self, size: list[tuple[float, float]]):
+        self.size = size
     
     def __str__(self):
-        st = ""
-        for tup in self._size:
-            st = st + " " + str(tup)
-        return st[1:]
+        return " ".join(map(str, self._size))
 
 
 class Ligand(object):
@@ -90,67 +100,107 @@ class Ligand(object):
     _odors2 = [list of ordors/ligands] nested for faster calcs
 
     """
-    
-    #Getters and Setters
-    def getId(self):
+        
+    @property
+    def id(self) -> int:
         """Returns the id."""
         return self._id
 
-    def setId(self, value):
+    @id.setter
+    def id(self, value: int) -> None:
         """Sets id equal to value.
         Precondition: Value is an int"""
-        assert type(value) == int, "Value is not a int!"
+        value = int(value)
+        old = getattr(self, "_id", None)
+        logger.debug("Ligand id changed: [%s->%s]", old, value)
         self._id = value
-        
-    def getLoc(self):
+    
+    @property
+    def loc(self) -> tuple[float, float]:
         """Returns the loc."""
         return self._loc
 
-    def setLoc(self, value):
+    @loc.setter
+    def loc(self, value: tuple[float, float]) -> None:
         """Sets loc equal to value.
         Precondition: Value is a List"""
-        assert type(value) == list, "Value is not a List!"        
+        # TODO: make tuple everywhere
+        old = getattr(self, "_loc", None)
+        logger.debug("Ligand loc changed: [%s->%s]", old, value)
+        value = tuple(map(float, value))     
         self._loc = value
     
-    def getDim(self):
+    @property
+    def dim(self) -> int:
         """Returns the dim."""
         return self._dim
 
-    def setDim(self, value):
+    @dim.setter
+    def dim(self, value: int) -> None:
         """Sets dim equal to value.
         Precondition: Value is an int"""
-        assert type(value) == int, "Value is not a int!"
+        old = getattr(self, "_dim", None)
+        logger.debug("Ligand dim changed: [%s->%s]", old, value)
+        value = int(value)
         self._dim = value
-        
-    def getConc(self):
+    
+    @property
+    def conc(self) -> float:
         """Returns the conc."""
         return self._conc
 
-    def setConc(self, value):
+    @conc.setter
+    def conc(self, value: float) -> None:
         """Sets conc equal to value.
         Precondition: Value is a nonZero number"""
-        assert type(value) in [int,float], "Value is not a number!"
         assert value != 0, "Conc can't be 0!"
+        value = float(value)
+        old = getattr(self, "_conc", None)
+        logger.debug("Ligand conc changed: [%s->%s]", old, value)
         self._conc = float(value)
     
-    def setAff(self, value):
+    @property
+    def aff(self) -> float:
+        """Returns the aff."""
+        return self._aff
+
+    @aff.setter
+    def aff(self, value: float) -> None:
         """Sets aff equal to value.
         Precondition: Value is a float"""
-        assert type(value) == float, "Value is not a float!"
+        value = float(value)
+        old = getattr(self, "_aff", None)
+        logger.debug("Ligand aff changed: [%s->%s]", old, value)
         self._aff = value
     
-    def setEff(self, value):
+    @property
+    def eff(self) -> float:
+        """Returns the eff."""
+        return self._eff
+
+    @eff.setter
+    def eff(self, value: float) -> None:
         """Sets eff equal to value.
         Precondition: Value is a float btwn 0..1"""
-        assert type(value) == float, "Value is not a float!"
+        value = float(value)
         assert value >= 0 and value <= 1, "Eff is not btwn 0 and 1"
+        old = getattr(self, "_eff", None)
+        logger.debug("Ligand eff changed: [%s->%s]", old, value)
         self._eff = value
     
-    def setOcc(self, value):
+    @property
+    def occ(self) -> float:
+        """Returns the occ."""
+        return self._occ
+
+    @occ.setter
+    def occ(self, value: float) -> None:
         """Sets occ equal to value.
         Precondition: Value is an float btwn 0..1"""
-        assert type(value) == float, "Value is not a float!"
+        value = float(value)
         assert value >= 0.0 and value <= 1.0, "Occ is not btwn 0 and 1"
+        old = getattr(self, "_occ", None)
+        logger.debug("Ligand occ changed: [%s->%s]", old, value)
         self._occ = value
 
     def appendToAffs(self, value):
@@ -179,10 +229,10 @@ class Ligand(object):
     #Initializer
     def __init__(self, Id, loc, conc):
         """Initializes ligand"""
-        self.setId(Id)
-        self.setLoc(loc)
-        self.setDim(len(loc))
-        self.setConc(conc)
+        self.id = Id
+        self.loc = loc
+        self.dim = len(loc)
+        self.conc = conc
         self._aff = 0.0
         self._eff = 0.0
         self._occ = 0.0
@@ -205,38 +255,49 @@ class Odorscene(object):
     """
 
 #Getters and Setters
-    def getId(self):
+    @property
+    def id(self) -> int:
         """Returns the id."""
         return self._id
 
-    def setId(self, value):
+    @id.setter
+    def id(self, value: int) -> None:
         """Sets id equal to value.
         Precondition: Value is an int"""
-        assert type(value) == int, "Value is not a int!"
+        value = int(value)
+        old = getattr(self, "_id", None)
+        logger.debug("Odorscene id changed: [%s->%s]", old, value)
         self._id = value
 
-    def getDim(self):
+    @property
+    def dim(self) -> int:
         """Returns the dim."""
         return self._dim
 
-    def setDim(self, value):
+    @dim.setter
+    def dim(self, value: int) -> None:
         """Sets dim equal to value.
         Precondition: Value is an int"""
-        assert type(value) == int, "Value is not a int!"
+        value = int(value)
+        old = getattr(self, "_dim", None)
+        logger.debug("Odorscene dim changed: [%s->%s]", old, value)
         self._dim = value
 
-    def getOdors(self):
+    @property
+    def odors(self) -> list[Ligand]:
         """Returns the odors."""
         return self._odors
 
-    def setOdors(self, value):
+    @odors.setter
+    def odors(self, value: list[Ligand]) -> None:
         """Sets odors equal to value.
         Precondition: Value is a List and dim of elements are equal."""
-        assert type(value) == list, "Value is not a List!"
+        # TODO: simplify w/ checks using reduce
+        value = list(value)
         self._odors = []
         i = 0
         while i < len(value):
-            assert value[0].getDim() == value[i].getDim(), "Odors aren't all the same dim."
+            assert value[0].dim == value[i].dim, "Odors aren't all the same dim."
             self._odors.append(value[i])
             i += 1
 
@@ -244,9 +305,9 @@ class Odorscene(object):
 #Initializer
     def __init__(self, Id, odors):
         """Initializes odorscene"""
-        self.setId(Id)
-        self.setDim(odors[0].getDim())
-        self.setOdors(odors)
+        self.id = Id
+        self.dim = odors[0].dim
+        self.odors = odors
         
     def __str__(self):
         """Returns description of Odor"""
@@ -256,7 +317,7 @@ class Odorscene(object):
         return "ID: " + str(self._id) + '\n' + "Odors: \n" + st
 
 
-class Receptor(object):
+class Receptor:
     """Represents an odor receptor with center (x,y,z...) and radius of 
     sensitivity r.
     Instance Attributes:
@@ -276,95 +337,109 @@ class Receptor(object):
     """
     
 #Getters and Setters
-    def getId(self):
+    @property
+    def id(self):
         """Returns id of receptor."""
         return self._id
 
-    def setId(self, value):
+    @id.setter
+    def id(self, value):
         """Sets id to value
         Precondtion: value is an int"""
-        assert type(value) == int, "Value is not a int!"
+        value = int(value)
+        old = getattr(self, "_id", None)
+        logger.debug("Receptor id changed: [%s->%s]", old, value)
         self._id = value
     
-    def getMean(self):
+    @property
+    def mean(self):
         """Returns mean of receptor."""
         return self._mean
 
-    def setMean(self, value):
+    @mean.setter
+    def mean(self, value: Sequence):
         """Sets id to value
         Precondtion: value is an list"""
-        assert type(value) == list, "Value is not a float!"
+        value = tuple(value)
+        old = getattr(self, "_mean", None)
+        logger.debug("Receptor mean changed: [%s->%s]", old, value)
         self._mean = value
+        self._mean_sd_change = True
     
-    def getSdA(self):
+    @property
+    def sdA(self) -> tuple:
         """Returns the standard deviations for Affinity."""
         return self._sdA
 
-    def setSdA(self, value):
+    @sdA.setter
+    def sdA(self, value: tuple):
         """Sets sdA equal to value.
         Precondition: Value is a List with dim Q"""
-        assert type(value) == list, "Value is not a List!"
+        value = tuple(value)
         assert len(value) == len(self._mean), "Dimension is not consistent with dim of mean"
+        old = getattr(self, "_sdA", None)
+        logger.debug("Receptor sdA changed: [%s->%s]", old, value)
         self._sdA = value
-    
-    def getSdE(self):
+        self._mean_sd_change = True
+
+    def _update_cov_scale(self):
+        self._covA = [_sdA**2 for _sdA in self.sdA]
+        self._covE = [_sdE**2 for _sdE in self.sdE]
+        self._scale = mvn.pdf(self.mean, self.mean, self._covA)
+        self._effScale = float(mvn.pdf(self.mean, self.mean, self._covE))
+        self._mean_sd_change = False
+
+    @property
+    def sdE(self) -> tuple:
         """Returns the standard deviations for Efficacy."""
         return self._sdE
 
-    def setSdE(self, value):
+    @sdE.setter
+    def sdE(self, value: tuple):
         """Sets sdE equal to value.
         Precondition: Value is a List with dim Q"""
-        assert type(value) == list, "Value is not a List!"
+        value = tuple(value)
+        # TODO: assert it is a tuple
         assert len(value) == len(self._mean), "Dimension is not consistent with dim of mean"
+        old = getattr(self, "_sdE", None)
+        logger.debug("Receptor sdE changed: [%s->%s]", old, value)
         self._sdE = value
+        self._mean_sd_change = True
     
-    def getCovA(self):
+    @property
+    def covA(self):
         """Returns the covariance for affinity"""
+        if self._mean_sd_change:
+            self._update_cov_scale()
         return self._covA
     
-    def setCovA(self):
-        """Sets covariance of affinity by squaring the sd."""
-        covA = []
-        i = 0
-        while i < len(self._sdA):
-            covA.append(self._sdA[i]**2)
-            i += 1
-        self._covA = covA
-    
-    def getCovE(self):
+    @property
+    def covE(self):
         """Returns the covariance for Efficacy"""
+        if self._mean_sd_change:
+            self._update_cov_scale()
         return self._covE
     
-    def setCovE(self):
-        """Sets covariance of Efficacy by squaring the sd."""
-        covE = []
-        i = 0
-        while i < len(self._sdE):
-            covE.append(self._sdE[i]**2)
-            i += 1
-        self._covE = covE
-    
-    def getScale(self):
+    @property
+    def scale(self):
         """Returns scale of receptor."""
+        if self._mean_sd_change:
+            self._update_cov_scale()
         return self._scale
 
-    def setScale(self):
-        """Sets scale based on mean"""
-        self._scale = mvn.pdf(self.getMean(), self.getMean(), self.getCovA())
-
-
-    def getEffScale(self):
+    @property
+    def effScale(self):
         """Returns eff scale of receptor."""
+        if self._mean_sd_change:
+            self._update_cov_scale()
         return self._effScale
 
-    def setEffScale(self):
-        """Sets eff scale based on mean"""
-        self._effScale = float(mvn.pdf(self.getMean(), self.getMean(), self.getCovE()))
-
-    def getActiv(self):
+    @property
+    def activ(self):
         return self._activ
 
-    def setActiv(self, value):
+    @activ.setter
+    def activ(self, value):
         """Sets activation level for receptor"""
         self._activ = value
     
@@ -376,19 +451,23 @@ class Receptor(object):
         """sets amount of ligands 'adjacent' (<2SD) to receptor"""
         self._odoAmt = value
 
-    def getAffs(self):
+    @property
+    def affs(self):
         """Returns affs for all ordors"""
         return self._affs
 
-    def setAffs(self, value):
+    @affs.setter
+    def affs(self, value):
         """Sets affs for all ordors"""
         self._affs = value
 
-    def getEffs(self):
+    @property
+    def effs(self):
         """Returns effs for all ordors"""
         return self._effs
 
-    def setEffs(self, value):
+    @effs.setter
+    def effs(self, value):
         """Sets effs for all ordors"""
         self._effs = value
 
@@ -396,23 +475,19 @@ class Receptor(object):
 #Initializer
     def __init__(self, Id, mean, sda, sde):
         """Initializes a receptor."""
-        self.setId(Id)
-        self.setMean(mean)
-        self.setSdA(sda)
-        self.setSdE(sde)
-        self.setCovA()
-        self.setCovE()
-        self.setScale()
-        self.setActiv(0)
+        self.id = Id
+        self.mean = mean
+        self.sdA = sda
+        self.sdE = sde
+        self.activ = 0
         self.setOcc(0)
         self.setOdoAmt(0)
-        self.setEffScale()
 
 
     def __str__(self):
         """Returns receptor description"""
         st = ""
-        for num in self.getMean():
+        for num in self.mean:
             st = st + str(num) + ", "
         return "ID " + str(self._id) + " Mean: " + st[:-2] + "."  #Can add mean if prefer
     
@@ -423,24 +498,29 @@ class Epithelium(object):
     _recs     = [List of receptors]
     """
     
-    def getRecs(self):
+    @property
+    def recs(self) -> list[Receptor]:
         """Returns the receptors."""
         return self._recs
 
-    def setRecs(self, value):
+    @recs.setter
+    def recs(self, value):
         """Sets receptors equal to value.
         Precondition: Value is a List"""
-        assert type(value) == list, "Value is not a List!"
+        # assert isinstance(value, Sequence), f"Value is not a Sequence! {type(value)}"
+        value = tuple(value)
+        old = getattr(self, "_recs", None)
+        logger.debug("Epithelium receptors changed: [%s->%s]", old, value)
         self._recs = value
     
     def __init__(self, recs):
         """Initializes a epithelium."""
-        self.setRecs(recs)
+        self.recs = recs
 
     def __str__(self):
         """Returns epithelium description"""
         st = "Epithelium contains the following receptors: \n"
-        for recs in self.getRecs():
+        for recs in self.recs:
             st = st + str(recs) + "\n"
         return st[:-2]
 
@@ -491,14 +571,14 @@ def createOdorscene(dim, conc, amt, qspace, Id = 0):
 def modifyLoc(odorant, qspace, dim):
     """Modifies an odorant's location to be within the given qspace of the odorscene
     Precondition: QSpace dimensions are consistent with dim"""
-    assert len(qspace.getSize()) == dim, "QSpace dimensions are not consistent with ligand locations"
+    assert len(qspace.size) == dim, "QSpace dimensions are not consistent with ligand locations"
     i = 0
-    loc = odorant.getLoc()
+    loc = odorant.loc
     while i < dim:
-        loc[i] = ((loc[i] + (abs(qspace.getSize()[i][0]))) % (abs(qspace.getSize()[i][0]) +
-                                abs(qspace.getSize()[i][1]))) + -1 * abs(qspace.getSize()[i][0])
+        loc[i] = ((loc[i] + (abs(qspace.size[i][0]))) % (abs(qspace.size[i][0]) +
+                                abs(qspace.size[i][1]))) + -1 * abs(qspace.size[i][0])
         i += 1
-    odorant.setLoc(loc)
+    odorant.loc = loc
     return odorant
 
 
@@ -531,17 +611,17 @@ def _distributeMean(dim, qspace, constMean):
     i = 0
     if constMean:
         while i < dim:
-            mean.append(qspace.getSize()[i][1]/2.0)
+            mean.append(qspace.size[i][1]/2.0)
             i+=1
     else:
         while i < dim:
             if params.DIST_TYPE_UNIF:
-                mean.append(random.uniform(qspace.getSize()[i][0], qspace.getSize()[i][1]))
+                mean.append(random.uniform(qspace.size[i][0], qspace.size[i][1]))
             elif params.DIST_TYPE_GAUSS:
                 while True:
                     g = random.gauss(params.MU, params.SIG)
-                    #if ((i==0 and g <= qspace.getSize()[i][1] and g >= 0) or (i==1 and g <= qspace.getSize()[i][1]) and g >= 0):
-                    if (g <= qspace.getSize()[i][1] and g >= 0):
+                    #if ((i==0 and g <= qspace.size[i][1] and g >= 0) or (i==1 and g <= qspace.size[i][1]) and g >= 0):
+                    if (g <= qspace.size[i][1] and g >= 0):
                         mean.append(g)
                         break
                 #mean.append(random.gauss(params.MU, params.SIG))
@@ -573,49 +653,49 @@ def ActivateGL_QSpace(epith, odorscene, gl, fixed=True, c=1, sel="avg"):
     its corresponding 1:1 receptors. Returns string of data about odorscene and epithelium.
     If c!=1 (convergence ratio of glom:rec, then use updated function to calc non 1:1 glom:rec activation.
     Precondition: Epith and odorscene have the same dimension Q and # of receptors = len(gl)"""    
-    assert len(epith.getRecs()[0].getMean()) == odorscene.getOdors()[0].getDim(), "Dimensions aren't equal"
-    assert len(epith.getRecs()) == len(gl), "Receptors:GL is not 1:1"
+    assert len(epith.recs[0].mean) == odorscene.odors[0].dim, "Dimensions aren't equal"
+    assert len(epith.recs) == len(gl), "Receptors:GL is not 1:1"
     
     layers.clearGLactiv(gl)
     
     #Loop through each receptor and eventually calculate activation level
-    for rec in epith.getRecs():
+    for rec in epith.recs:
         #Set everything to 0
         activ = 0.0
         odors = []
         df = 0
         
-        effScale = float(mvn.pdf(rec.getMean(), rec.getMean(), rec.getCovE())  )
+        effScale = float(mvn.pdf(rec.mean, rec.mean, rec.covE)  )
         
-        for odor in odorscene.getOdors():
+        for odor in odorscene.odors:
             #First odorscene
-            aff = mvn.pdf(odor.getLoc(), rec.getMean(), rec.getCovA())
-            aff = aff / rec.getScale() #Scales it from 0 to 1
+            aff = mvn.pdf(odor.loc, rec.mean, rec.covA)
+            aff = aff / rec.scale #Scales it from 0 to 1
             #Now convert gaussian aff to kda
             
             aff = 10**((aff * (peak_affinity - minimum_affinity)) + minimum_affinity) ##peak_affinity etc. are global variables
-            odor.setAff(float(aff))
+            odor.aff = float(aff)
             
             if fixed:
-                odor.setEff(1.0)
+                odor.eff = 1.0
             else:
-                eff = mvn.pdf(odor.getLoc(), rec.getMean(), rec.getCovE())
+                eff = mvn.pdf(odor.loc, rec.mean, rec.covE)
                 eff = float(eff) / effScale #Scales it from 0 to 1
-                odor.setEff(eff)
+                odor.eff = eff
             odors.append(odor)
-            df += odor.getConc()/odor._aff
+            df += odor.conc/odor._aff
         
         i = 1
         for odor in odors:
-            odor.setOcc( (1) / (1 + ( (odor._aff/odor.getConc()) * (1 + df - (odor.getConc() / odor._aff ) ) ) **m) ) #m=1
+            odor.setOcc( (1) / (1 + ( (odor._aff/odor.conc) * (1 + df - (odor.conc / odor._aff ) ) ) **m) ) #m=1
             activ += odor._eff * odor._occ
             
             i += 1
-        rec.setActiv(activ)
-        gl[rec.getId()].setActiv(activ)
+        rec.activ = activ
+        gl[rec.id].activ = activ
         
     if c != 1:
-        glomRecConnNew(epith.getRecs(), gl, c)
+        glomRecConnNew(epith.recs, gl, c)
 
 #######Loading and Saving objecsts using CSV files
 
@@ -629,11 +709,11 @@ def saveLigand(odor, name):
     assert type(name) == str, "name is not a string"
     st = "ID, Label, Conc "
     i = 0
-    while i < odor.getDim():
+    while i < odor.dim:
         st = st + ", coord " + str(i)
         i += 1
-    st = st + "\n" + str(odor.getId()) + ",' '," + str(odor.getConc())
-    for loc in odor.getLoc():
+    st = st + "\n" + str(odor.id) + ",' '," + str(odor.conc)
+    for loc in odor.loc:
         st = st + "," + str(loc)
     test = open(name + ".csv", "w")
     test.write(st)
@@ -650,16 +730,16 @@ def saveOdorscene(odorScene, name):
     Precondtion: Name is a str"""
     assert type(name) == str, "name is not a string"
     st = "\n OdorSceneID, dim \n"
-    st = st + str(odorScene.getId()) + "," + str(len(odorScene.getOdors())) + '\n'
+    st = st + str(odorScene.id) + "," + str(len(odorScene.odors)) + '\n'
     st = st + "ID, Label, Conc "
     
     i = 0
-    while i < odorScene.getOdors()[0].getDim():
+    while i < odorScene.odors[0].dim:
         st = st + ", coord " + str(i)
         i += 1
-    for odor in odorScene.getOdors():
-        st = st + "\n" + str(odor.getId()) + ",' '," + str(odor.getConc())
-        for ii, loc in enumerate(odor.getLoc()):
+    for odor in odorScene.odors:
+        st = st + "\n" + str(odor.id) + ",' '," + str(odor.conc)
+        for ii, loc in enumerate(odor.loc):
             st = st + "," + str(loc)
 
     test = open(name + ".csv", "a")
@@ -747,7 +827,7 @@ def saveReceptor(rec, name, helper=False):
     y...Z = list of SD for efficacy
     Precondtion: Name is a str"""
     assert type(name) == str, "name is not a string"
-    dim = len(rec.getMean())
+    dim = len(rec.mean)
     i = 0
     st = ''
     m = ''
@@ -760,13 +840,13 @@ def saveReceptor(rec, name, helper=False):
         m = m + ", Mean " + str(i)
         a = a + ", Aff " + str(i)
         e = e + ", Eff " + str(i)
-        mean = mean + "," + str(rec.getMean()[i])
-        aff = aff + "," + str(rec.getSdA()[i])
-        eff = eff + "," + str(rec.getSdE()[i])
+        mean = mean + "," + str(rec.mean[i])
+        aff = aff + "," + str(rec.sdA[i])
+        eff = eff + "," + str(rec.sdE[i])
         i += 1
     if helper == False:
         st = st + "ID, Label" + m + a + e + '\n'
-    st = st + str(rec.getId()) + ",' '" + mean + aff + eff
+    st = st + str(rec.id) + ",' '" + mean + aff + eff
     if helper:
         return st
     test = open(name + ".csv", "w")
@@ -787,14 +867,14 @@ def saveEpithelium(epi, name):
     a = ''
     e = ''
     i = 0
-    while i < len(epi.getRecs()[0].getMean()):
+    while i < len(epi.recs[0].mean):
         m = m + ", Mean " + str(i)
         a = a + ", Aff " + str(i)
         e = e + ", Eff " + str(i)
         i += 1
     st = st + "ID, Label" + m + a + e + '\n'
     
-    for rec in epi.getRecs():
+    for rec in epi.recs:
         st = st + saveReceptor(rec, name, True) + '\n'
     test = open(name + ".csv", "w")
     test.write(st)
@@ -882,10 +962,10 @@ def sequentialOdorscenes(n, amt, dim, change, qspace):
     while i < n:
         ligands = []
         numOdors = 0
-        odors = odorscenes[i-1].getOdors()
+        odors = odorscenes[i-1].odors
         while numOdors < amt:
             newOdorLoc = []
-            for num in odors[numOdors].getLoc():
+            for num in odors[numOdors].loc:
                 newOdorLoc.append(num + change)
                 
             ligands.append(Ligand(numOdors, newOdorLoc, 1e-5))
@@ -909,14 +989,14 @@ def sumOfSquares(epithelium, odorscene, dn, fixed=False, c=1, gl=[]):
     If fixed=true, then efficacy will be fixed at 1 (only agonists)
     If c!=1, then use function to activate glom with 1:c ratio of Glom:Rec
     Precondtion: dn=list in correct dim"""
-    assert odorscene.getDim()== len(dn), "dimension not consistent with dn"
+    assert odorscene.dim== len(dn), "dimension not consistent with dn"
     
     dPsi = 0
-    recs2 = copy.deepcopy(epithelium.getRecs())
+    recs2 = copy.deepcopy(epithelium.recs)
     layers.clearGLactiv(gl) #Sets gl activations and recConn back to 0.0
     
     counter = 0 #for storing info in rec2
-    for rec in epithelium.getRecs():
+    for rec in epithelium.recs:
         
         #Set everything to 0
         activ_1 = 0.0
@@ -930,64 +1010,64 @@ def sumOfSquares(epithelium, odorscene, dn, fixed=False, c=1, gl=[]):
         df = 0
         df2 = 0
         dphi = 0
-        effScale = float(mvn.pdf(rec.getMean(), rec.getMean(), rec.getCovE())  ) 
+        effScale = float(mvn.pdf(rec.mean, rec.mean, rec.covE)  ) 
         
-        for odor in odorscene.getOdors():
+        for odor in odorscene.odors:
             #First odorscene
-            aff = mvn.pdf(odor.getLoc(), rec.getMean(), rec.getCovA())
-            aff = aff / rec.getScale() #Scales it from 0 to 1
+            aff = mvn.pdf(odor.loc, rec.mean, rec.covA)
+            aff = aff / rec.scale #Scales it from 0 to 1
             #Now convert gaussian aff to kda
             aff = 10**((aff * (peak_affinity - minimum_affinity)) + minimum_affinity) ##peak_affinity etc. are global variables
             
-            odor.setAff(float(aff))
+            odor.aff = float(aff)
             if fixed:
-                odor.setEff(1.0)
+                odor.eff = 1.0
             else:
-                eff = mvn.pdf(odor.getLoc(), rec.getMean(), rec.getCovE())
+                eff = mvn.pdf(odor.loc, rec.mean, rec.covE)
                 eff = float(eff) / effScale #Scales it from 0 to 1
-                odor.setEff(eff)
+                odor.eff = eff
             odors.append(odor)
-            df += odor.getConc()/odor._aff
+            df += odor.conc/odor._aff
                 
             
             #Second Odorscene
             newLoc = []  #Calculating new location
             index = 0
             while index < len(dn):
-                newLoc.append(odor.getLoc()[index] + dn[index])
+                newLoc.append(odor.loc[index] + dn[index])
                 index += 1
-            newOdor = Ligand(odor.getId(), newLoc, odor.getConc())
+            newOdor = Ligand(odor.id, newLoc, odor.conc)
             
-            aff2 = mvn.pdf(newLoc, rec.getMean(), rec.getCovA())
-            aff2 = aff2 / rec.getScale() #Scales it from 0 to 1
+            aff2 = mvn.pdf(newLoc, rec.mean, rec.covA)
+            aff2 = aff2 / rec.scale #Scales it from 0 to 1
             aff2 = 10**((aff2 * (peak_affinity - minimum_affinity)) + minimum_affinity)
-            newOdor.setAff(float(aff2))
+            newOdor.aff = float(aff2)
             if fixed:
-                newOdor.setEff(1.0)
+                newOdor.eff = 1.0
             else:
-                eff2 = mvn.pdf(newLoc, rec.getMean(), rec.getCovE())
+                eff2 = mvn.pdf(newLoc, rec.mean, rec.covE)
                 eff2 = float(eff2) / effScale #Scales it from 0 to 1
-                newOdor.setEff(eff2)
+                newOdor.eff = eff2
             odors2.append(newOdor)
-            df2 += newOdor.getConc()/newOdor._aff
+            df2 += newOdor.conc/newOdor._aff
                 
         i = 1
         for odor in odors:
-            odor.setOcc( (1) / (1 + ( (odor._aff/odor.getConc()) * (1 + df - (odor.getConc() / odor._aff ) ) ) **m) ) #m=1
+            odor.occ = (1) / (1 + ( (odor._aff/odor.conc) * (1 + df - (odor.conc / odor._aff ) ) ) **m) #m=1
             activ_1 += odor._eff * odor._occ
             rec._occ += odor._occ #Solely for printing individual receptor activations in experiments
             rec._odoAmt += adjOdors(rec, odor)
             i += 1
         i = 1
         
-        rec.setActiv(activ_1) #Solely for printing individual receptor activations in experiments
+        rec.activ = activ_1 #Solely for printing individual receptor activations in experiments
         
         for odor2 in odors2:
-            odor2.setOcc( (1) / (1 + ( (odor2._aff/odor2.getConc()) * (1 + df2 - (odor2.getConc() / odor2._aff ) ) ) **m) ) #m=1
+            odor2.occ = (1) / (1 + ( (odor2._aff/odor2.conc) * (1 + df2 - (odor2.conc / odor2._aff ) ) ) **m) #m=1
             activ_2 += odor2._eff * odor2._occ
             i += 1
         
-        recs2[counter].setActiv(activ_2)
+        recs2[counter].activ = activ_2
         
         dPhi = (activ_1 - activ_2) #########(Maximum value will be 1 or -1 = make sure this is true)
         dPsi += dPhi**2
@@ -1000,13 +1080,13 @@ def sumOfSquares(epithelium, odorscene, dn, fixed=False, c=1, gl=[]):
         
         gl2 = copy.deepcopy(gl)
         
-        conn = glomRecConnNew(epithelium.getRecs(), gl, c, [])
+        conn = glomRecConnNew(epithelium.recs, gl, c, [])
         glomRecConnNew(recs2, gl2, c, conn)
 
         count = 0
         dPsi = 0
         while count < len(gl):
-            dPhi = (gl[count].getActiv() - gl2[count].getActiv())
+            dPhi = (gl[count].activ - gl2[count].activ)
             dPsi += dPhi**2
             count += 1
         return math.sqrt(dPsi)
@@ -1031,15 +1111,15 @@ def sumOfSquaresVectorized(epithelium, odorscene, dn, repIndex, fixed=False, c=1
     If c!=1, then use function to activate glom with 1:c ratio of Glom:Rec
     Precondtion: dn=list in correct dim"""
     
-    #assert odorscene.getDim()== len(dn), "dimension not consistent with dn"
+    #assert odorscene.dim== len(dn), "dimension not consistent with dn"
     
     dPsi = 0
-    recs2 = copy.deepcopy(epithelium.getRecs())
+    recs2 = copy.deepcopy(epithelium.recs)
     layers.clearGLactiv(gl) #Sets gl activations and recConn back to 0.0
     
     
     counter = 0 #for storing info in rec2
-    for rec in epithelium.getRecs():
+    for rec in epithelium.recs:
         
         #Set everything to 0
         activ_1 = 0.0
@@ -1054,32 +1134,32 @@ def sumOfSquaresVectorized(epithelium, odorscene, dn, repIndex, fixed=False, c=1
         df2 = 0
         dphi = 0
         
-        #effScale = float(mvn.pdf(rec.getMean(), rec.getMean(), rec.getCovE())  )
-        effScale = rec.getEffScale()
+        #effScale = float(mvn.pdf(rec.mean, rec.mean, rec.covE)  )
+        effScale = rec.effScale
         
         '''
-        affs = rec.getAffs()
-        effs = rec.getEffs()
+        affs = rec.affs
+        effs = rec.effs
         '''
         oi = 0
-        for odor in odorscene.getOdors():
+        for odor in odorscene.odors:
             #First odorscene
             startTime = time.time()
 
-            odor.setAff(odor._affs[counter])
-            odor.setEff(odor._effs[counter])
+            odor.aff = odor._affs[counter]
+            odor.eff = odor._effs[counter]
             
             
             newOdors = odor.getOdors2()
             odor2 = newOdors[repIndex]
                 
 
-            odor2.setAff(odor2._affs[counter])
-            odor2.setEff(odor2._effs[counter])
+            odor2.aff = odor2._affs[counter]
+            odor2.eff = odor2._effs[counter]
                 
             #df += prepareOdor(odor, rec, fixed, odors, effScale) 
             odors.append(odor)
-            df += odor.getConc()/odor._aff
+            df += odor.conc/odor._aff
             
             #Second Odorscene
             '''
@@ -1087,16 +1167,16 @@ def sumOfSquaresVectorized(epithelium, odorscene, dn, repIndex, fixed=False, c=1
             #index = 0
             #while index < len(dn):
             for index, dnItem in enumerate(dn):    
-                #newLoc.append(odor.getLoc()[index] + dn[index])
-                newLoc.append(odor.getLoc()[index] + dnItem)
+                #newLoc.append(odor.loc[index] + dn[index])
+                newLoc.append(odor.loc[index] + dnItem)
                 #index += 1
-            newOdor = Ligand(odor.getId(), newLoc, odor.getConc())
+            newOdor = Ligand(odor.id, newLoc, odor.conc)
             
             startTime = time.time()
             '''
                 
             odors2.append(odor2)
-            df2 += odor2.getConc()/odor2._aff
+            df2 += odor2.conc/odor2._aff
             
             #df2 += prepareOdor(newOdor, rec, fixed, odors2, effScale) 
                 
@@ -1104,9 +1184,9 @@ def sumOfSquaresVectorized(epithelium, odorscene, dn, repIndex, fixed=False, c=1
             
         #i = 1
         for odor in odors:
-        #for odor in odorscene.getOdors():    
+        #for odor in odorscene.odors:    
             #startTime = time.time()
-            odor.setOcc( (1) / (1 + ( (odor._aff/odor.getConc()) * (1 + df - (odor.getConc() / odor._aff ) ) ) **m) ) #m=1
+            odor.occ = (1) / (1 + ( (odor._aff/odor.conc) * (1 + df - (odor.conc / odor._aff ) ) ) **m) #m=1
             activ_1 += odor._eff * odor._occ
             rec._occ += odor._occ #Solely for printing individual receptor activations in experiments
             #startTime = time.time()
@@ -1114,15 +1194,15 @@ def sumOfSquaresVectorized(epithelium, odorscene, dn, repIndex, fixed=False, c=1
             #i += 1
         #i = 1
         
-        rec.setActiv(activ_1) #Solely for printing individual receptor activations in experiments
+        rec.activ = activ_1 #Solely for printing individual receptor activations in experiments
         
         for odor2 in odors2:
             #startTime = time.time()
-            odor2.setOcc( (1) / (1 + ( (odor2._aff/odor2.getConc()) * (1 + df2 - (odor2.getConc() / odor2._aff ) ) ) **m) ) #m=1
+            odor2.occ = (1) / (1 + ( (odor2._aff/odor2.conc) * (1 + df2 - (odor2.conc / odor2._aff ) ) ) **m) #m=1
             activ_2 += odor2._eff * odor2._occ
             #i += 1
         
-        recs2[counter].setActiv(activ_2)
+        recs2[counter].activ = activ_2
         
         dPhi = (activ_1 - activ_2) #########(Maximum value will be 1 or -1 = make sure this is true)
         dPsi += dPhi**2
@@ -1134,15 +1214,15 @@ def sumOfSquaresVectorized(epithelium, odorscene, dn, repIndex, fixed=False, c=1
         
         gl2 = copy.deepcopy(gl)
         
-        conn = glomRecConnNew(epithelium.getRecs(), gl, c, [])
+        conn = glomRecConnNew(epithelium.recs, gl, c, [])
         glomRecConnNew(recs2, gl2, c, conn)
 
         #count = 0
         dPsi = 0
         for count, glItem in enumerate(gl):
         #while count < len(gl):
-            #dPhi = (gl[count].getActiv() - gl2[count].getActiv())
-            dPhi = (glItem.getActiv() - gl2[count].getActiv())
+            #dPhi = (gl[count].activ - gl2[count].activ)
+            dPhi = (glItem.activ - gl2[count].activ)
             dPsi += dPhi**2
             #count += 1
         #return math.sqrt(dPsi)
@@ -1152,20 +1232,20 @@ def sumOfSquaresVectorized(epithelium, odorscene, dn, repIndex, fixed=False, c=1
 
 def prepareOdor(odor, rec, fixed, odors, effScale): 
     
-    aff = mvn.pdf(odor.getLoc(), rec.getMean(), rec.getCovA())
-    aff = aff / rec.getScale() #Scales it from 0 to 1
+    aff = mvn.pdf(odor.loc, rec.mean, rec.covA)
+    aff = aff / rec.scale #Scales it from 0 to 1
     #Now convert gaussian aff to kda
     #startTime = time.time()
     aff = 10**((aff * (peak_affinity - minimum_affinity)) + minimum_affinity) ##peak_affinity etc. are global variables
-    odor.setAff(float(aff))
+    odor.aff = float(aff)
     if fixed:
-        odor.setEff(1.0)
+        odor.eff = 1.0
     else:
-        eff = mvn.pdf(odor.getLoc(), rec.getMean(), rec.getCovE())
+        eff = mvn.pdf(odor.loc, rec.mean, rec.covE)
         eff = float(eff) / effScale #Scales it from 0 to 1
-        odor.setEff(eff)
+        odor.eff = eff
     odors.append(odor)
-    return odor.getConc()/odor._aff
+    return odor.conc/odor._aff
 
 
 
@@ -1173,11 +1253,11 @@ def prepareOdor(odor, rec, fixed, odors, effScale):
 
 def adjOdors(rec, odor):
     """Returns 1 if odor is within 2 SD of the rec mean. Otherwise returns 0"""
-    #rec._sdA and rec._mean and odor.getLoc()
+    #rec._sdA and rec._mean and odor.loc
     #First find avg of sdA
     i = 0
     avg = 0
-    dim = odor.getDim()
+    dim = odor.dim
     while i < dim:
         avg += rec._sdA[i]
         i += 1
@@ -1186,7 +1266,7 @@ def adjOdors(rec, odor):
     index = 0
     num = 0.0
     while index < dim:
-        num += (float(rec._mean[index]) - float(odor.getLoc()[index]))**2
+        num += (float(rec._mean[index]) - float(odor.loc[index]))**2
         index += 1
     num = math.sqrt(num)
     if num <= (2.0*avg):
@@ -1198,12 +1278,12 @@ def adjOdors(rec, odor):
 def sumOfSquares2(epithelium, odorscene1, odorscene2, fixed=False):
     """Calculates dPsi for two given odorscenes (instead of one odorscene and dn).
     Precondtion: odorscene1 and odorscene 2 have the same dim and same # of odors"""""
-    #assert odorscene1.getDim()==odorscene2.getDim(), "ligand dimensions are different"
-    #assert len(odorscene1.getOdors()) == len(odorscene2.getOdors()), "two odorscenes don't have the same number of ligands to compare"
+    #assert odorscene1.dim==odorscene2.dim, "ligand dimensions are different"
+    #assert len(odorscene1.odors) == len(odorscene2.odors), "two odorscenes don't have the same number of ligands to compare"
     peak_affinity = -8     # literally 10e-8, not influenced by minimum_affinity value
     minimum_affinity = 2   # asymptotic affinity exponent, negligible
     dPsi = 0
-    for rec in epithelium.getRecs():
+    for rec in epithelium.recs:
         #Set everything to 0
         activ_1 = 0.0
         activ_2 = 0.0
@@ -1212,52 +1292,52 @@ def sumOfSquares2(epithelium, odorscene1, odorscene2, fixed=False):
         df = 0
         df2 = 0
         dphi = 0
-        effScale = float(mvn.pdf(rec.getMean(), rec.getMean(), rec.getCovE())  ) 
+        effScale = float(mvn.pdf(rec.mean, rec.mean, rec.covE)  ) 
         
         i = 0
-        while i < len(odorscene1.getOdors()):
+        while i < len(odorscene1.odors):
             #First odorscene
-            odor = odorscene1.getOdors()[i]
-            aff = mvn.pdf(odor.getLoc(), rec.getMean(), rec.getCovA())
-            aff = aff / rec.getScale() #Scales it from 0 to 1
+            odor = odorscene1.odors[i]
+            aff = mvn.pdf(odor.loc, rec.mean, rec.covA)
+            aff = aff / rec.scale #Scales it from 0 to 1
             #if aff > 1e-128:   #Need so don't divide by 0 when calc df
             #Now convert gaussian aff to kda
             aff = 10**((aff * (peak_affinity - minimum_affinity)) + minimum_affinity)
-            odor.setAff(float(aff))
+            odor.aff = float(aff)
             if fixed:
-                odor.setEff(1.0)
+                odor.eff = 1.0
             else:
-                eff = mvn.pdf(odor.getLoc(), rec.getMean(), rec.getCovE())
+                eff = mvn.pdf(odor.loc, rec.mean, rec.covE)
                 eff = float(eff) / effScale #Scales it from 0 to 1
-                odor.setEff(eff)
+                odor.eff = eff
             odors.append(odor)
-            df += odor.getConc()/odor._aff
+            df += odor.conc/odor._aff
               
-            odor2 = odorscene2.getOdors()[i]
-            aff2 = mvn.pdf(odor2.getLoc(), rec.getMean(), rec.getCovA())
-            aff2 = aff2 / rec.getScale() #Scales it from 0 to 1
+            odor2 = odorscene2.odors[i]
+            aff2 = mvn.pdf(odor2.loc, rec.mean, rec.covA)
+            aff2 = aff2 / rec.scale #Scales it from 0 to 1
             #if aff2 > 1e-128:   #Need so don't divide by 0 when calc df
             #Now convert gaussian aff to kda
             aff2 = 10**((aff2 * (peak_affinity - minimum_affinity)) + minimum_affinity)
-            odor2.setAff(float(aff2))
+            odor2.aff = float(aff2)
             if fixed:
-                odor2.setEff(1.0)
+                odor2.eff = 1.0
             else:
-                eff2 = mvn.pdf(odor2.getLoc(), rec.getMean(), rec.getCovE())
+                eff2 = mvn.pdf(odor2.loc, rec.mean, rec.covE)
                 eff2 = float(eff2) / effScale #Scales it from 0 to 1
-                odor2.setEff(eff2)
+                odor2.eff = eff2
             odors2.append(odor2)
-            df2 += odor2.getConc()/odor2._aff
+            df2 += odor2.conc/odor2._aff
             i += 1
             
         i = 0
         while i < len(odors):
             odor = odors[i]
-            odor.setOcc( (1) / (1 + ( (odor._aff/odor.getConc()) * (1 + df - (odor.getConc() / odor._aff ) ) ) **m) ) #m=1
+            odor.setOcc( (1) / (1 + ( (odor._aff/odor.conc) * (1 + df - (odor.conc / odor._aff ) ) ) **m) ) #m=1
             activ_1 += odor._eff * odor._occ
                 
             odor2 = odors2[i]
-            odor2.setOcc( (1) / (1 + ( (odor2._aff/odor2.getConc()) * (1 + df2 - (odor2.getConc() / odor2._aff ) ) ) **m) ) #m=1
+            odor2.setOcc( (1) / (1 + ( (odor2._aff/odor2.conc) * (1 + df2 - (odor2.conc / odor2._aff ) ) ) **m) ) #m=1
             activ_2 += odor2._eff * odor2._occ                
             i+=1
                 
@@ -1273,7 +1353,7 @@ def dPsiBarCalcDiag(epithelium, odorscene, r, fixed=False):
     fixed is fixing efficacy=1"""
     totalDpsi = 0
     #calc new dn (for now just do 4 diagnals regardless of dim)
-    dim = odorscene.getDim()
+    dim = odorscene.dim
     dn = []
     dn2 = []
     dn3 = []
@@ -1303,7 +1383,7 @@ def dPsiBarCalcAnglesOrig(epithelium, odorscene, r, fixed=False, text=None, c=1,
     totalDpsi = 0
     totalAct = [] #Solely for recording rec activ in text file
     totalOcc = [] #Solely for recording rec occupance in text file
-    dim = odorscene.getDim()
+    dim = odorscene.dim
     while amtOfDir < rep:
         #Create randomized list of angles
         angles = []
@@ -1345,7 +1425,7 @@ def dPsiBarCalcAngles(epithelium, odorscene, r, fixed=False, text=None, c=1, gl=
     totalDpsi = 0
     totalAct = [] #Solely for recording rec activ in text file
     totalOcc = [] #Solely for recording rec occupance in text file
-    dim = odorscene.getDim()
+    dim = odorscene.dim
     
     while amtOfDir < rep:
         '''
@@ -1391,16 +1471,16 @@ def recToText(epithelium, gl, c, text):
     if c != 1:
         num = convStrToNum(text._st[-4:])
     if text._name == "exp1":
-        for rec in epithelium.getRecs():
+        for rec in epithelium.recs:
             text._st += "," + str(rec._activ)
-        for rec in epithelium.getRecs():
+        for rec in epithelium.recs:
             text._st += "," + str(rec._occ)
-        for rec in epithelium.getRecs():
+        for rec in epithelium.recs:
             text._st += "," + str(rec._odoAmt)
         text._st += '\n'
     elif text._name == "exp2":
         n = 0
-        for rec in epithelium.getRecs():
+        for rec in epithelium.recs:
             text._st += "Rec" + str(n) + "," + str(rec._activ) + "," + str(rec._occ) + "," + str(rec._odoAmt) + '\n'
             n += 1
         text._st += '\n' #extra space
@@ -1429,11 +1509,11 @@ def colorMapSumOfSquares(epithelium, odorscenes, r, qspace):
     Preconditions: Odorscenes is a list of odorscenes containing one ligand. All the ligands
     fill up Qspace. dim = 2d
     WARNING: only works in 2D"""
-    assert odorscenes[0].getDim()==2, "dimension must be 2D!"
+    assert odorscenes[0].dim==2, "dimension must be 2D!"
     ##Create graph of all 0's
     graph = []
-    maxX = qspace.getSize()[0][1]
-    maxY = qspace.getSize()[1][1]
+    maxX = qspace.size[0][1]
+    maxY = qspace.size[1][1]
     x = 0 
     y = 0
     while y < maxY * params.PIXEL_PER_Q_UNIT:
@@ -1453,32 +1533,32 @@ def colorMapSumOfSquares(epithelium, odorscenes, r, qspace):
         # eff = 1
         dPsiBar = dPsiBarCalcAnglesOrig(epithelium, odorscene, r, True) 
 
-        graph[int(params.PIXEL_PER_Q_UNIT*(odorscene.getOdors()[0].getLoc()[1]))][int(params.PIXEL_PER_Q_UNIT*(odorscene.getOdors()[0].getLoc()[0]))] = dPsiBar
+        graph[int(params.PIXEL_PER_Q_UNIT*(odorscene.odors[0].loc[1]))][int(params.PIXEL_PER_Q_UNIT*(odorscene.odors[0].loc[0]))] = dPsiBar
 
 
     #     #TESTING FOR RECEPTOR ELLIPSE ADD-ON
     ells_sda = []
     ells_sde = []
     ii = -1
-    for i, rec in enumerate(epithelium.getRecs()): 
+    for i, rec in enumerate(epithelium.recs): 
             if params.RECEPTOR_INDEX == 'ALL':
                 ii=i
             else:
                 ii= params.RECEPTOR_INDEX      
             if i == ii:
         
-                qspaceBoundary = qspace.getSize()[1][1]
+                qspaceBoundary = qspace.size[1][1]
                 # ang = rnd.rand()*360
                 ang = rnd.rand()
                 ang1 = rnd.rand()
                 ang2 = rnd.rand()
                 """
-                ells.append(Ellipse(xy=rec.getMean(), width=rec.getSdA()[0]*standardDeviationNumber, height=rec.getSdE()[0]*standardDeviationNumber, angle=ang))
-                ells.append(Ellipse(xy=rec.getMean(), width=rec.getSdA()[1]*standardDeviationNumber, height=rec.getSdE()[1]*standardDeviationNumber, angle=ang))
+                ells.append(Ellipse(xy=rec.mean, width=rec.sdA[0]*standardDeviationNumber, height=rec.sdE[0]*standardDeviationNumber, angle=ang))
+                ells.append(Ellipse(xy=rec.mean, width=rec.sdA[1]*standardDeviationNumber, height=rec.sdE[1]*standardDeviationNumber, angle=ang))
 
                 """
                 if params.SHOW_SDA_ELLIPSE:
-                    # ells_sda.append(Ellipse(xy=rec.getMean(), width=rec.getSdA()[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.getSdA()[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang))
+                    # ells_sda.append(Ellipse(xy=rec.mean, width=rec.sdA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang))
                     
                     ells_sda.append(Ellipse(xy=params.MOCK_RECEPTOR_MEAN, width=params.MOCK_RECEPTOR_SDA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=params.MOCK_RECEPTOR_SDA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
                     ells_sda.append(Ellipse(xy=params.MOCK_RECEPTOR_MEAN1, width=params.MOCK_RECEPTOR_SDA1[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=params.MOCK_RECEPTOR_SDA1[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang1))
@@ -1486,63 +1566,63 @@ def colorMapSumOfSquares(epithelium, odorscenes, r, qspace):
         
 
                     # ***************** UNCOMMENT HERE TO PLOT RECEPTORS IN TORUS **************************
-                    # newMeanLeft = [rec.getMean()[0]-qspaceBoundary, rec.getMean()[1]]
-                    # ells_sda.append(Ellipse(xy=newMeanLeft, width=rec.getSdA()[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.getSdA()[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
-                    # newMeanRight = [rec.getMean()[0] + qspaceBoundary, rec.getMean()[1]]
-                    # ells_sda.append(Ellipse(xy=newMeanRight, width=rec.getSdA()[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.getSdA()[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
-                    # newMeanBottom = [rec.getMean()[0], rec.getMean()[1]-qspaceBoundary]
-                    # ells_sda.append(Ellipse(xy=newMeanBottom, width=rec.getSdA()[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.getSdA()[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
-                    # newMeanTop = [rec.getMean()[0], rec.getMean()[1] + qspaceBoundary]
-                    # ells_sda.append(Ellipse(xy=newMeanTop, width=rec.getSdA()[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.getSdA()[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
+                    # newMeanLeft = [rec.mean[0]-qspaceBoundary, rec.mean[1]]
+                    # ells_sda.append(Ellipse(xy=newMeanLeft, width=rec.sdA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
+                    # newMeanRight = [rec.mean[0] + qspaceBoundary, rec.mean[1]]
+                    # ells_sda.append(Ellipse(xy=newMeanRight, width=rec.sdA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
+                    # newMeanBottom = [rec.mean[0], rec.mean[1]-qspaceBoundary]
+                    # ells_sda.append(Ellipse(xy=newMeanBottom, width=rec.sdA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
+                    # newMeanTop = [rec.mean[0], rec.mean[1] + qspaceBoundary]
+                    # ells_sda.append(Ellipse(xy=newMeanTop, width=rec.sdA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
                     # # bottom left
-                    # newMean1bottomLeft=[rec.getMean()[0]-qspaceBoundary, rec.getMean()[1]-qspaceBoundary]
-                    # ells_sda.append(Ellipse(xy=newMean1bottomLeft, width=rec.getSdA()[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.getSdA()[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))            
+                    # newMean1bottomLeft=[rec.mean[0]-qspaceBoundary, rec.mean[1]-qspaceBoundary]
+                    # ells_sda.append(Ellipse(xy=newMean1bottomLeft, width=rec.sdA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))            
 
                     # # bottom right
-                    # newMean1bottomRight=[rec.getMean()[0] + qspaceBoundary, rec.getMean()[1]-qspaceBoundary]
-                    # ells_sda.append(Ellipse(xy=newMean1bottomRight, width=rec.getSdA()[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.getSdA()[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))            
+                    # newMean1bottomRight=[rec.mean[0] + qspaceBoundary, rec.mean[1]-qspaceBoundary]
+                    # ells_sda.append(Ellipse(xy=newMean1bottomRight, width=rec.sdA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))            
             
                     # # top left
-                    # newMean1topLeft=[rec.getMean()[0]-qspaceBoundary, rec.getMean()[1] + qspaceBoundary]
-                    # ells_sda.append(Ellipse(xy=newMean1topLeft, width=rec.getSdA()[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.getSdA()[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
+                    # newMean1topLeft=[rec.mean[0]-qspaceBoundary, rec.mean[1] + qspaceBoundary]
+                    # ells_sda.append(Ellipse(xy=newMean1topLeft, width=rec.sdA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
 
                     # # top right
-                    # newMean1topRight=[rec.getMean()[0] + qspaceBoundary, rec.getMean()[1] + qspaceBoundary]
-                    # ells_sda.append(Ellipse(xy=newMean1topRight, width=rec.getSdA()[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.getSdA()[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
+                    # newMean1topRight=[rec.mean[0] + qspaceBoundary, rec.mean[1] + qspaceBoundary]
+                    # ells_sda.append(Ellipse(xy=newMean1topRight, width=rec.sdA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
 
                     
                 if params.SHOW_SDE_ELLIPSE:
-                    # ells_sde.append(Ellipse(xy=rec.getMean(), width=rec.getSdE()[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.getSdE()[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
+                    # ells_sde.append(Ellipse(xy=rec.mean, width=rec.sdE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
                     
                     ells_sde.append(Ellipse(xy=params.MOCK_RECEPTOR_MEAN, width=params.MOCK_RECEPTOR_SDE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=params.MOCK_RECEPTOR_SDE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
                     ells_sde.append(Ellipse(xy=params.MOCK_RECEPTOR_MEAN1, width=params.MOCK_RECEPTOR_SDE1[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=params.MOCK_RECEPTOR_SDE1[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang1))
                     ells_sde.append(Ellipse(xy=params.MOCK_RECEPTOR_MEAN2, width=params.MOCK_RECEPTOR_SDE2[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=params.MOCK_RECEPTOR_SDE2[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang2))
 
                     # ***************** UNCOMMENT HERE TO PLOT RECEPTORS IN TORUS **************************
-                    # newMeanLeft = [rec.getMean()[0] - qspaceBoundary, rec.getMean()[1]]
-                    # ells_sde.append(Ellipse(xy=newMeanLeft, width=rec.getSdE()[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.getSdE()[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
-                    # newMeanRight = [rec.getMean()[0] + qspaceBoundary, rec.getMean()[1]]
-                    # ells_sde.append(Ellipse(xy=newMeanRight, width=rec.getSdE()[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.getSdE()[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
-                    # newMeanBottom = [rec.getMean()[0], rec.getMean()[1] - qspaceBoundary]
-                    # ells_sde.append(Ellipse(xy=newMeanBottom, width=rec.getSdE()[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.getSdE()[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
-                    # newMeanTop = [rec.getMean()[0], rec.getMean()[1] + qspaceBoundary]
-                    # ells_sde.append(Ellipse(xy=newMeanTop, width=rec.getSdE()[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.getSdE()[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
+                    # newMeanLeft = [rec.mean[0] - qspaceBoundary, rec.mean[1]]
+                    # ells_sde.append(Ellipse(xy=newMeanLeft, width=rec.sdE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
+                    # newMeanRight = [rec.mean[0] + qspaceBoundary, rec.mean[1]]
+                    # ells_sde.append(Ellipse(xy=newMeanRight, width=rec.sdE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
+                    # newMeanBottom = [rec.mean[0], rec.mean[1] - qspaceBoundary]
+                    # ells_sde.append(Ellipse(xy=newMeanBottom, width=rec.sdE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
+                    # newMeanTop = [rec.mean[0], rec.mean[1] + qspaceBoundary]
+                    # ells_sde.append(Ellipse(xy=newMeanTop, width=rec.sdE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
                     
                     # # bottom left
-                    # newMean1bottomLeft=[rec.getMean()[0]-qspaceBoundary, rec.getMean()[1]-qspaceBoundary]
-                    # ells_sde.append(Ellipse(xy=newMean1bottomLeft, width=rec.getSdE()[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.getSdE()[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))            
+                    # newMean1bottomLeft=[rec.mean[0]-qspaceBoundary, rec.mean[1]-qspaceBoundary]
+                    # ells_sde.append(Ellipse(xy=newMean1bottomLeft, width=rec.sdE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))            
 
                     # # bottom right
-                    # newMean1bottomRight=[rec.getMean()[0] + qspaceBoundary, rec.getMean()[1]-qspaceBoundary]
-                    # ells_sde.append(Ellipse(xy=newMean1bottomRight, width=rec.getSdE()[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.getSdE()[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))            
+                    # newMean1bottomRight=[rec.mean[0] + qspaceBoundary, rec.mean[1]-qspaceBoundary]
+                    # ells_sde.append(Ellipse(xy=newMean1bottomRight, width=rec.sdE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))            
             
                     # # top left
-                    # newMean1topLeft=[rec.getMean()[0]-qspaceBoundary, rec.getMean()[1] + qspaceBoundary]
-                    # ells_sde.append(Ellipse(xy=newMean1topLeft, width=rec.getSdE()[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.getSdE()[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
+                    # newMean1topLeft=[rec.mean[0]-qspaceBoundary, rec.mean[1] + qspaceBoundary]
+                    # ells_sde.append(Ellipse(xy=newMean1topLeft, width=rec.sdE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
 
                     # # top right
-                    # newMean1topRight=[rec.getMean()[0] + qspaceBoundary, rec.getMean()[1] + qspaceBoundary]
-                    # ells_sde.append(Ellipse(xy=newMean1topRight, width=rec.getSdE()[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.getSdE()[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
+                    # newMean1topRight=[rec.mean[0] + qspaceBoundary, rec.mean[1] + qspaceBoundary]
+                    # ells_sde.append(Ellipse(xy=newMean1topRight, width=rec.sdE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=rec.sdE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang, zorder=10))
 
 
                 #ells.append(Ellipse(xy=rnd.rand(2)*10, width=rnd.rand(), height=rnd.rand(), angle=rnd.rand()*360))
@@ -1585,8 +1665,8 @@ def colorMapSumOfSquares(epithelium, odorscenes, r, qspace):
             e.set_label("SDE")
             e.set_linewidth (params.LINE_WIDTH)
 
-        ax.set_xlim(qspace.getSize()[0])
-        ax.set_ylim(qspace.getSize()[0])
+        ax.set_xlim(qspace.size[0])
+        ax.set_ylim(qspace.size[0])
 
 
     # PLOT ODORS
@@ -1594,10 +1674,10 @@ def colorMapSumOfSquares(epithelium, odorscenes, r, qspace):
     #     locXaxis = []
     #     locYaxis = []
     #     for odorscene in odorscenes:
-    #         for odor in odorscene.getOdors():
-    #             print(odor.getLoc())
-    #             locXaxis.append(odor.getLoc()[0])
-    #             locYaxis.append(odor.getLoc()[1])
+    #         for odor in odorscene.odors:
+    #             print(odor.loc)
+    #             locXaxis.append(odor.loc[0])
+    #             locYaxis.append(odor.loc[1])
 
     # plt.scatter(locXaxis,locYaxis, s=4, c='black')
 
@@ -1616,7 +1696,7 @@ def colorMapSumOfSquares(epithelium, odorscenes, r, qspace):
     plt.xlabel("X")
     plt.ylabel("Y")
     fig.colorbar(im)
-    pp = PdfPages('ColorMap' + str(qspace.getSize()[0]) + '.pdf')
+    pp = PdfPages('ColorMap' + str(qspace.size[0]) + '.pdf')
         
     pp.savefig()
     pp.close()
@@ -1638,7 +1718,7 @@ def dPsiBarCalcDns(odorscene, r, rep):
     #totalDpsi = 0
     #totalAct = [] #Solely for recording rec activ in text file
     #totalOcc = [] #Solely for recording rec occupance in text file
-    dim = odorscene.getDim()
+    dim = odorscene.dim
     
     while amtOfDir < rep:
         
@@ -1692,7 +1772,7 @@ def dPsiBarSaturation(epithelium, r, qspace, pdfName, labelName, excelName, fixe
     size = ODOR_REPETITIONS #amount of odorscenes we want to avg out
     #conc = 1e-5
     conc = params.ODOR_CONCENTRATION
-    gl = layers.createGL(len(epithelium.getRecs())) #Only if using newly modified gl:rec n:1 ratio
+    gl = layers.createGL(len(epithelium.recs)) #Only if using newly modified gl:rec n:1 ratio
     
     
     #Instantiate odorscene and ligand lists
@@ -1759,7 +1839,7 @@ def dPsiBarSaturation(epithelium, r, qspace, pdfName, labelName, excelName, fixe
     st2 = ""
     st3 = ""
     p = 0
-    while p < len(epithelium.getRecs()):
+    while p < len(epithelium.recs):
         st += "activ " + str(p) + ","
         st2 += "occ " + str(p) + ","
         st3 += "odoAmt " +str(p) + ","
@@ -1813,7 +1893,7 @@ def dPsiBarSaturation(epithelium, r, qspace, pdfName, labelName, excelName, fixe
                 odor = Ligand(n, createLoc(qspace), conc)
                 #ligandsArray.append(Ligand(i, createLoc(qspace), conc))
                 ligandsArray.append(odor)
-                pdfOdorLocsInput.append(odor.getLoc())
+                pdfOdorLocsInput.append(odor.loc)
                 n+=1
             #odorscenesArray[k].append(Odorscene(i, ligandsArray[k]))
             odorscene = Odorscene(k, ligandsArray)
@@ -1823,13 +1903,13 @@ def dPsiBarSaturation(epithelium, r, qspace, pdfName, labelName, excelName, fixe
             dns = dPsiBarCalcDns(odorscene, r, rep)
             
             #Second odors
-            for oriOdor in odorscene.getOdors():
+            for oriOdor in odorscene.odors:
                 for i in range(rep):
                     newLoc = []  #Calculating new location
                     for index, dnItem in enumerate(dns):    
-                        newLoc.append(oriOdor.getLoc()[index] + dnItem)
-                    newOdor = Ligand(oriOdor.getId(), newLoc, oriOdor.getConc())
-                    pdfOdorLocsInput2.append(newOdor.getLoc())
+                        newLoc.append(oriOdor.loc[index] + dnItem)
+                    newOdor = Ligand(oriOdor.id, newLoc, oriOdor.conc)
+                    pdfOdorLocsInput2.append(newOdor.loc)
                     oriOdor.appendToOdors2(newOdor)
                     
             
@@ -1851,21 +1931,21 @@ def dPsiBarSaturation(epithelium, r, qspace, pdfName, labelName, excelName, fixe
     
     ##############################################################
     #'''
-    for rec in epithelium.getRecs():
-        affs_rec = mvn.pdf(pdfOdorLocsInput, rec.getMean(), rec.getCovA())
+    for rec in epithelium.recs:
+        affs_rec = mvn.pdf(pdfOdorLocsInput, rec.mean, rec.covA)
         
-        affs_rec = affs_rec / rec.getScale() #Scales it from 0 to 1
+        affs_rec = affs_rec / rec.scale #Scales it from 0 to 1
         #Now convert gaussian aff to kda
         #startTime = time.time()
         affs_rec = 10**((affs_rec * (peak_affinity - minimum_affinity)) + minimum_affinity) ##peak_affinity etc. are global variables
         
-        rec.setAffs(affs_rec)
+        rec.affs = affs_rec
         affs = np.append(affs,affs_rec)
         
         
         if not fixed:
-            effs_rec = mvn.pdf(pdfOdorLocsInput, rec.getMean(), rec.getCovE())
-            effs_rec = np.asarray(effs_rec,dtype=np.float64) / rec.getEffScale() #Scales it from 0 to 1
+            effs_rec = mvn.pdf(pdfOdorLocsInput, rec.mean, rec.covE)
+            effs_rec = np.asarray(effs_rec,dtype=np.float64) / rec.effScale #Scales it from 0 to 1
 
 
             effs = np.append(effs,effs_rec)
@@ -1873,14 +1953,14 @@ def dPsiBarSaturation(epithelium, r, qspace, pdfName, labelName, excelName, fixe
         else:
             effs_rec = np.repeat(1.0, affs_rec.size)
             effs = np.repeat(1.0, affs.size)
-        rec.setEffs(effs_rec)
+        rec.effs = effs_rec
 
 
 
         # now do odors2 calc
-        affs_rec2 = mvn.pdf(pdfOdorLocsInput2, rec.getMean(), rec.getCovA())
+        affs_rec2 = mvn.pdf(pdfOdorLocsInput2, rec.mean, rec.covA)
         
-        affs_rec2 = affs_rec2 / rec.getScale() #Scales it from 0 to 1
+        affs_rec2 = affs_rec2 / rec.scale #Scales it from 0 to 1
         #Now convert gaussian aff to kda
         #startTime = time.time()
         affs_rec2 = 10**((affs_rec2 * (peak_affinity - minimum_affinity)) + minimum_affinity) ##peak_affinity etc. are global variables
@@ -1890,8 +1970,8 @@ def dPsiBarSaturation(epithelium, r, qspace, pdfName, labelName, excelName, fixe
         
         
         if not fixed:
-            effs_rec2 = mvn.pdf(pdfOdorLocsInput2, rec.getMean(), rec.getCovE())
-            effs_rec2 = np.asarray(effs_rec2,dtype=np.float64) / rec.getEffScale() #Scales it from 0 to 1
+            effs_rec2 = mvn.pdf(pdfOdorLocsInput2, rec.mean, rec.covE)
+            effs_rec2 = np.asarray(effs_rec2,dtype=np.float64) / rec.effScale #Scales it from 0 to 1
 
 
             effs2 = np.append(effs2,effs_rec2)
@@ -1903,7 +1983,7 @@ def dPsiBarSaturation(epithelium, r, qspace, pdfName, labelName, excelName, fixe
 
         #rec.setEffs(effs_rec)
             
-            #effs = np.asarray(effs,dtype=np.float64) / rec.getEffScale() #Scales it from 0 to 1
+            #effs = np.asarray(effs,dtype=np.float64) / rec.effScale #Scales it from 0 to 1
     #affs = np.asarray(affs,dtype=np.float64)
     #effs = np.asarray(effs,dtype=np.float64)       
 
@@ -1917,10 +1997,10 @@ def dPsiBarSaturation(epithelium, r, qspace, pdfName, labelName, excelName, fixe
     vi2 = 0
     for i in range(size):
         for k, j in enumerate(xaxis):
-            #saveOdorscene(odorscenesArray[k][i], "Saved Odors" + str(qspace.getSize()[0]) + purp)
+            #saveOdorscene(odorscenesArray[k][i], "Saved Odors" + str(qspace.size[0]) + purp)
 
-            for odor in odorscenesArray[k][i].getOdors(): #odorscenesArray[k][i].getOdors()
-                for li, loc in enumerate(odor.getLoc()):
+            for odor in odorscenesArray[k][i].odors: #odorscenesArray[k][i].odors
+                for li, loc in enumerate(odor.loc):
                     if li == 0:
                         locXaxis.append(loc)
                     if li == 1:    
@@ -1928,7 +2008,7 @@ def dPsiBarSaturation(epithelium, r, qspace, pdfName, labelName, excelName, fixe
                 """
                 for odor2 in odor.getOdors2():
     
-                    for li, loc in enumerate(odor2.getLoc()):
+                    for li, loc in enumerate(odor2.loc):
                         if li == 0:
                             locXaxis.append(loc)
                         if li == 1:    
@@ -1937,7 +2017,7 @@ def dPsiBarSaturation(epithelium, r, qspace, pdfName, labelName, excelName, fixe
 
             #n = 0
             #while n < j:
-                for rec in epithelium.getRecs():
+                for rec in epithelium.recs:
                     
                     odor.appendToAffs(float(affs[vi]))
                     odor.appendToEffs(float(effs[vi]))
@@ -1969,7 +2049,7 @@ def dPsiBarSaturation(epithelium, r, qspace, pdfName, labelName, excelName, fixe
     test.close
     
     if c != 1:
-        test = open("Glom_act with c=" + str(c) + " with " + str(qspace.getSize()[0]) + " qspace.csv", "w")
+        test = open("Glom_act with c=" + str(c) + " with " + str(qspace.size[0]) + " qspace.csv", "w")
         test.write(text._st2)
         test.close
     
@@ -1979,7 +2059,7 @@ def dPsiBarSaturation(epithelium, r, qspace, pdfName, labelName, excelName, fixe
     while i < len(xaxis):
         st += str(xaxis[i]) + "," + str(yaxis[i]) + '\n'
         i += 1
-    n = "dPsi, qspace=(0, " + str(qspace.getSize()[0][1]) + ")" + purp
+    n = "dPsi, qspace=(0, " + str(qspace.size[0][1]) + ")" + purp
     test = open(n + ".csv", "w")
     test.write(st)
     test.close
@@ -2005,7 +2085,7 @@ def dPsiBarSaturation(epithelium, r, qspace, pdfName, labelName, excelName, fixe
 def createLoc(qspace):
     """Given a qspace, return a list of randomized numbers (len=dim) within the qspace"""
     loc = []
-    for tup in qspace.getSize():
+    for tup in qspace.size:
         a1 = tup[0]
         a2 = tup[1]
         loc.append(random.uniform(a1,a2))
@@ -2027,12 +2107,12 @@ def drawOdorLocations(locXaxis,locYaxis, qspace, close):
     '''
 
     #plt.legend()
-    plt.title("Odor Locations - QSpace "+ str(qspace.getSize()[0]))
+    plt.title("Odor Locations - QSpace "+ str(qspace.size[0]))
     plt.xlabel("x coordinates")
     plt.ylabel("y coordinates")
     
     #plt.show()
-    pp = PdfPages("Odor Locations " + str(qspace.getSize()[0]) + '.pdf')
+    pp = PdfPages("Odor Locations " + str(qspace.size[0]) + '.pdf')
     pp.savefig()
     pp.close()
     if close == True: #No more data to add to the graph
@@ -2053,7 +2133,7 @@ def drawContourGraph(qspace):
     plt.ylabel('y (cm)')
 
     plt.legend()
-    plt.title("Odor Locations - QSpace "+ str(qspace.getSize()[0]))
+    plt.title("Odor Locations - QSpace "+ str(qspace.size[0]))
     plt.xlabel("x coordinates")
     plt.ylabel("y coordinates")
     #Set y_axis limit
@@ -2061,7 +2141,7 @@ def drawContourGraph(qspace):
     #axes.set_ylim([0,1.0]) #*****Change if using >30 recs
     
     #plt.show()
-    pp = PdfPages("Contour " + str(qspace.getSize()[0]) + '.pdf')
+    pp = PdfPages("Contour " + str(qspace.size[0]) + '.pdf')
     pp.savefig()
     pp.close()
     #if close == True: #No more data to add to the graph
@@ -2210,80 +2290,80 @@ def drawEllipseGraph(qspace, epithelium, odorscenesArray, useMockData=False):
             # ells_sde.append(Ellipse(xy=newMean2top, width=params.MOCK_RECEPTOR_SDE2[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, height=params.MOCK_RECEPTOR_SDE2[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION, angle=ang2))
 
     else:
-        #for rec in epithelium.getRecs():
+        #for rec in epithelium.recs:
         ii = -1
-        for i, rec in enumerate(epithelium.getRecs()): 
+        for i, rec in enumerate(epithelium.recs): 
             if params.RECEPTOR_INDEX == 'ALL':
                 ii=i
             else:
                 ii= params.RECEPTOR_INDEX      
             if i == ii:
         
-                qspaceBoundary = qspace.getSize()[1][1]
+                qspaceBoundary = qspace.size[1][1]
                 # ang = rnd.rand()*360
                 ang = rnd.rand()
                 """
-                ells.append(Ellipse(xy=rec.getMean(), width=rec.getSdA()[0]*standardDeviationNumber, height=rec.getSdE()[0]*standardDeviationNumber, angle=ang))
-                ells.append(Ellipse(xy=rec.getMean(), width=rec.getSdA()[1]*standardDeviationNumber, height=rec.getSdE()[1]*standardDeviationNumber, angle=ang))
+                ells.append(Ellipse(xy=rec.mean, width=rec.sdA[0]*standardDeviationNumber, height=rec.sdE[0]*standardDeviationNumber, angle=ang))
+                ells.append(Ellipse(xy=rec.mean, width=rec.sdA[1]*standardDeviationNumber, height=rec.sdE[1]*standardDeviationNumber, angle=ang))
 
                 """
                 if params.SHOW_SDA_ELLIPSE:
-                    ells_sda.append(Ellipse(xy=rec.getMean(), width=rec.getSdA()[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.getSdA()[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
+                    ells_sda.append(Ellipse(xy=rec.mean, width=rec.sdA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
                     
-                    # newMeanLeft = [rec.getMean()[0]-qspaceBoundary, rec.getMean()[1]]
+                    # newMeanLeft = [rec.mean[0]-qspaceBoundary, rec.mean[1]]
                     # print "newMeanLeft = " + str(newMeanLeft)
-                    # print "newMeanLeft x value is " + str(rec.getMean()[0] - qspaceBoundary) + "!!!!! mean is " + str(rec.getMean()) + "!!!!! qspace boundary is " + str(qspaceBoundary)
-                    # ells_sda.append(Ellipse(xy=newMeanLeft, width=rec.getSdA()[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.getSdA()[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
-                    # newMeanRight = [rec.getMean()[0] + qspaceBoundary, rec.getMean()[1]]
-                    # ells_sda.append(Ellipse(xy=newMeanRight, width=rec.getSdA()[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.getSdA()[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
-                    # newMeanBottom = [rec.getMean()[0], rec.getMean()[1]-qspaceBoundary]
-                    # ells_sda.append(Ellipse(xy=newMeanBottom, width=rec.getSdA()[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.getSdA()[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
-                    # newMeanTop = [rec.getMean()[0], rec.getMean()[1] + qspaceBoundary]
-                    # ells_sda.append(Ellipse(xy=newMeanTop, width=rec.getSdA()[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.getSdA()[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
+                    # print "newMeanLeft x value is " + str(rec.mean[0] - qspaceBoundary) + "!!!!! mean is " + str(rec.mean) + "!!!!! qspace boundary is " + str(qspaceBoundary)
+                    # ells_sda.append(Ellipse(xy=newMeanLeft, width=rec.sdA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
+                    # newMeanRight = [rec.mean[0] + qspaceBoundary, rec.mean[1]]
+                    # ells_sda.append(Ellipse(xy=newMeanRight, width=rec.sdA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
+                    # newMeanBottom = [rec.mean[0], rec.mean[1]-qspaceBoundary]
+                    # ells_sda.append(Ellipse(xy=newMeanBottom, width=rec.sdA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
+                    # newMeanTop = [rec.mean[0], rec.mean[1] + qspaceBoundary]
+                    # ells_sda.append(Ellipse(xy=newMeanTop, width=rec.sdA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
                     # # bottom left
-                    # newMean1bottomLeft=[rec.getMean()[0]-qspaceBoundary, rec.getMean()[1]-qspaceBoundary]
-                    # ells_sda.append(Ellipse(xy=newMean1bottomLeft, width=rec.getSdA()[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.getSdA()[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))            
+                    # newMean1bottomLeft=[rec.mean[0]-qspaceBoundary, rec.mean[1]-qspaceBoundary]
+                    # ells_sda.append(Ellipse(xy=newMean1bottomLeft, width=rec.sdA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))            
 
                     # # bottom right
-                    # newMean1bottomRight=[rec.getMean()[0] + qspaceBoundary, rec.getMean()[1]-qspaceBoundary]
-                    # ells_sda.append(Ellipse(xy=newMean1bottomRight, width=rec.getSdA()[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.getSdA()[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))            
+                    # newMean1bottomRight=[rec.mean[0] + qspaceBoundary, rec.mean[1]-qspaceBoundary]
+                    # ells_sda.append(Ellipse(xy=newMean1bottomRight, width=rec.sdA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))            
             
                     # # top left
-                    # newMean1topLeft=[rec.getMean()[0]-qspaceBoundary, rec.getMean()[1] + qspaceBoundary]
-                    # ells_sda.append(Ellipse(xy=newMean1topLeft, width=rec.getSdA()[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.getSdA()[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
+                    # newMean1topLeft=[rec.mean[0]-qspaceBoundary, rec.mean[1] + qspaceBoundary]
+                    # ells_sda.append(Ellipse(xy=newMean1topLeft, width=rec.sdA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
 
                     # # top right
-                    # newMean1topRight=[rec.getMean()[0] + qspaceBoundary, rec.getMean()[1] + qspaceBoundary]
-                    # ells_sda.append(Ellipse(xy=newMean1topRight, width=rec.getSdA()[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.getSdA()[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
+                    # newMean1topRight=[rec.mean[0] + qspaceBoundary, rec.mean[1] + qspaceBoundary]
+                    # ells_sda.append(Ellipse(xy=newMean1topRight, width=rec.sdA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdA[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
 
                     
                 if params.SHOW_SDE_ELLIPSE:
-                    ells_sde.append(Ellipse(xy=rec.getMean(), width=rec.getSdE()[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.getSdE()[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
+                    ells_sde.append(Ellipse(xy=rec.mean, width=rec.sdE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
                     
-                    # newMeanLeft = [rec.getMean()[0] - qspaceBoundary, rec.getMean()[1]]
-                    # ells_sde.append(Ellipse(xy=newMeanLeft, width=rec.getSdE()[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.getSdE()[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
-                    # newMeanRight = [rec.getMean()[0] + qspaceBoundary, rec.getMean()[1]]
-                    # ells_sde.append(Ellipse(xy=newMeanRight, width=rec.getSdE()[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.getSdE()[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
-                    # newMeanBottom = [rec.getMean()[0], rec.getMean()[1] - qspaceBoundary]
-                    # ells_sde.append(Ellipse(xy=newMeanBottom, width=rec.getSdE()[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.getSdE()[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
-                    # newMeanTop = [rec.getMean()[0], rec.getMean()[1] + qspaceBoundary]
-                    # ells_sde.append(Ellipse(xy=newMeanTop, width=rec.getSdE()[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.getSdE()[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
+                    # newMeanLeft = [rec.mean[0] - qspaceBoundary, rec.mean[1]]
+                    # ells_sde.append(Ellipse(xy=newMeanLeft, width=rec.sdE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
+                    # newMeanRight = [rec.mean[0] + qspaceBoundary, rec.mean[1]]
+                    # ells_sde.append(Ellipse(xy=newMeanRight, width=rec.sdE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
+                    # newMeanBottom = [rec.mean[0], rec.mean[1] - qspaceBoundary]
+                    # ells_sde.append(Ellipse(xy=newMeanBottom, width=rec.sdE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
+                    # newMeanTop = [rec.mean[0], rec.mean[1] + qspaceBoundary]
+                    # ells_sde.append(Ellipse(xy=newMeanTop, width=rec.sdE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
                     
                     # # bottom left
-                    # newMean1bottomLeft=[rec.getMean()[0]-qspaceBoundary, rec.getMean()[1]-qspaceBoundary]
-                    # ells_sde.append(Ellipse(xy=newMean1bottomLeft, width=rec.getSdE()[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.getSdE()[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))            
+                    # newMean1bottomLeft=[rec.mean[0]-qspaceBoundary, rec.mean[1]-qspaceBoundary]
+                    # ells_sde.append(Ellipse(xy=newMean1bottomLeft, width=rec.sdE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))            
 
                     # # bottom right
-                    # newMean1bottomRight=[rec.getMean()[0] + qspaceBoundary, rec.getMean()[1]-qspaceBoundary]
-                    # ells_sde.append(Ellipse(xy=newMean1bottomRight, width=rec.getSdE()[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.getSdE()[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))            
+                    # newMean1bottomRight=[rec.mean[0] + qspaceBoundary, rec.mean[1]-qspaceBoundary]
+                    # ells_sde.append(Ellipse(xy=newMean1bottomRight, width=rec.sdE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))            
             
                     # # top left
-                    # newMean1topLeft=[rec.getMean()[0]-qspaceBoundary, rec.getMean()[1] + qspaceBoundary]
-                    # ells_sde.append(Ellipse(xy=newMean1topLeft, width=rec.getSdE()[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.getSdE()[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
+                    # newMean1topLeft=[rec.mean[0]-qspaceBoundary, rec.mean[1] + qspaceBoundary]
+                    # ells_sde.append(Ellipse(xy=newMean1topLeft, width=rec.sdE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
 
                     # # top right
-                    # newMean1topRight=[rec.getMean()[0] + qspaceBoundary, rec.getMean()[1] + qspaceBoundary]
-                    # ells_sde.append(Ellipse(xy=newMean1topRight, width=rec.getSdE()[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.getSdE()[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
+                    # newMean1topRight=[rec.mean[0] + qspaceBoundary, rec.mean[1] + qspaceBoundary]
+                    # ells_sde.append(Ellipse(xy=newMean1topRight, width=rec.sdE[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=rec.sdE[1]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang))
 
 
                 #ells.append(Ellipse(xy=rnd.rand(2)*10, width=rnd.rand(), height=rnd.rand(), angle=rnd.rand()*360))
@@ -2325,8 +2405,8 @@ def drawEllipseGraph(qspace, epithelium, odorscenesArray, useMockData=False):
         ax.set_ylim(params.MOCK_QSPACE_DIMENSION)
         
     else:
-        ax.set_xlim(qspace.getSize()[0])
-        ax.set_ylim(qspace.getSize()[0])
+        ax.set_xlim(qspace.size[0])
+        ax.set_ylim(qspace.size[0])
 
     """
     sda_patch = patches.Patch(color='red', label='SDA')
@@ -2352,9 +2432,9 @@ def drawEllipseGraph(qspace, epithelium, odorscenesArray, useMockData=False):
                 locYaxis.append(loc[1])
 
     else:    
-        for odor in odorscenesArray[params.ODORSCENE_INDEX][params.ODORSCENE_REP_NUMBER].getOdors(): #odorscenesArray[k][i].getOdors()
-            locSizes.append((math.log10(odor.getConc())+10)*10)
-            for li, loc in enumerate(odor.getLoc()):
+        for odor in odorscenesArray[params.ODORSCENE_INDEX][params.ODORSCENE_REP_NUMBER].odors: #odorscenesArray[k][i].odors
+            locSizes.append((math.log10(odor.conc)+10)*10)
+            for li, loc in enumerate(odor.loc):
 
                 if li == 0:
                     locXaxis.append(loc)
@@ -2365,7 +2445,7 @@ def drawEllipseGraph(qspace, epithelium, odorscenesArray, useMockData=False):
 
 
     #plt.legend()
-    #plt.title("Receptors - QSpace "+ str(qspace.getSize()[0])+ "Std Dev "+ str(params.ODORSCENE_REP_NUMBER))
+    #plt.title("Receptors - QSpace "+ str(qspace.size[0])+ "Std Dev "+ str(params.ODORSCENE_REP_NUMBER))
     plt.title(params.GRAPH_TITLE)
     plt.xlabel(params.XLABEL)
     plt.ylabel(params.YLABEL)
@@ -2375,7 +2455,7 @@ def drawEllipseGraph(qspace, epithelium, odorscenesArray, useMockData=False):
     if useMockData:
         pp = PdfPages(params.GRAPH_FILE_NAME + str(params.MOCK_QSPACE_DIMENSION) + '.pdf')    
     else:    
-        pp = PdfPages(params.GRAPH_FILE_NAME + str(qspace.getSize()[0]) + '.pdf')
+        pp = PdfPages(params.GRAPH_FILE_NAME + str(qspace.size[0]) + '.pdf')
         
     pp.savefig()
     pp.close()
@@ -2448,9 +2528,9 @@ def dPsiGraphFromExcel(name, qspace, titleName, pdfName, close=False):
     text = open(name)
     xaxis = []
     yaxis = []
-    label = "(0," + str(qspace.getSize()[0][1]) + ") qspace"
+    label = "(0," + str(qspace.size[0][1]) + ") qspace"
     if titleName[-3:] == "dim":
-        label = str(len(qspace.getSize())) + "D"
+        label = str(len(qspace.size)) + "D"
     
     i = 0
     for line in text:
@@ -2630,7 +2710,7 @@ def recInQspace(n, dimen, qspace, sd=.5):
     
     dimen = float(dimen)
     n = float(n)
-    length = float(qspace.getSize()[0][1])
+    length = float(qspace.size[0][1])
     chgDim = dimen
     numInRow = math.floor(n**(1/dimen))
     safe = numInRow**dimen
@@ -2836,10 +2916,10 @@ def attachSecondaryRecs(gl, recs, c, conn):
 
     if constant_attachments: #Loop through glom and find all surrounding gloms to add their recs as secondary
         for glom in gl: 
-            locations = getLocations(glom.getLoc())
+            locations = getLocations(glom.loc)
             i = 0
             for glom2 in gl:
-                if glom2.getLoc() in locations:
+                if glom2.loc in locations:
                     for rec in glom2._recConn.keys():
                         if glom2._recConn[rec] == glom_penetrance:
                             glom._recConn[rec] = s_weights[i]
