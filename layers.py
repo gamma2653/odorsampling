@@ -594,7 +594,7 @@ def GraphMitralActivation(gl, mcl, n, m):
     mitralLocations = {}
     mitralActivations = {}
     for mitral in mcl:
-        if mitralLocations.has_key(str(mitral.getLoc())):
+        if str(mitral.getLoc()) in mitralLocations:
             val = mitralLocations.get(str(mitral.getLoc()))
             activ = mitralActivations.get(str(mitral.getLoc()))
             mitralLocations.update({str(mitral.getLoc()):val+1})
