@@ -73,11 +73,8 @@ class QSpace:
     def size(self, value: list[tuple[float, float]]) -> None:
         """Sets size equal to value.
         Precondition: Value is a list of tuples"""
-        value = list(map(tuple, value))
-        old = getattr(self, "_size", None)
-        logger.debug("QSpace size changed: [%s->%s]", old, value)
         # TODO: assert values are floats for consistency
-        self._size = value
+        self._size = list(map(tuple, value))
     
     def __init__(self, size: list[tuple[float, float]]):
         self.size = size
@@ -111,10 +108,7 @@ class Ligand(object):
     def id(self, value: int) -> None:
         """Sets id equal to value.
         Precondition: Value is an int"""
-        value = int(value)
-        old = getattr(self, "_id", None)
-        logger.debug("Ligand id changed: [%s->%s]", old, value)
-        self._id = value
+        self._id = int(value)
     
     @property
     def loc(self) -> tuple[float, float]:
@@ -126,10 +120,7 @@ class Ligand(object):
         """Sets loc equal to value.
         Precondition: Value is a List"""
         # TODO: make tuple everywhere
-        old = getattr(self, "_loc", None)
-        logger.debug("Ligand loc changed: [%s->%s]", old, value)
-        value = tuple(map(float, value))     
-        self._loc = value
+        self._loc = tuple(map(float, value))  
     
     @property
     def dim(self) -> int:
@@ -140,11 +131,7 @@ class Ligand(object):
     def dim(self, value: int) -> None:
         """Sets dim equal to value.
         Precondition: Value is an int"""
-        old = getattr(self, "_dim", None)
-        logger.debug("Ligand dim changed: [%s->%s]", old, value)
-        value = int(value)
-        self._dim = value
-    
+        self._dim = int(value)    
     @property
     def conc(self) -> float:
         """Returns the conc."""
@@ -155,9 +142,6 @@ class Ligand(object):
         """Sets conc equal to value.
         Precondition: Value is a nonZero number"""
         assert value != 0, "Conc can't be 0!"
-        value = float(value)
-        old = getattr(self, "_conc", None)
-        logger.debug("Ligand conc changed: [%s->%s]", old, value)
         self._conc = float(value)
     
     @property
@@ -169,10 +153,7 @@ class Ligand(object):
     def aff(self, value: float) -> None:
         """Sets aff equal to value.
         Precondition: Value is a float"""
-        value = float(value)
-        old = getattr(self, "_aff", None)
-        logger.debug("Ligand aff changed: [%s->%s]", old, value)
-        self._aff = value
+        self._aff = float(value)
     
     @property
     def eff(self) -> float:
@@ -183,11 +164,8 @@ class Ligand(object):
     def eff(self, value: float) -> None:
         """Sets eff equal to value.
         Precondition: Value is a float btwn 0..1"""
-        value = float(value)
         assert value >= 0 and value <= 1, "Eff is not btwn 0 and 1"
-        old = getattr(self, "_eff", None)
-        logger.debug("Ligand eff changed: [%s->%s]", old, value)
-        self._eff = value
+        self._eff = float(value)
     
     @property
     def occ(self) -> float:
@@ -198,11 +176,8 @@ class Ligand(object):
     def occ(self, value: float) -> None:
         """Sets occ equal to value.
         Precondition: Value is an float btwn 0..1"""
-        value = float(value)
         assert value >= 0.0 and value <= 1.0, "Occ is not btwn 0 and 1"
-        old = getattr(self, "_occ", None)
-        logger.debug("Ligand occ changed: [%s->%s]", old, value)
-        self._occ = value
+        self._occ = float(value)
 
     def appendToAffs(self, value):
         """adds aff equal to value.
@@ -347,10 +322,7 @@ class Receptor:
     def id(self, value):
         """Sets id to value
         Precondtion: value is an int"""
-        value = int(value)
-        old = getattr(self, "_id", None)
-        logger.debug("Receptor id changed: [%s->%s]", old, value)
-        self._id = value
+        self._id = int(value)
     
     @property
     def mean(self):
@@ -361,10 +333,7 @@ class Receptor:
     def mean(self, value: Sequence):
         """Sets id to value
         Precondtion: value is an list"""
-        value = tuple(value)
-        old = getattr(self, "_mean", None)
-        logger.debug("Receptor mean changed: [%s->%s]", old, value)
-        self._mean = value
+        self._mean = tuple(value)
         self._mean_sd_change = True
     
     @property
@@ -376,11 +345,8 @@ class Receptor:
     def sdA(self, value: tuple):
         """Sets sdA equal to value.
         Precondition: Value is a List with dim Q"""
-        value = tuple(value)
         assert len(value) == len(self._mean), "Dimension is not consistent with dim of mean"
-        old = getattr(self, "_sdA", None)
-        logger.debug("Receptor sdA changed: [%s->%s]", old, value)
-        self._sdA = value
+        self._sdA = tuple(value)
         self._mean_sd_change = True
 
     def _update_cov_scale(self):
@@ -399,12 +365,9 @@ class Receptor:
     def sdE(self, value: tuple):
         """Sets sdE equal to value.
         Precondition: Value is a List with dim Q"""
-        value = tuple(value)
         # TODO: assert it is a tuple
         assert len(value) == len(self._mean), "Dimension is not consistent with dim of mean"
-        old = getattr(self, "_sdE", None)
-        logger.debug("Receptor sdE changed: [%s->%s]", old, value)
-        self._sdE = value
+        self._sdE = tuple(value)
         self._mean_sd_change = True
     
     @property
@@ -509,10 +472,7 @@ class Epithelium(object):
         """Sets receptors equal to value.
         Precondition: Value is a List"""
         # assert isinstance(value, Sequence), f"Value is not a Sequence! {type(value)}"
-        value = tuple(value)
-        old = getattr(self, "_recs", None)
-        logger.debug("Epithelium receptors changed: [%s->%s]", old, value)
-        self._recs = value
+        self._recs = tuple(value)
     
     def __init__(self, recs):
         """Initializes a epithelium."""
