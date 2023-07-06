@@ -37,7 +37,7 @@ def _graphHelper(sel, mean, sd):
     y = [0,0,0,0,0,0,0,0,0,0]
     count = 0
     while count < len(gl):
-        index = gl[count].getActiv()
+        index = gl[count].activ
         index = int(index*10)
         if index == 10:
             index == 9
@@ -189,7 +189,7 @@ def testGraphGlomActivation():
     """ """
     gl = createGL_dimensions(10,10)
     activateGL_Random(gl, "u")
-    GraphGlomActivation(gl, gl[0].getDim()[1], gl[0].getDim()[0])
+    GraphGlomActivation(gl, gl[0].dim[1], gl[0].dim[0])
 
 def testGraphMitralActivation():
     """ """
@@ -232,7 +232,7 @@ def testgraphLayer():
     st = ""
     ind = 0
     while ind < len(gl):
-        st = st + str(ind) + ": " + str(gl[ind].getActiv()) + " "
+        st = st + str(ind) + ": " + str(gl[ind].activ) + " "
         ind += 1
 
     graphLayer(gl, False)

@@ -9,6 +9,11 @@ import copy
 from matplotlib.backends.backend_pdf import PdfPages
 import params
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from typing import Sequence
+
 
 def testModifyLoc():
     """Testing modify location"""
@@ -198,7 +203,7 @@ def increasingRecDistTest():
     epismall = createEpithelium(10, 2, small_qspace, [.5,.5])
     
     odobig = createOdorscene(2, [1e-5], [10], big_qspace)
-    odocopy = copy.deepcopy(odobig.getOdors())
+    odocopy = copy.deepcopy(odobig.odors)
     
     ligands = []
     for odo in odocopy:
@@ -320,8 +325,8 @@ def testdPsiBarSaturation():
     fixedEff = False
     
     epith = createEpithelium(30, 2, qspace, scale=[.5,1.5], scaleEff=[.05,1.0]) #amt, dim    **amt = len(gl) and dim = dim of odorscene
-    pdfName = "LigandSat with " + str(qspace.getSize()[0]) + " qspace"
-    labelName = str(qspace.getSize()[0]) + " qspace"
+    pdfName = "LigandSat with " + str(qspace.size[0]) + " qspace"
+    labelName = str(qspace.size[0]) + " qspace"
     excelName = pdfName
     plotTitle = "dPsiBarSaturation"
      #epi, dn, qspace, pdfName, labelName, excelName, fixed eff, plotTitle, Close
@@ -411,8 +416,8 @@ def testGlomRecConnNew():
     gl = layers.createGL(30)
     gl2 = copy.deepcopy(gl)
     
-    conn = glomRecConnNew(epi.getRecs(), gl, c=9, conn = [])
-    glomRecConnNew(epi2.getRecs(), gl2, c=9, conn=conn)
+    conn = glomRecConnNew(epi.recs, gl, c=9, conn = [])
+    glomRecConnNew(epi2.recs, gl2, c=9, conn=conn)
     
 
 def testGlomRecConnNew2():
@@ -428,7 +433,7 @@ def testGlomRecConnNew2():
     
     gl = layers.createGL(30)
     
-    glomRecConnNew(epi.getRecs(), gl)
+    glomRecConnNew(epi.recs, gl)
     
 
         
@@ -451,8 +456,8 @@ def testGlomRecConnNew3():
     gl = layers.createGL(numRecs)
     gl2 = copy.deepcopy(gl)
     
-    conn = glomRecConnNew(epi.getRecs(), gl, c)
-    glomRecConnNew(epi2.getRecs(), gl2, c, conn)
+    conn = glomRecConnNew(epi.recs, gl, c)
+    glomRecConnNew(epi2.recs, gl2, c, conn)
     
     i=0
     dpsi = 0
