@@ -1,4 +1,7 @@
 import logging
+import builtins
+
+DEBUG = builtins.__debug__
 
 LOG_MSG_FMT: str = '[%(asctime)s] [%(name)s]: [%(levelname)s] %(message)s'
 LOG_DATE_FMT: str = '%m-%d-%Y %H:%M:%S'
@@ -12,23 +15,31 @@ LOG_FILE_HANDLER = logging.FileHandler(LOG_FILE_NAME)
 LOG_STREAM_HANDLER.setFormatter(LOG_FORMATTER)
 LOG_FILE_HANDLER.setFormatter(LOG_FORMATTER)
 
-LOG_LEVEL = logging.INFO
+LOG_LEVEL = logging.DEBUG if DEBUG else logging.WARNING
 
-def default_log_setup(logger: logging.Logger, log_level: int = None):
+def copy_handler(template: logging.Handler) -> logging.Handler:
+    handler_ = template.__class__()
+    handler_.setFormatter(template.formatter)
+    handler_.setLevel(template.level)
+    return handler_
+
+def default_log_setup(logger: logging.Logger, log_level: int = None, stream_handler_level = logging.WARNING, file_handler_level = logging.DEBUG):
     """
     Automatically adds LOG_FILE_HANDLER and LOG_STREAM_HANDLER as handlers.
 
     Parameters
     ----------
-    logger - logging.Logger
+    logger -
         The logger to setup with the default configuration.
     """
-    log_level = LOG_LEVEL if log_level is None else log_level
-    logger.addHandler(LOG_FILE_HANDLER)
-    logger.addHandler(LOG_STREAM_HANDLER)
-    logger.setLevel(log_level)
+    logger.setLevel(LOG_LEVEL if log_level is None else log_level)
+    file_handler = copy_handler(LOG_FILE_HANDLER)
+    stream_handler = copy_handler(LOG_STREAM_HANDLER)
+    file_handler.setLevel(file_handler_level)
+    stream_handler.setLevel(stream_handler_level)
+    logger.addHandler(file_handler)
+    logger.addHandler(stream_handler)
 
-DEBUG = False
 
 GL_EXT = ".gl"
 """
@@ -107,5 +118,3 @@ MOCK_RECEPTOR_SDE2 = [0.760607106742, 0.65383818835]
 
 # HEAT MAP
 PIXEL_PER_Q_UNIT = 20
-
-del logging

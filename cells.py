@@ -6,17 +6,16 @@
 # Summer 2023
 
 from __future__ import annotations
-import builtins
 
 from collections import Counter
-
+import random
 import logging
-import config
-
+import builtins
 # Used for asserts
 if builtins.__debug__:
     from numbers import Real
 
+import config
 
 # Type checking
 from typing import TYPE_CHECKING
@@ -32,8 +31,9 @@ cell_counter = Counter()
 """
 Maps cell type to the number of cells of that type that have been created.
 """
+
 # TODO: Add multithreading support
-def add_cell(cell_type: type, is_type=True) -> None:
+def _add_cell(cell_type: type, is_type=True) -> None:
     """Increments the number of cells of the given type that have been created."""
     cell_counter[cell_type if is_type else type(cell_type)] += 1
 
@@ -81,7 +81,7 @@ class Cell:
         self.id = id_
         self.activ = activ
         self.loc = loc
-        add_cell(self.__class__)
+        _add_cell(self.__class__)
 
 # TODO: update numpy docstrings
 class Glom(Cell):
@@ -151,6 +151,15 @@ class Glom(Cell):
         """Returns a Glomural object description with activation energy"""
         return f"Id: {self.id} activ: {self.activ}"
 
+    @classmethod
+    def generate_random_loc(xLowerBound: int, xUpperBound: int, yLowerBound: int, yUpperBound: int) -> tuple[int, int]:
+        """Returns a random glom location"""
+        randomGlomX = random.randint(xLowerBound, xUpperBound)
+        if (randomGlomX, randomGlomY) == (xLowerBound, yLowerBound):
+            randomGlomY = random.randint(yLowerBound, yUpperBound)
+        else:
+            randomGlomY = int(random.sample([yLowerBound, yUpperBound], 1)[0])
+        return (randomGlomX, randomGlomY)
 
 class Mitral(Cell):
     """Represents a mitral cell that samples from glomeruli.

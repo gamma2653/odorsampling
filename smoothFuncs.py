@@ -418,5 +418,5 @@ def test():
     #testdPsiBarSaturationDim(dims=[2,3,4,5], fixed=False, aff_sd=[.5,1.5], eff_sd=[.05,1.0], numRecs=30, c=1)
     #dimAllGraphsFromExcel(numRecs=30, dims=[2,3,4,5], rep=200)
 
-    
-test()
+if __name__ == '__main__':
+    test()
