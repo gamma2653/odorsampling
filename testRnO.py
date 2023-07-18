@@ -8,14 +8,14 @@
 from __future__ import annotations
 
 import math
-from RnO import (
+from odorsampling.RnO import (
     Ligand, QSpace, Odorscene, Receptor, Epithelium,
     activateGL_QSpace, sumOfSquares, sumOfSquares2, modifyLoc, colorMapSumOfSquares,
     sequentialOdorscenes, graphFromExcel, recDensityDpsiGraph, recInQspace,
     recDensityDpsiGraphRandomized, getLocations, glomRecConnNew, dPsiGraphFromExcel,
     dPsiOccActGraphFromExcel, dPsiBarCalcAngles, dPsiBarCalcDiag, dPsiBarSaturation
 ) 
-import layers
+import odorsampling.layers as layers
 import copy
 
 

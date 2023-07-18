@@ -14,11 +14,11 @@ from matplotlib.backends.backend_pdf import PdfPages
 from scipy.stats import multivariate_normal as mvn
 import random
 
-import layers
-from RnO import (
+from odorsampling import config, layers
+from odorsampling.RnO import (
     QSpace, Ligand, Odorscene, Receptor, Epithelium, 
     dPsiBarSaturation, graphFromExcel, recDensityDpsiGraph, activateGL_QSpace, dPsiOccActGraphFromExcel,
-    ODOR_REPETITIONS, peak_affinity, minimum_affinity, m, glom_penetrance
+    glom_penetrance
 )
 
 # ####Below are two simulations for dPsiBarSaturation Graphs.
@@ -82,7 +82,7 @@ def testdPsiBarSaturation_Qspaces(fixed: bool, aff_sd=None, eff_sd=None, numRecs
 
     #Creating Occ and Rec Act graphs
     ###################amt of rep in dPsiSaturation function and xAxis. MUST change if change in function
-    rep = ODOR_REPETITIONS        
+    rep = config.ODOR_REPETITIONS        
     xaxis = [1,2,3,4,5,7,10,15,20,25,30,35,40,45,50,60,70,80,90,100,120,140,160,200,250,300,350,400]
     numRecs = len(epith.recs)
     
@@ -168,7 +168,7 @@ def testdPsiBarSaturationDim(dims: list[int], fixed=False, aff_sd=None, eff_sd=N
     
     #Creating Occ and Rec Act graphs
     ###################amt of rep in dPsiSaturation function and xAxis. MUST change if change in function
-    rep = ODOR_REPETITIONS      
+    rep = config.ODOR_REPETITIONS      
     xaxis = [1,2,3,4,5,7,10,15,20,25,30,35,40,45,50,60,70,80,90,100,120,140,160,200,250,300,350,400]
     
     for i in range(2):
@@ -243,6 +243,10 @@ def changeOne(name: str, dim: int, col: str, scale):
     assert col in ['aff', 'eff']
     epi = Epithelium.load(f"{name}.csv")
     sdSave = []
+
+    def calc_rec_sd(rec):
+        
+        return [random.uniform(*scale) for _ in range(dim)]
 
     for rec in epi.recs:
         i = 0
@@ -461,13 +465,13 @@ def occVsLocGraph(affList=[2,1.5,1,.5]):
             aff = aff / rec.scale #Scales it from 0 to 1
                 
             #Now convert gaussian aff to kda
-            aff = 10**((aff * (peak_affinity - minimum_affinity)) + minimum_affinity) ##peak_affinity etc. are global variables
+            aff = 10**((aff * (config.PEAK_AFFINITY - config.MIN_AFFINITY)) + config.MIN_AFFINITY) ##peak_affinity etc. are global variables
             
-            odor.setAff(float(aff))
+            odor.aff = float(aff)
             df = odor.conc/odor._aff
     
             location.append(odor.loc)
-            occ = ( (1) / (1 + ( (odor._aff/odor.conc) * (1 + df - (odor.conc / odor._aff ) ) ) **m) ) #m=1
+            occ = ( (1) / (1 + ( (odor._aff/odor.conc) * (1 + df - (odor.conc / odor._aff ) ) ) **config.HILL_COEFF) ) # m aka HILL_COEFF = 1
             occupancy.append(occ)
 
         plt.plot(location,occupancy, line, label=labelName)
@@ -505,7 +509,7 @@ def effVsLocGraph(effList=[.1,.5,1,2,3]):
         
     index = 0
     for rec in recs:
-        df = 0
+        # df = 0
         location=[]
         efficacy=[]
         labelName = "EffSD=" + str(rec.sdE)

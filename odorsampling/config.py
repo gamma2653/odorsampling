@@ -41,6 +41,13 @@ def default_log_setup(logger: logging.Logger, log_level: int = None, stream_hand
     logger.addHandler(stream_handler)
 
 
+PEAK_AFFINITY = -8     # literally 10e-8, not influenced by minimum_affinity value
+MIN_AFFINITY = 2   # asymptotic affinity exponent, negligible
+HILL_COEFF = 1 # Hill Coefficient, often labeled as "m"
+ODOR_REPETITIONS = 2 #Amount of odorscene repetitions to create a smooth graph
+ANGLES_REP = 2
+
+
 GL_EXT = ".gl"
 """
 Extension used by saved glom cell layers.

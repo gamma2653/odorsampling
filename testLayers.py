@@ -7,7 +7,7 @@
 
 from __future__ import annotations
 
-from layers import (
+from odorsampling.layers import (
     euclideanDistance, ActivateMCLfromGL, apply_sample_map,
     GraphGlomActivation, GraphMitralActivation, normalize, graphLayer, colorMapWeights,
     MitralLayer, GlomLayer
