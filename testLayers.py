@@ -65,7 +65,7 @@ def _graphHelper(sel, mean, sd):
 ######Test 2: Generation of similar activation levels in a GL array (testing createGLArray())
 #4 test cases: uniform star, uniform series, gaussian star, gaussian series
 
-def testGraphGLArraySimilarity(gl, x, opt, sel, num=0, mean=0, sd=0 ):
+def testGraphGLArraySimilarity(gl, x, star: bool, sel, num=0, mean=0, sd=0 ):
     """Draws a graph of the euclidean distance between the activation levels
     of the glomeruli in gl and the activation levels in the generated similar GLArray.
     x=len(GLArray), opt = star/ser, sel = gaussian or uniform."""
@@ -74,7 +74,7 @@ def testGraphGLArraySimilarity(gl, x, opt, sel, num=0, mean=0, sd=0 ):
     while inc <= x:
         y.append(inc)
         inc += 1
-    layers = GlomLayer.create_array(gl, x, opt, sel, num, mean, sd)
+    layers = GlomLayer.create_array(gl, x, star, sel, num, mean, sd)
     inc = 0
     axis = []
     assert x == len(layers), "Worst."
@@ -84,10 +84,10 @@ def testGraphGLArraySimilarity(gl, x, opt, sel, num=0, mean=0, sd=0 ):
     assert len(axis) == len(y), "AHHHH"
     
     plt.plot(y, axis)
-    if opt == "ser":
-        plt.title("Similar Glomeruli Layer Activation Patterns: Series")
-    else:
+    if star:
         plt.title("Similar Glomeruli Layer Activation Patterns: Star")
+    else:
+        plt.title("Similar Glomeruli Layer Activation Patterns: Series")
     plt.xlabel("Odor")
     plt.ylabel("Euclidean Distance from Original GL")
     plt.show()
@@ -98,13 +98,13 @@ def testSimilar():
     gl = GlomLayer.create(2000)
     gl.activate_random("u")
     #Test series where incremented number was chosen uniformly
-    testGraphGLArraySimilarity(gl, 100, "ser", "u", .01, mean=0, sd=0 )
+    testGraphGLArraySimilarity(gl, 100, False, "u", .01, mean=0, sd=0 )
     #Test series with gaussian
-    testGraphGLArraySimilarity(gl, 100, "ser", "g", .01, mean=.1, sd=.01 )
+    testGraphGLArraySimilarity(gl, 100, False, "g", .01, mean=.1, sd=.01 )
     #Test star with uniform
-    testGraphGLArraySimilarity(gl, 100, "star", "u", .01, mean=0, sd=0 )
+    testGraphGLArraySimilarity(gl, 100, True, "u", .01, mean=0, sd=0 )
     #Test stat with gaussian
-    testGraphGLArraySimilarity(gl, 100, "star", "g", .01, mean=.1, sd=.01)
+    testGraphGLArraySimilarity(gl, 100, True, "g", .01, mean=.1, sd=.01)
 
 
 ######Test 3: Testing Map building (Testing CreateMCLSamplingMap())

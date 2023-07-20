@@ -98,10 +98,7 @@ class GlomLayer(list[cells.Glom]):
     # TODO: Change sel to an enum or some other fixed type
     def activate_random(self, sel: Distribution, mean: Real = 0, sd: Real = 0):
         """Initializes activation level for given GL (glom layer).
-        If sel = "u" then activation levels are drawn from a random distribution.
-        If sel = "g" then drawn from a Gaussian distribution with mean and sd.
-        If sel = "e", then drawn from exponenial distribution with mean.
-        Precondition: GL is a list of Glom and sel is u, g, or e."""
+        Precondition: GL is a list of Glom and sel is a Distribution"""
         assert (mean+sd) <= 1 and mean-sd >= 0, "Mean and SD are too high or low"
         for glom in self:
             if sel is Distribution.UNIFORM:
@@ -167,33 +164,35 @@ class GlomLayer(list[cells.Glom]):
         """Returns GL with given name from directory
         precondition: name is a string with correct extension"""
         assert type(name) == str, "name isn't a string"
+        pattern = re.compile(r"(\d+),(\d+),(\d+):(\d+),(\d+);")
+
         glom_layer = []
         # TODO: regex it, and use a generator into GlomLayer constructor
         with open(name) as f:
             for line in f.readlines():
-                comma1 = line.index(",")
-                comma2 = line.index(",",comma1+1)
-                comma3 = line.index(",",comma2+1)
-                colon = line.index(":", comma2+1)
-                semi = line.index(";", comma3+1)
-                loc = [int(line[comma2+1:colon]), int(line[colon+1:comma3])]
-                glom = cells.Glom(int(line[:comma1]), float(line[comma1+1:comma2]), loc, int(line[comma3+1:semi]))
-                glom_layer.append(glom)
+                data = pattern.match(line)
+                if not data:
+                    continue
+                glom_layer.append(
+                    cells.Glom(int(data.group(1)), float(data.group(2)),
+                    (int(data.group(3)), int(data.group(4))),
+                    int(data.group(5)))
+                )
         logger.info("Glom layer loaded from `%s`.", name)
         return cls(glom_layer)
     
-    def addNoise(self, noise, mean=0, sd=0):
+    def addNoise(self, dist: Distribution, mean=0, sd=0):
         """Increments activation levels in GL by a certain value
         If noise is 'u', then mean = scale for uniform distribution."""
-        if noise == 'u':
+        if dist is Distribution.UNIFORM:
             inc = random.uniform(0,mean)
-        elif noise == 'g':
+        elif dist is Distribution.GAUSSIAN:
             inc = random.gauss(mean, sd)
         else:
             inc = random.expovariate(1/mean)
         for g in self:
             g.activ = min(max(g.activ + random.choice([1,-1])*inc, 0.0), 1.0)
-        logger.info("Added noise[%s] to Glomlayer.", noise)
+        logger.info("Added noise[%s] to Glomlayer.", dist)
         return self
 
     def _prevDuplicates(self, num, conn, weights=None, s=1):
@@ -218,7 +217,13 @@ class GlomLayer(list[cells.Glom]):
         if check == MAX_CHECKS:
             logger.warning("Mitral cell may be connected to same Glom cell twice in order to prevent infinite loop")
         return num
+    
+    def _check_dups(self, num, conn, weights=None):
+        """Checks if a mitral cell already connects to glom at index num"""
+        if weights is None:
             
+
+        return 
 
     def _buildWeights(self, bias: str, scale):
         """Returns a list len(gl), with each index starting with the same number
@@ -401,6 +406,18 @@ class MitralLayer(list[cells.Mitral]):
         ***Weights of a mitral cell's gloms add up to 1.0***"""
         map_ = []
         counter = 0
+        def func(inc, conn: list, map_: list, counter, leftover = 1):
+            num = random.randint(0, len(gl)-1)
+            num = gl._prevDuplicates(num, conn)
+            if inc == (cr-1):
+                act = leftover
+            else:
+                act = random.uniform(0, leftover)
+                leftover -= act
+            map_.append([self[counter].id, num, act])
+            inc += 1
+            conn.append(num)
+
         if fix:
             while counter < len(self):
                 inc = 0
@@ -426,7 +443,7 @@ class MitralLayer(list[cells.Mitral]):
                 conn = []
                 while inc < rand:
                     num = random.randint(0,len(gl)-1)
-                    bum = gl._prevDuplicates(num, conn)
+                    gl._prevDuplicates(num, conn)
                     map_.append([self[counter].id, num, random.uniform(0,.4)])
                     inc += 1
                     conn.append(num)
