@@ -10,7 +10,7 @@ from __future__ import annotations
 from odorsampling.layers import (
     euclideanDistance, ActivateMCLfromGL, apply_sample_map,
     GraphGlomActivation, GraphMitralActivation, normalize, graphLayer, colorMapWeights,
-    MitralLayer, GlomLayer
+    MitralLayer, GlomLayer, Distribution
 ) 
 import matplotlib.pyplot as plt
 
@@ -65,7 +65,7 @@ def _graphHelper(sel, mean, sd):
 ######Test 2: Generation of similar activation levels in a GL array (testing createGLArray())
 #4 test cases: uniform star, uniform series, gaussian star, gaussian series
 
-def testGraphGLArraySimilarity(gl, x, star: bool, sel, num=0, mean=0, sd=0 ):
+def testGraphGLArraySimilarity(gl, x, star: bool, sel: Distribution, num=0, mean=0, sd=0 ):
     """Draws a graph of the euclidean distance between the activation levels
     of the glomeruli in gl and the activation levels in the generated similar GLArray.
     x=len(GLArray), opt = star/ser, sel = gaussian or uniform."""
@@ -98,13 +98,13 @@ def testSimilar():
     gl = GlomLayer.create(2000)
     gl.activate_random("u")
     #Test series where incremented number was chosen uniformly
-    testGraphGLArraySimilarity(gl, 100, False, "u", .01, mean=0, sd=0 )
+    testGraphGLArraySimilarity(gl, 100, False, Distribution.UNIFORM, .01, mean=0, sd=0 )
     #Test series with gaussian
-    testGraphGLArraySimilarity(gl, 100, False, "g", .01, mean=.1, sd=.01 )
+    testGraphGLArraySimilarity(gl, 100, False, Distribution.GAUSSIAN, .01, mean=.1, sd=.01 )
     #Test star with uniform
-    testGraphGLArraySimilarity(gl, 100, True, "u", .01, mean=0, sd=0 )
+    testGraphGLArraySimilarity(gl, 100, True, Distribution.UNIFORM, .01, mean=0, sd=0 )
     #Test stat with gaussian
-    testGraphGLArraySimilarity(gl, 100, True, "g", .01, mean=.1, sd=.01)
+    testGraphGLArraySimilarity(gl, 100, True, Distribution.GAUSSIAN, .01, mean=.1, sd=.01)
 
 
 ######Test 3: Testing Map building (Testing CreateMCLSamplingMap())

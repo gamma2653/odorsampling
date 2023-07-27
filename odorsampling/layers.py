@@ -133,20 +133,19 @@ class GlomLayer(list[cells.Glom]):
         return gl2
     
     #Creating array of GL's with similar activation
-    def create_array(self, x: int, opt: str, sel: Distribution, num, mean=0, sd=0):
+    def create_array(self, x: int, star: bool, sel: Distribution, num, mean=0, sd=0):
         """Given a glomeruli layer, returns x amount of similar gl's using
         the similarity method specified with opt and sel. Original activ lvl is incremented by <= num.
         Preconditions: gl is a list of glomeruli, x is an int sel is star or ser"""
         assert type(x) == int, "x is not an int"
-        assert  opt in ['star','ser'], "opt needs to be 'star' or 'ser'"
         #Everything else is asserted in helper function below
         if not x:
             logger.debug("createGLArray called with x=0.")
             return GlomLayer([])
         gl = self.activate_similar(num, sel, mean, sd)
-        snd_gl = self if opt == 'star' else gl
-        logger.info("GlomLayer Array created with depth %s using sel param %s and opt %s.", x, sel, opt)
-        return [gl] + GlomLayer.create_array(snd_gl, x-1, opt, sel, num, mean, sd)
+        snd_gl = self if star else gl
+        logger.info("GlomLayer Array created with depth %s using sel param %s and opt %s.", x, sel, star)
+        return [gl] + GlomLayer.create_array(snd_gl, x-1, star, sel, num, mean, sd)
     
     #####Loading and Storing a GL, MCL, and Map
     def save(self, name: str):
