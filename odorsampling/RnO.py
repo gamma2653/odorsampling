@@ -674,7 +674,8 @@ class Receptor:
         to how to randomly distribute those values.
         scaleEff is empty unless want to have a diff sd for aff and eff.
         Precondition: qspace must have "dim" dimensions"""
-        assert len(qspace._size) == dim, "Qspace doesn't have right dimensions"
+        assert len(qspace._size) == dim, logger.error("QSpace dims do not match. (QSpace:%s, passed:%s)",
+                                                      qspace._size, dim); "Qspace doesn't have right dimensions"
         mean = _distributeMean(dim, qspace, constMean)
         sdA = _distributeSD(dim, scale)
         sdE = _distributeSD(dim, scaleEff) if scaleEff is not None else sdA

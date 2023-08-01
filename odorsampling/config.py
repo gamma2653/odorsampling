@@ -14,11 +14,13 @@ LOG_FILE_HANDLER = logging.FileHandler(LOG_FILE_NAME)
 
 LOG_STREAM_HANDLER.setFormatter(LOG_FORMATTER)
 LOG_FILE_HANDLER.setFormatter(LOG_FORMATTER)
+LOG_STREAM_HANDLER.close()
+LOG_FILE_HANDLER.close()
 
 LOG_LEVEL = logging.DEBUG if DEBUG else logging.WARNING
 
-def copy_handler(template: logging.Handler) -> logging.Handler:
-    handler_ = template.__class__()
+def copy_handler(template: logging.Handler, **kwargs) -> logging.Handler:
+    handler_ = template.__class__(**kwargs)
     handler_.setFormatter(template.formatter)
     handler_.setLevel(template.level)
     return handler_
@@ -33,7 +35,7 @@ def default_log_setup(logger: logging.Logger, log_level: int = None, stream_hand
         The logger to setup with the default configuration.
     """
     logger.setLevel(LOG_LEVEL if log_level is None else log_level)
-    file_handler = copy_handler(LOG_FILE_HANDLER)
+    file_handler = copy_handler(LOG_FILE_HANDLER, filename=LOG_FILE_HANDLER.baseFilename)
     stream_handler = copy_handler(LOG_STREAM_HANDLER)
     file_handler.setLevel(file_handler_level)
     stream_handler.setLevel(stream_handler_level)

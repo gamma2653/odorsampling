@@ -7,14 +7,16 @@
 
 from __future__ import annotations
 
+import matplotlib.pyplot as plt
+
 from odorsampling.layers import (
     euclideanDistance, ActivateMCLfromGL, apply_sample_map,
     GraphGlomActivation, GraphMitralActivation, normalize, graphLayer, colorMapWeights,
-    MitralLayer, GlomLayer, Distribution
-) 
-import matplotlib.pyplot as plt
+    MitralLayer, GlomLayer
+)
+from odorsampling import utils
 
-
+# TODO: Use Unit testing
 
 #####Test 1: Random generation of glom activation levels (testing activateGL_Random())
 
@@ -31,8 +33,7 @@ def _graphHelper(sel, mean, sd):
     """Graphically represents the activation levels for distribution
     specified by sel with mean and sd."""
     gl = GlomLayer.create(1000)
-    
-    gl.activate_random(sel, mean, sd)
+    gl.activate_random(utils.uniform_activation, mean, sd)
     #x-axis
     x = [0.0,.1, .2, .3, .4, .5, .6, .7, .8, .9]
     
@@ -65,7 +66,7 @@ def _graphHelper(sel, mean, sd):
 ######Test 2: Generation of similar activation levels in a GL array (testing createGLArray())
 #4 test cases: uniform star, uniform series, gaussian star, gaussian series
 
-def testGraphGLArraySimilarity(gl, x, star: bool, sel: Distribution, num=0, mean=0, sd=0 ):
+def testGraphGLArraySimilarity(gl, x, star: bool, sel: utils.DistributionFunc, num=0, mean=0, sd=0 ):
     """Draws a graph of the euclidean distance between the activation levels
     of the glomeruli in gl and the activation levels in the generated similar GLArray.
     x=len(GLArray), opt = star/ser, sel = gaussian or uniform."""
@@ -96,15 +97,16 @@ def testGraphGLArraySimilarity(gl, x, star: bool, sel: Distribution, num=0, mean
 def testSimilar():
     """Using above functions to test activateGL_Random function"""
     gl = GlomLayer.create(2000)
-    gl.activate_random("u")
+    gl.activate_random(utils.uniform_activation)
     #Test series where incremented number was chosen uniformly
-    testGraphGLArraySimilarity(gl, 100, False, Distribution.UNIFORM, .01, mean=0, sd=0 )
+    # FIXME
+    testGraphGLArraySimilarity(gl, 100, False, utils.DistributionFunc.UNIFORM, .01, mean=0, sd=0 )
     #Test series with gaussian
-    testGraphGLArraySimilarity(gl, 100, False, Distribution.GAUSSIAN, .01, mean=.1, sd=.01 )
+    testGraphGLArraySimilarity(gl, 100, False, utils.DistributionFunc.GAUSSIAN, .01, mean=.1, sd=.01 )
     #Test star with uniform
-    testGraphGLArraySimilarity(gl, 100, True, Distribution.UNIFORM, .01, mean=0, sd=0 )
+    testGraphGLArraySimilarity(gl, 100, True, utils.DistributionFunc.UNIFORM, .01, mean=0, sd=0 )
     #Test stat with gaussian
-    testGraphGLArraySimilarity(gl, 100, True, Distribution.GAUSSIAN, .01, mean=.1, sd=.01)
+    testGraphGLArraySimilarity(gl, 100, True, utils.DistributionFunc.GAUSSIAN, .01, mean=.1, sd=.01)
 
 
 ######Test 3: Testing Map building (Testing CreateMCLSamplingMap())
@@ -166,7 +168,7 @@ def testCreateandLoadFile():
 def testApplyMCLSamplingMap():
     """Tests building the connections btwn MCL and GL (created with total number of gloms) given a map"""
     gl = GlomLayer.create(5)
-    gl.activate_random("u")
+    gl.activate_random(utils.uniform_activation)
     mcl = MitralLayer.create(5)
     Map = mcl.createSamplingMap(gl, 4, True, "simple")
     #print(Map)
@@ -188,7 +190,7 @@ def testApplyMCLSamplingMapBalanced():
     """Tests building the connections btwn MCL and GL (created with dimensions) given a map using BALANCED RANDOM"""
     # FIXME: hotfix
     gl = GlomLayer.createGL_dimensions(4,2)
-    gl.activate_random("u")
+    gl.activate_random(utils.uniform_activation)
     mcl = MitralLayer.create(8)
     Map = mcl.createSamplingMap(gl, 4, True, "balanced")
     #print(Map)
@@ -214,7 +216,7 @@ def testApplyMCLSamplingMapLocation():
     """Tests building the connections btwn MCL and GL (created with dimensions) given a map using LOCATION"""
     # FIXME: hotfix
     gl = GlomLayer.createGL_dimensions(4,4)
-    gl.activate_random("u")
+    gl.activate_random(utils.uniform_activation)
     mcl = MitralLayer.create(4)
     Map = mcl.createSamplingMap(gl, 10, True, "location")
     #print(Map)
@@ -241,13 +243,13 @@ def testApplyMCLSamplingMapLocation():
 def testGraphGlomActivation():
     """ """
     gl = GlomLayer.createGL_dimensions(10,10)
-    gl.activate_random("u")
+    gl.activate_random(utils.uniform_activation)
     GraphGlomActivation(gl, gl[0].dim[1], gl[0].dim[0])
 
 def testGraphMitralActivation():
     """ """
     gl = GlomLayer.createGL_dimensions(4,4)
-    gl.activate_random("u")
+    gl.activate_random(utils.uniform_activation)
     mcl = MitralLayer.create(10)
     Map = mcl.createSamplingMap(gl, 10, True, "location")
     #print(Map)
@@ -267,7 +269,7 @@ def testGraphMitralActivation():
 def testActivateMCLfromGL():
     """Testing ActivateMCLfromGL"""
     gl = GlomLayer.create(6)
-    gl.activate_random("u")
+    gl.activate_random(utils.uniform_activation)
     mcl = MitralLayer.create(6)
     Map = mcl.createSamplingMap(gl, 3, True, "simple")
     for elem in Map:
@@ -287,7 +289,7 @@ def testActivateMCLfromGL():
     for mitral in mcl:
         print(mitral)
     print("\n testing avg:")
-    ActivateMCLfromGL(gl, mcl, "avg", Map, "u", .01,.01)
+    ActivateMCLfromGL(gl, mcl, "avg", Map, utils.uniform_activation, .01,.01)
     print('\n' +"glom: ")
     for glom in gl:
         print(glom)
@@ -318,7 +320,7 @@ def testNormalization():
 def testgraphLayer():
     """Testing graphLayer for GL then MCL"""
     gl = GlomLayer.create(20)
-    gl.activate_random("u")
+    gl.activate_random(utils.uniform_activation)
     mcl = MitralLayer.create(15)
     map_ = mcl.createSamplingMap(gl, 4, True, "simple")
     ActivateMCLfromGL(gl, mcl, "add", map_, "u", .05)
@@ -333,7 +335,7 @@ def testgraphLayer():
     
 def testColorMap():
     gl = GlomLayer.create(4)
-    gl.activate_random("u")
+    gl.activate_random(utils.uniform_activation)
     mcl = MitralLayer.create(5)
     Map = mcl.createSamplingMap(gl, 2, True, "simple")
     ActivateMCLfromGL(gl, mcl, "add", Map, "u", .05)

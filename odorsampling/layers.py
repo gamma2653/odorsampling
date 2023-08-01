@@ -25,10 +25,10 @@ import matplotlib.pyplot as plt
 import math
 import matplotlib.pylab
 from matplotlib.backends.backend_pdf import PdfPages
-from enum import Enum
+from enum import Enum, auto
 import re
 
-from odorsampling import config, cells
+from odorsampling import config, cells, utils
 
 # Used for asserts
 from numbers import Real
@@ -37,17 +37,11 @@ from numbers import Real
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Union, Iterable
-
+    from typing import Union, Iterable, Optional
 logger = logging.getLogger(__name__)
 config.default_log_setup(logger)
 
-# Want selections to fail fast
-class Distribution(Enum):
-    """Enum for distribution types."""
-    UNIFORM = 'u'
-    GAUSSIAN = 'g'
-    EXPONENTIAL = 'e'
+
 
 class GlomLayer(list[cells.Glom]):
 
@@ -91,49 +85,80 @@ class GlomLayer(list[cells.Glom]):
             glom.setRecConn({})
         logger.debug("Glom cell layer activations cleared.")
 
-    #The following function generates activation levels for a GL in different ways
-
     #For now, if a number is generated to be over 1 or under 0 in Gaussian or
     #exponential, the function will be called again to generate a different number.
     # TODO: Change sel to an enum or some other fixed type
-    def activate_random(self, sel: Distribution, mean: Real = 0, sd: Real = 0):
-        """Initializes activation level for given GL (glom layer).
-        Precondition: GL is a list of Glom and sel is a Distribution"""
-        assert (mean+sd) <= 1 and mean-sd >= 0, "Mean and SD are too high or low"
+    def activate_random(self, dist_func: utils.DistributionFunc = utils.uniform_activation, **kwargs):
+        """
+        Initializes the activation levels for the glom layer instance.
+        PARAMETERS
+        ----------
+        kwargs
+            The function used to get the value of the activation levels of the gloms.
+            Ensure that you pass the appropriate arguments for a given distribution function, or a
+            TypeError is raised. Expects `utils.uniform_activation`, `utils.gaussian_activation`, or 
+            `utils.expovar_activation`, however it is capable of handling other distributions.
+
+            Examples of parameters dist_func takes are:
+            - `mu` [aliased as `mean`], `sigma` [aliased as `sd`] - Used by gaussian distributions. Note:
+                the aliasing used is one-way- for example if `mu` is not defined, it will have the value of `mean`
+                if it is defined. Otherwise, no default is set, and the method fails with a TypeError as expected.
+            - `a`, `b` (defaults to 0., 1. respectively) - Used by uniform distributions for the range.
+            - `lambd` (defaults to 1/`mean`, if `mean` is defined) - Used by expovariate.
+            
+            See utils.DistributionFunc for more details.
+        
+        """
+        
+        # defaults
+        utils.init_dist_func_kwargs(kwargs)
+
         for glom in self:
-            if sel is Distribution.UNIFORM:
-                x = random.random()
-            elif sel is Distribution.GAUSSIAN:
-                x = random.gauss(mean, sd)
-                while x > 1 or x < 0:
-                    x = random.gauss(mean, sd)
-            else: #sel == "e":
-                x = random.expovariate(1/mean)
-                #Maybe find a different function that'll be able input as a parameter the rate of decay
-                while x > 1 or x < 0:
-                    x = random.expovariate(1/mean)
-            glom.activ = x
-        logger.info("Glom cell layer activation levels initialized to %s.", sel)
+            try:
+                glom.activ = dist_func(**kwargs)
+            except TypeError as e:
+                raise TypeError(
+                    "Invalid keyword argument passed to activation_func. See error that raised this error."
+                ) from e
+        logger.info("Glom cell layer activation levels initialized to `%s`.", dist_func.__name__)
     #For now, any number that is incremented to be over 1 or under 0 is just set
     # to 1 or 0 respectively.
-    def activate_similar(self, num, sel: Distribution, mean=0, sd= 0, new_ = True):
+    def activate_similar(self, dist_func: utils.DistributionFunc = utils.uniform_activation, new_ = True, **kwargs):
         """Returns a glomeruli layer with activation levels similar to gl, by randomly
         picking a number between -num and num and incrementing (or if gaussian then picked
         using mean and sd). If new_ is True, then create new gl, otherwise this method fills
         its member object with the generated activation levels.
-        preconditions: num is between 0 and 1, sel is 'g' for gaussian or 'u' for uniform"""
-        assert num > 0 and num < 1, "num must be between 0 and 1"
         
+        PARAMETERS
+        ----------
+        sel
+            Expected to be either uniform_activation or sel_gauss_activation from utils.py,
+            however it accepts any DistributionFunc,
+
+        preconditions: num is between 0 and 1, sel is 'g' for gaussian or 'u' for uniform"""
+        assert kwargs.get('a', 1) > 0 and kwargs.get('b', 0) < 1, "num must be between 0 and 1" # auto-succeed if not defined.
+        assert dist_func in (utils.uniform_activation, utils.choice_gauss_activation)
+
+        # defaults
+        utils.init_dist_func_kwargs(kwargs)
+
         gl2 = GlomLayer.create(len(self)) if new_ else self
+
         for i, glom in enumerate(gl2):
-            rand = random.uniform(-num,num) if sel is Distribution.UNIFORM else random.choice([1,-1])*random.gauss(mean, sd)
-            glom.activ = min(max(rand + self[i].activ, 0.0), 1.0)
+            try:
+                rand = dist_func(**kwargs)
+                # TODO: log if problematic
+                glom.activ = min(max(rand + self[i].activ, 0.0), 1.0)
+            except TypeError as e:
+                raise TypeError(
+                    "Invalid keyword argument passed to activation_func. See error that raised this error."
+                ) from e
 
         logger.info("Activate GLSimilar called on glom layer.")
         return gl2
     
     #Creating array of GL's with similar activation
-    def create_array(self, x: int, star: bool, sel: Distribution, num, mean=0, sd=0):
+    def create_array(self, x: int, opt: str, dist_func: utils.DistributionFunc, num, mean=0, sd=0):
         """Given a glomeruli layer, returns x amount of similar gl's using
         the similarity method specified with opt and sel. Original activ lvl is incremented by <= num.
         Preconditions: gl is a list of glomeruli, x is an int sel is star or ser"""
@@ -142,10 +167,10 @@ class GlomLayer(list[cells.Glom]):
         if not x:
             logger.debug("createGLArray called with x=0.")
             return GlomLayer([])
-        gl = self.activate_similar(num, sel, mean, sd)
-        snd_gl = self if star else gl
-        logger.info("GlomLayer Array created with depth %s using sel param %s and opt %s.", x, sel, star)
-        return [gl] + GlomLayer.create_array(snd_gl, x-1, star, sel, num, mean, sd)
+        gl = self.activate_similar(a=-num, b=num, dist_func=dist_func, mean=mean, sd=sd)
+        snd_gl = self if opt == 'star' else gl
+        logger.info("GlomLayer Array created with depth %s using sel param %s and opt %s.", x, dist_func, opt)
+        return [gl] + GlomLayer.create_array(snd_gl, x-1, opt, dist_func, num, mean, sd)
     
     #####Loading and Storing a GL, MCL, and Map
     def save(self, name: str):
@@ -180,24 +205,52 @@ class GlomLayer(list[cells.Glom]):
         logger.info("Glom layer loaded from `%s`.", name)
         return cls(glom_layer)
     
-    def addNoise(self, dist: Distribution, mean=0, sd=0):
+    def addNoise(self, dist_func: utils.DistributionFunc, mean, **kwargs # mean=0, sd=0
+                 ):
         """Increments activation levels in GL by a certain value
         If noise is 'u', then mean = scale for uniform distribution."""
-        if dist is Distribution.UNIFORM:
-            inc = random.uniform(0,mean)
-        elif dist is Distribution.GAUSSIAN:
-            inc = random.gauss(mean, sd)
-        else:
-            inc = random.expovariate(1/mean)
+
+        # hotfix
+        kwargs.setdefault('b', mean) # to imitate `random.uniform(0, mean)`
+        utils.init_dist_func_kwargs(kwargs)
+
+        inc = dist_func(mean=mean, **kwargs)
         for g in self:
             g.activ = min(max(g.activ + random.choice([1,-1])*inc, 0.0), 1.0)
-        logger.info("Added noise[%s] to Glomlayer.", dist)
+        logger.info("Added noise[%s] to Glomlayer.", dist_func)
         return self
 
-    def _prevDuplicates(self, num, conn, weights=None, s=1):
+    def connect_mitral(self, mitral_layer: MitralLayer, s=1):
+        """
+        Replacement for _prevDuplicates as that implementation is over-complex.
+        
+        PARAMETERS
+        ----------
+        mitral_layer
+            The MitralLayer to which this GlomLayer is connecting.
+        s
+        """
+        # conn: list[int] = [] # prolly unnecessary
+        
+
+    def _prevDuplicates(self, num: int, conn: list[int], weights=None, s=1):
         """If a mitral cell already connects to glom at index num, then pick
         a new number. To prevent infinite loop, if a certain number of loops
-        occur, just allow duplicate but print a warning message."""
+        occur, just allow duplicate but print a warning message.
+        
+        PARAMETERS
+        ----------
+        num
+            The index to connect
+        conn
+            The connections to check
+        weights
+            None by default, if supplied, bias towards the weights.
+        s
+            #TODO: What is this used for specficially?
+        """
+        # NOTE: Uniform, no-replacement
+        # TODO: Find simpler, uniform way to select these. I know there is one. Aboce is WIP
         MAX_CHECKS = 100
         check = 0
         if weights is None:
@@ -217,12 +270,12 @@ class GlomLayer(list[cells.Glom]):
             logger.warning("Mitral cell may be connected to same Glom cell twice in order to prevent infinite loop")
         return num
     
-    def _check_dups(self, num, conn, weights=None):
-        """Checks if a mitral cell already connects to glom at index num"""
-        if weights is None:
+    # def _check_dups(self, num, conn, weights=None):
+    #     """Checks if a mitral cell already connects to glom at index num"""
+    #     if weights is None:
             
 
-        return 
+    #     return 
 
     def _buildWeights(self, bias: str, scale):
         """Returns a list len(gl), with each index starting with the same number
@@ -283,7 +336,19 @@ class MitralLayer(list[cells.Mitral]):
         """Returns MCL with given name from directory.
         precondition: name is a string with correct extension"""
         assert type(name) == str, "name isn't a string"
+        pattern = re.compile(r"(\d+),(\d+),(\d+):(\d+),(\d+);")
+
         mcl = []
+        with open(name) as f:
+            for line in f.readlines():
+                data = pattern.match(line)
+                if not data:
+                    continue
+                mcl.append(
+                    cells.Mitral(int(data.group(1)), float(data.group(2)),
+                    (int(data.group(3)), int(data.group(4))),
+                    int(data.group(5)))
+                )
         # TODO: regex it
         with open(name, 'r') as f:
             for line in f.readlines():
@@ -376,7 +441,7 @@ class MitralLayer(list[cells.Mitral]):
         if fix:
             while counter < len(self):
                 inc = 0
-                conn = []
+                conn: list[int] = []
                 while inc < cr:
                     num = random.randint(0,len(gl)-1)
                     num = gl._prevDuplicates(num, conn) # Ensures that glom at num isn't connected to the mitral cell yet
