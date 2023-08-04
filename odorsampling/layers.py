@@ -37,11 +37,11 @@ from numbers import Real
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Union, Iterable, Optional
+    from typing import Union, Iterable, TypeAlias
 logger = logging.getLogger(__name__)
 config.default_log_setup(logger)
 
-
+ConnMap = list[tuple[int, int, float]]
 
 class GlomLayer(list[cells.Glom]):
 
@@ -351,7 +351,7 @@ class MitralLayer(list[cells.Mitral]):
         pattern = re.compile(r"(\d+),(\d+),(\d+):(\d+),(\d+);")
 
         mcl = []
-        with open(name) as f:
+        with open(name, 'r') as f:
             for line in f.readlines():
                 data = pattern.match(line)
                 if not data:
@@ -361,32 +361,31 @@ class MitralLayer(list[cells.Mitral]):
                     (int(data.group(3)), int(data.group(4))),
                     int(data.group(5)))
                 )
-        # TODO: regex it
-        with open(name, 'r') as f:
-            for line in f.readlines():
-                comma1 = line.index(",")
-                comma2 = line.index(",",comma1+1)
-                comma3 = line.index(",",comma2+1)
-                colon = line.index(":", comma2+1)
-                semi = line.index(";", comma3+1)
-                loc = [int(line[comma2+1:colon]), int(line[colon+1:comma3])]
-                middle = line.find("|")
-                beg = comma3
-                glom = {}
-                while middle != -1:
-                    key = line[beg+1:middle]
-                    beg = line.index("+", beg+1)
-                    val = line[middle+1:beg]
-                    middle = line.find("|", middle+1)
-                    glom[int(key)] = float(val)
-                mitral = cells.Mitral(int(line[:comma1]), float(line[comma1+1:comma2]), loc, glom)
-                mcl.append(mitral)
+        # with open(name, 'r') as f:
+        #     for line in f.readlines():
+        #         comma1 = line.index(",")
+        #         comma2 = line.index(",",comma1+1)
+        #         comma3 = line.index(",",comma2+1)
+        #         colon = line.index(":", comma2+1)
+        #         semi = line.index(";", comma3+1)
+        #         loc = [int(line[comma2+1:colon]), int(line[colon+1:comma3])]
+        #         middle = line.find("|")
+        #         beg = comma3
+        #         TODO: Glom cell
+        #         glom = {}
+        #         while middle != -1:
+        #             key = line[beg+1:middle]
+        #             beg = line.index("+", beg+1)
+        #             val = line[middle+1:beg]
+        #             middle = line.find("|", middle+1)
+        #             glom[int(key)] = float(val)
+        #         mitral = cells.Mitral(int(line[:comma1]), float(line[comma1+1:comma2]), loc, glom)
+        #         mcl.append(mitral)
             return cls(mcl)
 
     #****For now all weights are chosen uniformly
     #connections are either fixed or cr serves as the mean with a sd for amount of connections
-    def createSamplingMap(self, gl: GlomLayer, cr: Real, fix: bool,
-                            sel: str, sd=0, bias='lin') -> list[tuple[int, int, float]]:
+    def createSamplingMap(self, gl: GlomLayer, cr: Real, fix: bool, sel: str, sd=0, bias='lin') -> ConnMap:
         """Returns a map in the form of [[Mi, G, W],[Mi, G, W]...] where
         Mi and G are ID's and W is the weight.
         1. The convergence ratio (cr) determines the amount of glom sample to each
@@ -424,14 +423,14 @@ class MitralLayer(list[cells.Mitral]):
 
 # TODO: rewrite samplers
 
-    def oneToOneSample(self, gl: GlomLayer) -> list[tuple[int, int, float]]:
+    def oneToOneSample(self, gl: GlomLayer) -> ConnMap:
         """
         For 1:1 sampling, each mitral cell chooses an unselected glom cell
         Precondition: len of gl >= len of mcl
         
         Returns
         -------
-        list[tuple[int, int, float]]
+        ConnMap
             The mitral_id, glom_idx, and weights for each mitral cell
         """
         assert len(gl) >= len(self)
@@ -443,73 +442,41 @@ class MitralLayer(list[cells.Mitral]):
             map_.append([mitral.id, ind, 1])   #******Changed for weights to always be 1
         return map_
 
-    def simpleSample(self, gl: GlomLayer, cr, fix, sd=0) -> list[tuple[int, int, float]]:
-        """Builds a map by randomly choosing glomeruli to sample to mitral cells.
-        If fix != true, cr serves as mean for # of glom sample to each mitral cell.
-        Weights are randomly chosen uniformly.
-        ***Weights of a mitral cell's gloms do NOT add up to 1.0***"""
-
-
-        map_ = []
-        counter = 0
-        def fixed_conns():
-            indexes = np.array(range(len(self)))
-            utils.RNG.shuffle(indexes)
-            
-            # while inc < cr:
-            #     num = utils.
-
-        if fix:
-            while counter < len(self):
-                inc = 0
-                conn: list[int] = []
-                while inc < cr:
-                    num = utils.RNG.integers(0,len(gl))
-                    num = gl._prevDuplicates(num, conn) # Ensures that glom at num isn't connected to the mitral cell yet
-                    map_.append([self[counter].id, num, utils.RNG.uniform(0,.4)])
-                    inc += 1
-                    conn.append(num)
-                counter += 1
-        else:
-            while counter < len(self):
-                rand = max(utils.RNG.normal(cr, sd), 1)
-                inc = 0
-                conn = []
-                while inc < rand:
-                    num = utils.RNG.integers(0,len(gl))
-                    num = gl._prevDuplicates(num, conn)
-                    map_.append([self[counter].id, num, utils.RNG.uniform(0,.4)])
-                    inc += 1
-                    conn.append(num)
-                counter += 1
-        return map_
-
-    def simpleSampleRandom(self, gl: GlomLayer, cr, fix, sd=0) -> list[tuple[int, int, float]]:
+    def simpleSampleRandom(self, gl: GlomLayer, cr, fix, sd=0) -> ConnMap:
         """Builds a map by randomly choosing glomeruli to sample to mitral cells.
         If fix != true, cr serves as mean for # of glom sample to each mitral cell.
         Weights are randomly chosen uniformly.
         ***Weights of a mitral cell's gloms add up to 1.0***"""
+
+        # if fix:
+        #     indexes = utils.RNG.integers(0, len(gl))
+        #     while indexes
+
         map_ = []
         counter = 0
 
         if fix:
+            # For each mitral
             while counter < len(self):
                 inc = 0
                 conn = []
                 leftover = 1
+
+                # cr times
                 while inc < cr:
 
-                    num = utils.RNG.integers(0,len(gl))
-                    num = gl._prevDuplicates(num, conn) # Ensures that glom at num isn't connected to the mitral cell yet
-
+                    idx = utils.RNG.integers(0,len(gl))
+                    idx = gl._prevDuplicates(idx, conn) # Ensures that glom at num isn't connected to the mitral cell yet
+                    
+                    # FIXME: What is this logic?
                     if inc == (cr-1):
                         act = leftover
                     else:
                         act = utils.RNG.uniform(0, leftover)
                         leftover -= act
-                    map_.append([self[counter].id, num, act])
+                    map_.append([self[counter].id, idx, act])
                     inc += 1
-                    conn.append(num)
+                    conn.append(idx)
                 counter += 1
         else:
             while counter < len(self):
@@ -517,15 +484,15 @@ class MitralLayer(list[cells.Mitral]):
                 inc = 0
                 conn = []
                 while inc < rand:
-                    num = utils.RNG.integers(0,len(gl))
-                    gl._prevDuplicates(num, conn)
-                    map_.append([self[counter].id, num, utils.RNG.uniform(0,.4)])
+                    idx = utils.RNG.integers(0,len(gl))
+                    gl._prevDuplicates(idx, conn)
+                    map_.append([self[counter].id, idx, utils.RNG.uniform(0,.4)])
                     inc += 1
-                    conn.append(num)
+                    conn.append(idx)
                 counter += 1
         return map_
 
-    def simpleSampleBalanced(self, gl: GlomLayer, cr, fix, sd=0) -> list[tuple[int, int, float]]:
+    def simpleSampleBalanced(self, gl: GlomLayer, cr, fix, sd=0) -> ConnMap:
         """Builds a map by randomly choosing glomeruli to sample to mitral cells.
         If fix != true, cr serves as mean for # of glom sample to each mitral cell.
         Weights are randomly chosen uniformly. Limits number of mitral cells that 
@@ -547,6 +514,7 @@ class MitralLayer(list[cells.Mitral]):
                 inc = 0
                 conn = []
                 leftover = 1
+                # TODO: Implement better choice algo
                 while inc < cr:
                     num = utils.RNG.choice(glomSelections)
                     check = 0
@@ -568,7 +536,7 @@ class MitralLayer(list[cells.Mitral]):
                 counter += 1
         return map_
 
-    def simpleSampleLocation(self, gl: GlomLayer, cr, fix, sd=0) -> list[tuple[int, int, float]]:
+    def simpleSampleLocation(self, gl: GlomLayer, cr, fix, sd=0) -> ConnMap:
         """Builds a map by randomly choosing glomeruli to sample to mitral cells.
         If fix != true, cr serves as mean for # of glom sample to each mitral cell.
         Weights are randomly chosen uniformly. Glomeruli are drawn randomly from the
@@ -676,7 +644,7 @@ class MitralLayer(list[cells.Mitral]):
         return map_
  
 
-def biasSample(gl: GlomLayer, mcl: MitralLayer, cr, fix, bias, sd=0) -> list[tuple[int, int, float]]:
+def biasSample(gl: GlomLayer, mcl: MitralLayer, cr, fix, bias, sd=0) -> ConnMap:
     """Builds a map by choosing glomeruli to sample to mitral cells, but the more times
     a glomeruli is sampled, the less likely it is to be chosen again (either a linear
     degression or exponential based on bias). If fix != true, cr serves as mean for
@@ -745,7 +713,7 @@ def _recalcWeights(weights, index: int, bias, s):
 
 ###Cleaning up unconnected glom in built Map
 
-def cleanUp(gl: GlomLayer, mcl: MitralLayer, map_: list):
+def cleanUp(gl: GlomLayer, mcl: MitralLayer, map_: ConnMap):
     """Samples all unsampled glom in gl to the last mitral cell in mcl with a
     random uniform number for weight. **This will violate the Map if # of connections
     was fixed"""
@@ -764,7 +732,7 @@ def cleanUp(gl: GlomLayer, mcl: MitralLayer, map_: list):
         unsampled.remove(unsampled[0])
     logger.info("Finished cleaning up layers.")
         
-def unsampledGlom(gl: GlomLayer, mcl: MitralLayer, map_):
+def unsampledGlom(gl: GlomLayer, mcl: MitralLayer, map_: ConnMap):
     """prints out amount of gl unsampled in Map"""
     unsampled = []
     counter = 0
