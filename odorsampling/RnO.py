@@ -18,8 +18,6 @@ Index of document:
 from __future__ import annotations
 
 import math
-import random
-import odorsampling.layers as layers
 # import matplotlib
 # matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
@@ -33,9 +31,8 @@ import logging
 
 #from matplotlib import mlab, cm
 from matplotlib.patches import Ellipse
-import numpy.random as rnd
 
-from odorsampling import config, cells
+from odorsampling import cells, layers, config, utils
 
 # Used for asserts
 from numbers import Real
@@ -44,7 +41,7 @@ from typing import Sequence
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Union, Optional
+    from typing import Union, Optional, Any
     from numbers import Number
     # from typing import Tuple
     # from typing import List
@@ -284,7 +281,7 @@ class Ligand:
         in Q space.
         """
         # TODO: make sure within bounds
-        loc = [random.uniform(-1000, 1000) for _ in range(dim)]
+        loc = [utils.RNG.uniform(-1000, 1000) for _ in range(dim)]
         return Ligand(id_, conc, loc)
     
     @classmethod
@@ -561,13 +558,6 @@ class Receptor:
         self._sdA = value
         self._mean_sd_change = True
 
-    def _update_cov_scale(self):
-        self._covA = [_sdA**2 for _sdA in self.sdA]
-        self._covE = [_sdE**2 for _sdE in self.sdE]
-        self._scale = mvn.pdf(self.mean, self.mean, self._covA)
-        self._effScale = float(mvn.pdf(self.mean, self.mean, self._covE))
-        self._mean_sd_change = False
-
     @property
     def sdE(self) -> tuple:
         """Returns the standard deviations for Efficacy."""
@@ -585,32 +575,41 @@ class Receptor:
         self._sdE = value
         self._mean_sd_change = True
     
+    @staticmethod
+    def _update_cov_scale(getter):
+        def wrapper(self: 'Receptor') -> Any:
+            if self._mean_sd_change:
+                self._covA = [_sdA**2 for _sdA in self.sdA]
+                self._covE = [_sdE**2 for _sdE in self.sdE]
+                # FIXME: Cast to float?
+                self._scale = mvn.pdf(self.mean, self.mean, self._covA)
+                self._effScale = float(mvn.pdf(self.mean, self.mean, self._covE))
+                self._mean_sd_change = False
+            return getter()
+        return wrapper
+
     @property
+    @_update_cov_scale
     def covA(self):
         """Returns the covariance for affinity"""
-        if self._mean_sd_change:
-            self._update_cov_scale()
         return self._covA
     
     @property
+    @_update_cov_scale
     def covE(self):
         """Returns the covariance for Efficacy"""
-        if self._mean_sd_change:
-            self._update_cov_scale()
         return self._covE
     
     @property
+    @_update_cov_scale
     def scale(self):
         """Returns scale of receptor."""
-        if self._mean_sd_change:
-            self._update_cov_scale()
         return self._scale
 
     @property
+    @_update_cov_scale
     def effScale(self):
         """Returns eff scale of receptor."""
-        if self._mean_sd_change:
-            self._update_cov_scale()
         return self._effScale
 
     @property
@@ -877,15 +876,15 @@ def _distributeMean(dim: int, qspace: QSpace, constMean: bool):
     else:
         while i < dim:
             if config.DIST_TYPE_UNIF:
-                mean.append(random.uniform(qspace.size[i][0], qspace.size[i][1]))
+                mean.append(utils.RNG.uniform(qspace.size[i][0], qspace.size[i][1]))
             elif config.DIST_TYPE_GAUSS:
                 while True:
-                    g = random.gauss(config.MU, config.SIG)
+                    g = utils.RNG.normal(config.MU, config.SIG)
                     #if ((i==0 and g <= qspace.size[i][1] and g >= 0) or (i==1 and g <= qspace.size[i][1]) and g >= 0):
                     if (g <= qspace.size[i][1] and g >= 0):
                         mean.append(g)
                         break
-                #mean.append(random.gauss(params.MU, params.SIG))
+                #mean.append(utils.RNG.gauss(params.MU, params.SIG))
 
             i += 1
     return mean
@@ -894,7 +893,7 @@ def _distributeSD(dim, scale: tuple[float, float]):
     """Returns a list of standard deviations between scale[0] and scale[1] randomly distributed based on the Type
     Precondition: scale is a 2d list with #'s>=0"""
     assert scale[0] > 0, "scale is not a valid list"
-    return [random.uniform(*scale) for _ in range(dim)]
+    return [utils.RNG.uniform(*scale) for _ in range(dim)]
 
 
 ######## Activating Receptors/corresponding GL
@@ -1392,9 +1391,9 @@ def dPsiBarCalcAnglesOrig(epithelium: Epithelium, odorscene: Odorscene, r, fixed
         angles = []
         for i in range(dim-1):
             if i == dim-2: #if last angle
-                angles.append(random.uniform(0,(2*math.pi)))
+                angles.append(utils.RNG.uniform(0,(2*math.pi)))
             else:
-                angles.append(random.uniform(0, math.pi))
+                angles.append(utils.RNG.uniform(0, math.pi))
         #Create dn = amount of change (length of line in each dim given vector r)
         dn = []
         for i in range(dim):
@@ -1533,10 +1532,8 @@ def colorMapSumOfSquares(epithelium: Epithelium, odorscenes: list[Odorscene], r,
                 print("Qspace size is " + str(qspace.size[1][1]))
         
                 qspaceBoundary = qspace.size[1][1]
-                # ang = rnd.rand()*360
-                ang = rnd.rand()
-                ang1 = rnd.rand()
-                ang2 = rnd.rand()
+                # ang = utils.RNG.rand()*360
+                ang, ang1, ang2 = utils.RNG.random(3)
                 """
                 ells.append(Ellipse(xy=rec.mean, width=rec.sdA[0]*standardDeviationNumber, height=rec.sdE[0]*standardDeviationNumber, angle=ang))
                 ells.append(Ellipse(xy=rec.mean, width=rec.sdA[1]*standardDeviationNumber, height=rec.sdE[1]*standardDeviationNumber, angle=ang))
@@ -1690,9 +1687,9 @@ def dPsiBarCalcDns(odorscene: Odorscene, r, rep: int):
             #print("start of first for:" + str(i) +":"+ str(time.time()))
 
             if i == dim-2: #if last angle
-                angles.append(random.uniform(0,(2*math.pi)))
+                angles.append(utils.RNG.uniform(0,(2*math.pi)))
             else:
-                angles.append(random.uniform(0, math.pi))
+                angles.append(utils.RNG.uniform(0, math.pi))
         #Create dn = amount of change (length of line in each dim given vector r)
             #print("end of first for:" + str(i) +":"+ str(time.time()))
 
@@ -1966,7 +1963,7 @@ def createLoc(qspace: QSpace):
     """Given a qspace, return a list of randomized numbers (len=dim) within the qspace"""
     loc = []
     for tup in qspace.size:
-        loc.append(random.uniform(*tup))
+        loc.append(utils.RNG.uniform(*tup))
     return loc
 
 #NOT IN USE
@@ -2041,18 +2038,10 @@ def drawEllipseGraph(qspace: QSpace, epithelium: Epithelium, odorscenesArray: li
     ells_sda: list[Ellipse] = []
     ells_sde: list[Ellipse] = []
 
-    """
-    print("xy=" + str(rnd.rand(2)*10))
-    print("width=" + str(rnd.rand()))
-    print("height=" + str(rnd.rand()))
-    print("angle=" + str(rnd.rand()*360))
-    """
-    # ang = rnd.rand()*360            
-    # ang1 = rnd.rand()*360
-    # ang2 = rnd.rand()*360
-    ang = rnd.rand()
-    ang1 = rnd.rand()
-    ang2 = rnd.rand()
+    # ang = utils.RNG.random()*360            
+    # ang1 = utils.RNG.random()*360
+    # ang2 = utils.RNG.random()*360
+    ang, ang1, ang2 = utils.RNG.random(3)
 
     if config.USE_MOCK_RECEPTORS_EVEN_WHEN_RUNNING_CALCS or useMockData:
         if config.SHOW_SDA_ELLIPSE:
@@ -2191,7 +2180,7 @@ def drawEllipseGraph(qspace: QSpace, epithelium: Epithelium, odorscenesArray: li
         
                 qspaceBoundary = qspace.size[1][1]
                 # ang = rnd.rand()*360
-                ang = rnd.rand()
+                ang = utils.RNG.random()
                 """
                 ells.append(Ellipse(xy=rec.mean, width=rec.sdA[0]*standardDeviationNumber, height=rec.sdE[0]*standardDeviationNumber, angle=ang))
                 ells.append(Ellipse(xy=rec.mean, width=rec.sdA[1]*standardDeviationNumber, height=rec.sdE[1]*standardDeviationNumber, angle=ang))
@@ -2851,11 +2840,11 @@ def attachSecondaryRecs(gl: list[cells.Glom], recs: list[Receptor], c: int, conn
                 connections = []
                 i = 0
                 while i < c-1:
-                    index = random.choice(ints)
+                    index = utils.RNG.choice(ints)
                     rec = recs[index]
                     # FIXME: Shouldn't access private vars outside of class
                     while rec in glom._recConn.keys(): #Choose random rec until find one that isn't connected yet
-                        index = random.choice(ints)
+                        index = utils.RNG.choice(ints)
                         rec = recs[index]
                     glom._recConn[rec] = s_weights[i]
                     connections.append(index)

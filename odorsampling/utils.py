@@ -1,15 +1,14 @@
 from __future__ import annotations
 
-from random import Random
-import math
+import numpy as np
 
 from typing import TYPE_CHECKING, Protocol
 if TYPE_CHECKING:
-    from typing import Sequence, Optional, Any
+    from typing import Optional, Any
 
 
 RANDOM_SEED = None
-DEFAULT_RANDOM_GEN = Random(RANDOM_SEED) if RANDOM_SEED else Random()
+RNG = np.random.default_rng(RANDOM_SEED)
 
 # Want selections to fail fast
 class DistributionFunc(Protocol):
@@ -33,11 +32,12 @@ def init_dist_func_kwargs(kwargs: dict[str, Any], **defaults):
     kwargs.setdefault('lambd', 1/kwargs['mean'])
 
 # Not the cleanest, but not bad considering what we needed to do in layers.py
-uniform_activation: DistributionFunc = lambda a, b, **_: DEFAULT_RANDOM_GEN.uniform(a, b) if (a,b) != (0,1) else DEFAULT_RANDOM_GEN.random()
+# TODO: Check if ternary is necessary for excluding endpoint (`b`).
+uniform_activation: DistributionFunc = lambda a, b, **_: RNG.uniform(a, b) if (a,b) != (0,1) else RNG.random()
+gaussian_activation: DistributionFunc = lambda mu, sigma, **_: RNG.normal(mu, sigma)
 """
 If a,b == (0,1), will resort to Random.random to not include b.
 """
-gaussian_activation: DistributionFunc = lambda mu, sigma, **_: DEFAULT_RANDOM_GEN.gauss(mu, sigma)
 choice_gauss_activation: DistributionFunc = lambda mu, sigma, **_: \
-    DEFAULT_RANDOM_GEN.choice([1,-1])*gaussian_activation(mu, sigma)
-expovar_activation: DistributionFunc = lambda lambd, **_: DEFAULT_RANDOM_GEN.expovariate(lambd)
+    RNG.choice([1,-1])*gaussian_activation(mu, sigma)
+expovar_activation: DistributionFunc = lambda lambd, **_: RNG.exponential(1/lambd)

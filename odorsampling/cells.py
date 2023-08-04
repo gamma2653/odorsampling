@@ -8,14 +8,13 @@
 from __future__ import annotations
 
 from collections import Counter
-import random
 import logging
 import builtins
 # Used for asserts
 if builtins.__debug__:
     from numbers import Real
 
-from odorsampling import config
+from odorsampling import config, utils
 
 # Type checking
 from typing import TYPE_CHECKING
@@ -154,14 +153,15 @@ class Glom(Cell):
         """Returns a Glomural object description with activation energy"""
         return f"Id: {self.id} activ: {self.activ}"
 
+    # TODO: Double check if implemented correctly
     @classmethod
     def generate_random_loc(xLowerBound: int, xUpperBound: int, yLowerBound: int, yUpperBound: int) -> tuple[int, int]:
         """Returns a random glom location"""
-        randomGlomX = random.randint(xLowerBound, xUpperBound)
+        randomGlomX = utils.RNG.integers(xLowerBound, xUpperBound, endpoint=True)
         if (randomGlomX, randomGlomY) == (xLowerBound, yLowerBound):
-            randomGlomY = random.randint(yLowerBound, yUpperBound)
+            randomGlomY = utils.RNG.integers(yLowerBound, yUpperBound, endpoint=True)
         else:
-            randomGlomY = int(random.sample([yLowerBound, yUpperBound], 1)[0])
+            randomGlomY = utils.RNG.choice([yLowerBound, yUpperBound])
         return (randomGlomX, randomGlomY)
 
 class Mitral(Cell):

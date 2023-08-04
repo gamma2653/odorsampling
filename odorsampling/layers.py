@@ -20,15 +20,15 @@
 from __future__ import annotations
 
 import logging
-import random
 import matplotlib.pyplot as plt
 import math
 import matplotlib.pylab
 from matplotlib.backends.backend_pdf import PdfPages
-from enum import Enum, auto
 import re
 
 from odorsampling import config, cells, utils
+
+import numpy as np
 
 # Used for asserts
 from numbers import Real
@@ -131,10 +131,15 @@ class GlomLayer(list[cells.Glom]):
         
         PARAMETERS
         ----------
-        sel
-            Expected to be either uniform_activation or sel_gauss_activation from utils.py,
-            however it accepts any DistributionFunc,
-
+        dist_func
+            See utils.DistributionFunc
+        
+        new_
+            Whether to create a new layer or not
+        
+        kwargs
+            mapping of arguments for dist_func.
+        
         preconditions: num is between 0 and 1, sel is 'g' for gaussian or 'u' for uniform"""
         assert kwargs.get('a', 1) > 0 and kwargs.get('b', 0) < 1, "num must be between 0 and 1" # auto-succeed if not defined.
         assert dist_func in (utils.uniform_activation, utils.choice_gauss_activation)
@@ -146,9 +151,7 @@ class GlomLayer(list[cells.Glom]):
 
         for i, glom in enumerate(gl2):
             try:
-                rand = dist_func(**kwargs)
-                # TODO: log if problematic
-                glom.activ = min(max(rand + self[i].activ, 0.0), 1.0)
+                glom.activ = min(max(dist_func(**kwargs) + self[i].activ, 0.0), 1.0)
             except TypeError as e:
                 raise TypeError(
                     "Invalid keyword argument passed to activation_func. See error that raised this error."
@@ -205,18 +208,20 @@ class GlomLayer(list[cells.Glom]):
         logger.info("Glom layer loaded from `%s`.", name)
         return cls(glom_layer)
     
-    def addNoise(self, dist_func: utils.DistributionFunc, mean, **kwargs # mean=0, sd=0
-                 ):
+    def addNoise(self, dist_func: utils.DistributionFunc, **kwargs):
         """Increments activation levels in GL by a certain value
         If noise is 'u', then mean = scale for uniform distribution."""
 
         # hotfix
-        kwargs.setdefault('b', mean) # to imitate `random.uniform(0, mean)`
+        try:
+            kwargs.setdefault('b', kwargs['mean'])
+        except KeyError:
+            logger.info("No mean supplied, not setting special defaults for normal noise distribution.")
         utils.init_dist_func_kwargs(kwargs)
 
-        inc = dist_func(mean=mean, **kwargs)
+        inc = dist_func(**kwargs)
         for g in self:
-            g.activ = min(max(g.activ + random.choice([1,-1])*inc, 0.0), 1.0)
+            g.activ = min(max(g.activ + utils.RNG.choice([1,-1])*inc, 0.0), 1.0)
         logger.info("Added noise[%s] to Glomlayer.", dist_func)
         return self
 
@@ -231,6 +236,12 @@ class GlomLayer(list[cells.Glom]):
         s
         """
         # conn: list[int] = [] # prolly unnecessary
+        # TODO: Use https://numpy.org/doc/stable/reference/random/generated/numpy.random.choice.html
+        #   to select mitral indexes
+        
+        # utils.RNG.choice(len(mitral_layer), size=len(mitral_layer), replace=False)
+        return False
+
         
 
     def _prevDuplicates(self, num: int, conn: list[int], weights=None, s=1):
@@ -251,16 +262,17 @@ class GlomLayer(list[cells.Glom]):
         """
         # NOTE: Uniform, no-replacement
         # TODO: Find simpler, uniform way to select these. I know there is one. Aboce is WIP
+        
         MAX_CHECKS = 100
         check = 0
         if weights is None:
             while num in conn and check < MAX_CHECKS:
-                num = random.randint(0,len(self)-1)
+                num = utils.RNG.integers(0,len(self))
                 check += 1
         else:
             while num in conn and check < MAX_CHECKS:
-                rand = random.randint(1, s)
                 num = 0
+                rand = utils.RNG.integers(1, s, endpoint=True)
                 while rand > 0:                 #Picking an index based on weight
                     rand = rand - weights[num]
                     num += 1
@@ -426,7 +438,7 @@ class MitralLayer(list[cells.Mitral]):
         map_ = []
         indexes = list(range(0,len(gl)))
         for mitral in self:
-            ind = random.choice(indexes)
+            ind = utils.RNG.choice(indexes)
             indexes.remove(ind)
             map_.append([mitral.id, ind, 1])   #******Changed for weights to always be 1
         return map_
@@ -436,28 +448,37 @@ class MitralLayer(list[cells.Mitral]):
         If fix != true, cr serves as mean for # of glom sample to each mitral cell.
         Weights are randomly chosen uniformly.
         ***Weights of a mitral cell's gloms do NOT add up to 1.0***"""
+
+
         map_ = []
         counter = 0
+        def fixed_conns():
+            indexes = np.array(range(len(self)))
+            utils.RNG.shuffle(indexes)
+            
+            # while inc < cr:
+            #     num = utils.
+
         if fix:
             while counter < len(self):
                 inc = 0
                 conn: list[int] = []
                 while inc < cr:
-                    num = random.randint(0,len(gl)-1)
+                    num = utils.RNG.integers(0,len(gl))
                     num = gl._prevDuplicates(num, conn) # Ensures that glom at num isn't connected to the mitral cell yet
-                    map_.append([self[counter].id, num, random.uniform(0,.4)])
+                    map_.append([self[counter].id, num, utils.RNG.uniform(0,.4)])
                     inc += 1
                     conn.append(num)
                 counter += 1
         else:
             while counter < len(self):
-                rand = max(random.gauss(cr, sd), 1)
+                rand = max(utils.RNG.normal(cr, sd), 1)
                 inc = 0
                 conn = []
                 while inc < rand:
-                    num = random.randint(0,len(gl)-1)
+                    num = utils.RNG.integers(0,len(gl))
                     num = gl._prevDuplicates(num, conn)
-                    map_.append([self[counter].id, num, random.uniform(0,.4)])
+                    map_.append([self[counter].id, num, utils.RNG.uniform(0,.4)])
                     inc += 1
                     conn.append(num)
                 counter += 1
@@ -470,17 +491,6 @@ class MitralLayer(list[cells.Mitral]):
         ***Weights of a mitral cell's gloms add up to 1.0***"""
         map_ = []
         counter = 0
-        def func(inc, conn: list, map_: list, counter, leftover = 1):
-            num = random.randint(0, len(gl)-1)
-            num = gl._prevDuplicates(num, conn)
-            if inc == (cr-1):
-                act = leftover
-            else:
-                act = random.uniform(0, leftover)
-                leftover -= act
-            map_.append([self[counter].id, num, act])
-            inc += 1
-            conn.append(num)
 
         if fix:
             while counter < len(self):
@@ -488,13 +498,14 @@ class MitralLayer(list[cells.Mitral]):
                 conn = []
                 leftover = 1
                 while inc < cr:
-                    num = random.randint(0,len(gl)-1)
+
+                    num = utils.RNG.integers(0,len(gl))
                     num = gl._prevDuplicates(num, conn) # Ensures that glom at num isn't connected to the mitral cell yet
 
                     if inc == (cr-1):
                         act = leftover
                     else:
-                        act = random.uniform(0, leftover)
+                        act = utils.RNG.uniform(0, leftover)
                         leftover -= act
                     map_.append([self[counter].id, num, act])
                     inc += 1
@@ -502,13 +513,13 @@ class MitralLayer(list[cells.Mitral]):
                 counter += 1
         else:
             while counter < len(self):
-                rand = max(random.gauss(cr, sd), 1)
+                rand = max(utils.RNG.normal(cr, sd), 1)
                 inc = 0
                 conn = []
                 while inc < rand:
-                    num = random.randint(0,len(gl)-1)
+                    num = utils.RNG.integers(0,len(gl))
                     gl._prevDuplicates(num, conn)
-                    map_.append([self[counter].id, num, random.uniform(0,.4)])
+                    map_.append([self[counter].id, num, utils.RNG.uniform(0,.4)])
                     inc += 1
                     conn.append(num)
                 counter += 1
@@ -537,10 +548,10 @@ class MitralLayer(list[cells.Mitral]):
                 conn = []
                 leftover = 1
                 while inc < cr:
-                    num = random.choice(glomSelections)
+                    num = utils.RNG.choice(glomSelections)
                     check = 0
                     while num in conn and check < MAX_TRIES:
-                        num = random.choice(glomSelections)
+                        num = utils.RNG.choice(glomSelections)
                         check += 1
                         logger.error("simpleSampleBalanced was unable to connect the very last mitral cell")
                         # IMPLEMENT THIS IN A BETTER WAY. This error shows up when the very last mitral is forced to sample from the same glom.
@@ -549,7 +560,7 @@ class MitralLayer(list[cells.Mitral]):
                     if inc == (cr-1):
                         act = leftover
                     else:
-                        act = random.uniform(0, leftover)
+                        act = utils.RNG.uniform(0, leftover)
                         leftover -= act
                     map_.append([self[counter].id, num, act])
                     inc += 1
@@ -575,7 +586,7 @@ class MitralLayer(list[cells.Mitral]):
 
         if fix:
             while counter < len(self):
-                num = random.randint(0,len(gl)-1)
+                num = utils.RNG.integers(0,len(gl))
                 x, y = gl[num].loc
                 logger.debug("parent glom location: (" + str(x) + ", " + str(y) + ")")
                 xUpperBound = numLayers+x
@@ -585,7 +596,7 @@ class MitralLayer(list[cells.Mitral]):
                 yLowerBound = y-numLayers
                 logger.debug("y: [" + str(yLowerBound) + ", " + str(yUpperBound) + "]")
                 gloms = []
-                act = random.uniform(0,1)
+                act = utils.RNG.uniform(0,1)
                 map_.append([self[counter].id, num, act])
                 leftover = 1-act
 
@@ -597,7 +608,7 @@ class MitralLayer(list[cells.Mitral]):
                         if selected == int(numToSelect)-1:
                             act = leftover
                         else:
-                            act = random.uniform(0, leftover)
+                            act = utils.RNG.uniform(0, leftover)
                             leftover -= act
                         while randomGlom in gloms:
                             randomGlom = cells.Glom.generate_random_loc(xLowerBound, xUpperBound, yLowerBound, yUpperBound)
@@ -631,7 +642,7 @@ class MitralLayer(list[cells.Mitral]):
                         for g in gl:
                             if g.loc == (g[0], g[1]):
                                 num = g.id
-                                act = random.uniform(0, leftover)
+                                act = utils.RNG.uniform(0, leftover)
                                 leftover -= act
                                 map_.append([self[counter].id, num, act])
                             else:
@@ -644,7 +655,7 @@ class MitralLayer(list[cells.Mitral]):
                         if selected == int(numToSelect)-1:
                             act = leftover
                         else:
-                            act = random.uniform(0, leftover)
+                            act = utils.RNG.uniform(0, leftover)
                             leftover -= act
                         while randomGlom in gloms:
                             randomGlom = cells.Glom.generate_random_loc(xLowerBound, xUpperBound, yLowerBound, yUpperBound)
@@ -686,19 +697,19 @@ def biasSample(gl: GlomLayer, mcl: MitralLayer, cr, fix, bias, sd=0) -> list[tup
     counter = 0
     while counter < len(mcl):               #start looping through each mitral cell
         if not fix:
-            cr = max(random.gauss(cr_orig, sd), 1)
+            cr = max(utils.RNG.normal(cr_orig, sd), 1)
             cr = min(cr, len(gl))
         temp = 0
         conn = []
         while temp < cr:                    #start connecting mitral cell to (multiple) glom
-            rand = random.randint(1, s)
+            rand = utils.RNG.integers(1, s, endpoint=True)
             index = 0
             while rand > 0:                 #Picking an index based on weight
                 rand = rand - weights[index]
                 index += 1
             index -= 1
             index = gl._prevDuplicates(index, conn, weights, s)
-            map_.append((counter, index, random.uniform(0,.4)))
+            map_.append((counter, index, utils.RNG.uniform(0,.4)))
             const = _recalcWeights(weights, index, bias, s)
             weights = const[0]
             s = const[1]
@@ -749,7 +760,7 @@ def cleanUp(gl: GlomLayer, mcl: MitralLayer, map_: list):
             unsampled.remove(map_[counter][1])
         counter += 1
     while len(unsampled) > 0:
-        map_.append([len(mcl)-1, unsampled[0], random.random()])
+        map_.append([len(mcl)-1, unsampled[0], utils.RNG.random()])
         unsampled.remove(unsampled[0])
     logger.info("Finished cleaning up layers.")
         
