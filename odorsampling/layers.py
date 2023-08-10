@@ -240,43 +240,43 @@ class GlomLayer(list[cells.Glom]):
 
         
 
-    def _prevDuplicates(self, num: int, conn: list[int], weights=None, s=1):
-        """If a mitral cell already connects to glom at index num, then pick
-        a new number. To prevent infinite loop, if a certain number of loops
-        occur, just allow duplicate but print a warning message.
+    # def _prevDuplicates(self, num: int, conn: list[int], weights=None, s=1):
+    #     """If a mitral cell already connects to glom at index num, then pick
+    #     a new number. To prevent infinite loop, if a certain number of loops
+    #     occur, just allow duplicate but print a warning message.
         
-        PARAMETERS
-        ----------
-        num
-            The index to connect
-        conn
-            The connections to check
-        weights
-            None by default, if supplied, bias towards the weights.
-        s
-            #TODO: What is this used for specficially?
-        """
-        # NOTE: Uniform, no-replacement
-        # TODO: Find simpler, uniform way to select these. I know there is one. Above is WIP
+    #     PARAMETERS
+    #     ----------
+    #     num
+    #         The index to connect
+    #     conn
+    #         The connections to check
+    #     weights
+    #         None by default, if supplied, bias towards the weights.
+    #     s
+    #         #TODO: What is this used for specficially?
+    #     """
+    #     # NOTE: Uniform, no-replacement
+    #     # TODO: Find simpler, uniform way to select these. I know there is one. Above is WIP
         
-        MAX_CHECKS = 100
-        check = 0
-        if weights is None:
-            while num in conn and check < MAX_CHECKS:
-                num = utils.RNG.integers(0,len(self))
-                check += 1
-        else:
-            while num in conn and check < MAX_CHECKS:
-                num = 0
-                rand = utils.RNG.integers(1, s, endpoint=True)
-                while rand > 0:                 #Picking an index based on weight
-                    rand = rand - weights[num]
-                    num += 1
-                num -= 1
-                check += 1
-        if check == MAX_CHECKS:
-            logger.warning("Mitral cell may be connected to same Glom cell twice in order to prevent infinite loop")
-        return num
+    #     MAX_CHECKS = 100
+    #     check = 0
+    #     if weights is None:
+    #         while num in conn and check < MAX_CHECKS:
+    #             num = utils.RNG.integers(0,len(self))
+    #             check += 1
+    #     else:
+    #         while num in conn and check < MAX_CHECKS:
+    #             num = 0
+    #             rand = utils.RNG.integers(1, s, endpoint=True)
+    #             while rand > 0:                 #Picking an index based on weight
+    #                 rand = rand - weights[num]
+    #                 num += 1
+    #             num -= 1
+    #             check += 1
+    #     if check == MAX_CHECKS:
+    #         logger.warning("Mitral cell may be connected to same Glom cell twice in order to prevent infinite loop")
+    #     return num
     
     # def _check_dups(self, num, conn, weights=None):
     #     """Checks if a mitral cell already connects to glom at index num"""
@@ -672,32 +672,31 @@ def biasSample(gl: GlomLayer, mcl: MitralLayer, cr, fix, bias, sd=0) -> ConnMap:
         s = len(weights)*(2**scale)
     
 
-    def gen_rand(rand, weights, glom_weight_idx):
-        
+    def select_glom(rand, weights, glom_weight_idx):
+        """
+        Steps through indexes until weights are exhausted.
+        """
         while rand > 0:
             rand = rand - weights[glom_weight_idx]
             glom_weight_idx += 1
         return glom_weight_idx
     cr_orig = cr
-    counter = 0
-    while counter < len(mcl):               #start looping through each mitral cell
+    for mitral_idx in range(len(mcl)):  # start looping through each mitral cell
         if not fix: # Generate new cr per mitral `if not fix``.
             cr = min(max(int(utils.RNG.normal(cr_orig, sd)), 1), len(gl))
         gl_indexes: list[int] = []
-        for _ in range(cr):                 #start connecting mitral cell to (multiple) glom
-            glom_weight_idx = 0
-
-            glom_weight_idx = gen_rand(weights, glom_weight_idx)
+        for _ in range(cr): # start connecting mitral cell to (multiple) glom
+            glom_weight_idx = select_glom(utils.RNG.integers(1, s, endpoint=True), weights, glom_weight_idx)
             while glom_weight_idx in gl_indexes:
-                glom_weight_idx = gen_rand(utils.RNG.integers(1, s, endpoint=True), weights, glom_weight_idx) - 1
+                glom_weight_idx = select_glom(utils.RNG.integers(1, s, endpoint=True), weights, glom_weight_idx) - 1
     
-            glom_weight_idx = gl._prevDuplicates(glom_weight_idx, gl_indexes, weights, s)
-            map_.append((counter, glom_weight_idx, utils.RNG.uniform(0,.4)))
+            # glom_weight_idx = gl._prevDuplicates(glom_weight_idx, gl_indexes, weights, s)
+            map_.append((mitral_idx, glom_weight_idx, utils.RNG.uniform(0,.4)))
+            gl_indexes.append(glom_weight_idx)
             const = _recalcWeights(weights, glom_weight_idx, bias, s)
             weights = const[0]
             s = const[1]
-            gl_indexes.append(glom_weight_idx)
-        counter += 1
+        # print(f"Selected: {gl_indexes}")
     return map_
 
 # TODO: figure out types

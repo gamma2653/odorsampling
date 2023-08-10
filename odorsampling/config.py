@@ -1,11 +1,13 @@
 import logging
 import builtins
-
+import os
+import pathlib
 
 NAME = 'odorsampling'
 DESCRIPTION = (f'This program allows for the user to define different configurations of a theoretical model '
                f'of odor sampling in the olfactory bulb. '
                f'')
+OUTPUT_FOLDER = pathlib.Path(os.path.abspath(os.getcwd()), 'output')
 
 LOG_MSG_FMT: str = '[%(asctime)s] [%(name)s]: [%(levelname)s] %(message)s'
 LOG_DATE_FMT: str = '%m-%d-%Y %H:%M:%S'

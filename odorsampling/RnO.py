@@ -18,18 +18,14 @@ Index of document:
 from __future__ import annotations
 
 import math
-# import matplotlib
-# matplotlib.use('TkAgg')
+import copy
+import time
+import logging
 import matplotlib.pyplot as plt
 from scipy.stats import multivariate_normal as mvn
 import numpy as np
 import matplotlib.pylab
 from matplotlib.backends.backend_pdf import PdfPages
-import copy
-import time
-import logging
-
-#from matplotlib import mlab, cm
 from matplotlib.patches import Ellipse
 
 from odorsampling import cells, layers, config, utils
