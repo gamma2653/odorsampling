@@ -42,6 +42,9 @@ logger = logging.getLogger(__name__)
 config.default_log_setup(logger)
 
 ConnMap = list[tuple[int, int, float]]
+"""
+Connections from Glom to Mitral cells, and their weights.
+"""
 
 class GlomLayer(list[cells.Glom]):
 
@@ -254,7 +257,7 @@ class GlomLayer(list[cells.Glom]):
             #TODO: What is this used for specficially?
         """
         # NOTE: Uniform, no-replacement
-        # TODO: Find simpler, uniform way to select these. I know there is one. Aboce is WIP
+        # TODO: Find simpler, uniform way to select these. I know there is one. Above is WIP
         
         MAX_CHECKS = 100
         check = 0
@@ -451,6 +454,8 @@ class MitralLayer(list[cells.Mitral]):
         if fix:
             # For each mitral
             while counter < len(self):
+                gl_indexes = list(range(len(gl)))
+
                 inc = 0
                 conn = []
                 leftover = 1
@@ -458,8 +463,11 @@ class MitralLayer(list[cells.Mitral]):
                 # cr times
                 while inc < cr:
 
-                    idx = utils.RNG.integers(0,len(gl))
-                    idx = gl._prevDuplicates(idx, conn) # Ensures that glom at num isn't connected to the mitral cell yet
+                    try:
+                        idx = gl_indexes.pop(utils.RNG.integers(len(gl_indexes)))
+                    except IndexError:
+                        logger.error("Expected %s available glom cells, %s available.", cr, len(gl))
+                    # idx = gl._prevDuplicates(idx, conn) # Ensures that glom at num isn't connected to the mitral cell yet
                     
                     # FIXME: What is this logic?
                     if inc == (cr-1):
@@ -472,13 +480,21 @@ class MitralLayer(list[cells.Mitral]):
                     conn.append(idx)
                 counter += 1
         else:
+            # For each mitral
             while counter < len(self):
+                gl_indexes = list(range(len(gl)))
+
                 rand = max(utils.RNG.normal(cr, sd), 1)
                 inc = 0
                 conn = []
                 while inc < rand:
-                    idx = utils.RNG.integers(0,len(gl))
-                    gl._prevDuplicates(idx, conn)
+                    try:
+                        idx = gl_indexes.pop(utils.RNG.integers(len(gl_indexes)))
+                    except IndexError:
+                        logger.error("Expected %s available glom cells, %s available.", rand, len(gl))
+                    # idx = utils.RNG.integers(0,len(gl))
+                    # gl._prevDuplicates(idx, conn)
+                    
                     map_.append([self[counter].id, idx, utils.RNG.uniform(0,.4)])
                     inc += 1
                     conn.append(idx)
@@ -642,6 +658,7 @@ def biasSample(gl: GlomLayer, mcl: MitralLayer, cr, fix, bias, sd=0) -> ConnMap:
     a glomeruli is sampled, the less likely it is to be chosen again (either a linear
     degression or exponential based on bias). If fix != true, cr serves as mean for
     # of glom sample to each mitral cell. Weights are randomly chosen uniformly."""
+    # NOTE: cr = "Connection Ratio"
     map_ = []
     #determine scale
     calc = (len(mcl)/len(gl))
@@ -654,28 +671,32 @@ def biasSample(gl: GlomLayer, mcl: MitralLayer, cr, fix, bias, sd=0) -> ConnMap:
     else:
         s = len(weights)*(2**scale)
     
+
+    def gen_rand(rand, weights, glom_weight_idx):
+        
+        while rand > 0:
+            rand = rand - weights[glom_weight_idx]
+            glom_weight_idx += 1
+        return glom_weight_idx
     cr_orig = cr
     counter = 0
     while counter < len(mcl):               #start looping through each mitral cell
-        if not fix:
-            cr = max(utils.RNG.normal(cr_orig, sd), 1)
-            cr = min(cr, len(gl))
-        temp = 0
-        conn = []
-        while temp < cr:                    #start connecting mitral cell to (multiple) glom
-            rand = utils.RNG.integers(1, s, endpoint=True)
-            index = 0
-            while rand > 0:                 #Picking an index based on weight
-                rand = rand - weights[index]
-                index += 1
-            index -= 1
-            index = gl._prevDuplicates(index, conn, weights, s)
-            map_.append((counter, index, utils.RNG.uniform(0,.4)))
-            const = _recalcWeights(weights, index, bias, s)
+        if not fix: # Generate new cr per mitral `if not fix``.
+            cr = min(max(int(utils.RNG.normal(cr_orig, sd)), 1), len(gl))
+        gl_indexes: list[int] = []
+        for _ in range(cr):                 #start connecting mitral cell to (multiple) glom
+            glom_weight_idx = 0
+
+            glom_weight_idx = gen_rand(weights, glom_weight_idx)
+            while glom_weight_idx in gl_indexes:
+                glom_weight_idx = gen_rand(utils.RNG.integers(1, s, endpoint=True), weights, glom_weight_idx) - 1
+    
+            glom_weight_idx = gl._prevDuplicates(glom_weight_idx, gl_indexes, weights, s)
+            map_.append((counter, glom_weight_idx, utils.RNG.uniform(0,.4)))
+            const = _recalcWeights(weights, glom_weight_idx, bias, s)
             weights = const[0]
             s = const[1]
-            conn.append(index)
-            temp += 1
+            gl_indexes.append(glom_weight_idx)
         counter += 1
     return map_
 

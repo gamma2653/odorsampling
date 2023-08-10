@@ -2,13 +2,17 @@ from __future__ import annotations
 
 import numpy as np
 
+from odorsampling import config
+
 from typing import TYPE_CHECKING, Protocol
 if TYPE_CHECKING:
     from typing import Optional, Any
 
 
-RANDOM_SEED = None
-RNG = np.random.default_rng(RANDOM_SEED)
+RNG = np.random.default_rng(config.RANDOM_SEED)
+"""
+Instance of `np.random.default_rng`
+"""
 
 # Want selections to fail fast
 class DistributionFunc(Protocol):
