@@ -13,6 +13,8 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from scipy.stats import multivariate_normal as mvn
 import random
+from dataclasses import dataclass
+import logging
 
 from odorsampling import config, layers
 from odorsampling.RnO import (
@@ -20,6 +22,13 @@ from odorsampling.RnO import (
     dPsiBarSaturation, graphFromExcel, recDensityDpsiGraph, activateGL_QSpace, dPsiOccActGraphFromExcel,
     glom_penetrance
 )
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from typing import Callable, Mapping, Sequence, Any
+
+logger = logging.Logger(__name__)
+config.default_log_setup(logger)
 
 # ####Below are two simulations for dPsiBarSaturation Graphs.
 # The first tests different qspaces
@@ -78,7 +87,7 @@ def testdPsiBarSaturation_Qspaces(fixed: bool, aff_sd=None, eff_sd=None, numRecs
         dPsiBarSaturation(epith, .01, qspace, pdfName, labelNames[i], excelNames[i], fixed ,c, plotTitle, end, purp, True)
         
         i += 1
-        print("Graph #" + str(i) + ": " + str((time.time() - startTime) / 60.0 ) + " minutes")
+        logger.info("Graph #" + str(i) + ": " + str((time.time() - startTime) / 60.0 ) + " minutes")
 
     #Creating Occ and Rec Act graphs
     ###################amt of rep in dPsiSaturation function and xAxis. MUST change if change in function
@@ -116,7 +125,7 @@ def testdPsiBarSaturation_Qspaces(fixed: bool, aff_sd=None, eff_sd=None, numRecs
             graphFromExcel(name + ".csv", xaxis, numRecs, labelNames[k], titleName, pdfName, "Act", rep, end)
             k += 1
     
-    print("Overall time: " + str((time.time() - startTime) / 60.0 ) + " minutes")
+    logger.info("Overall time: " + str((time.time() - startTime) / 60.0 ) + " minutes")
 
 
 def testdPsiBarSaturationDim(dims: list[int], fixed=False, aff_sd=None, eff_sd=None, numRecs=30, c=1):
@@ -190,7 +199,7 @@ def testdPsiBarSaturationDim(dims: list[int], fixed=False, aff_sd=None, eff_sd=N
             graphFromExcel(excels[k] + ".csv", xaxis, numRecs, labels[k], titleName, pdfName, toggle, rep, end)
             k+=1
         
-    print("Overall time: " + str((time.time() - startTime) / 60.0 ) + " minutes")
+    logger.info("Overall time: " + str((time.time() - startTime) / 60.0 ) + " minutes")
 
 # FIXME: Why are the below not just classmethods of Epithelium?
 #####Below are functions to create similar epithelium and save them. These
@@ -208,8 +217,8 @@ def makeSimilar(numRecs: int, aff_sd: list[float], eff_sd: list[float], purpose=
     # FIXME: Function seems to have a bloated interface. Consider refactoring. 
     purp = purpFunction(purpose, aff_sd, eff_sd, numRecs, 1, dim)
     
-    space = [(0, qspaces[0]) for _ in qspaces]
-    qspace = QSpace(space)
+    qspace = QSpace([(0, qspaces[0]) for _ in range(dim)])
+
     epith = Epithelium.create(numRecs, dim, qspace, aff_sd, eff_sd) #amt, dim **amt = len(gl) and dim = dim of odorscene
     epith.save("1. SavedEpi_" + str(qspace.size[0]) + purp)
     
@@ -370,9 +379,9 @@ def effAnalysis(effSD, affSD=[2,2], qspace=(0,4), fixed=False):
         i += .1
     
     epi = Epithelium.create(1, dim, qspace, affSD, effSD, True) #Creates an epithelium with 1 rec (and not constant mean)
-    print("Aff sd distr: " + str(epi.recs[0]._sdA))
-    print("eff sd distr: " + str(epi.recs[0]._sdE))
-    print("mean is " +str(epi.recs[0]._mean))
+    logger.debug("Aff sd distr: " + str(epi.recs[0]._sdA))
+    logger.debug("eff sd distr: " + str(epi.recs[0]._sdE))
+    logger.debug("mean is " +str(epi.recs[0]._mean))
     
     bins = [0,.1,.2,.3,.4,.5,.6,.7,.8,.9]
     xAxis2 = [.05,.15,.25,.35,.45,.55,.65,.75,.85,.95]
@@ -395,8 +404,8 @@ def effAnalysis(effSD, affSD=[2,2], qspace=(0,4), fixed=False):
         yAxis_eff[i] = elem/(float(yAxis_act[i]))
         i +=1
 
-    print("activation bin: " + str(yAxis_act))
-    print("mean efficacy: " + str(yAxis_eff))
+    logger.debug("activation bin: " + str(yAxis_act))
+    logger.debug("mean efficacy: " + str(yAxis_eff))
     
     #Hist of activation levels
   
@@ -571,14 +580,41 @@ def purpFunction(purpose: str, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, 
     elif purpose == "recs":
         return ", numRecs=" + str(numRecs)
     elif purpose == "redAff":
-        num = str(8 + peak_affinity)
+        num = str(8 + config.PEAK_AFFINITY)
         return ", redAff by 10^" + num
     elif purpose == "dim":
         return ", dim=" + str(dim)
     else: #purpose == "standard"
         return ""
+
+@dataclass
+class Experiment:
+    id: int
+    func: Callable
+    arg_map: Sequence[Any]
+    kwarg_map: Mapping[str, Any]
+
+    def __call__(self):
+        print(f"Performing experiment #{self.id}...")
+        return self.func(*self.arg_map, **self.kwarg_map)
     
-def test():
+DEFAULT_EXPERIMENTS = [
+    Experiment(1, testdPsiBarSaturation_Qspaces,
+               arg_map=[],
+               kwarg_map={
+                   'fixed':False,
+                   'aff_sd':[0.5, 1.5],
+                   'eff_sd':[0.05, 1.0],
+                   'numRecs':30,
+                   'c':1,
+                   'dim':2,
+                   'qspace':[4,10,30],
+                   'purpose':'standard'
+               }),
+    # Experiment(2, )
+]
+
+def test(to_test: list[Experiment]):
     ####dPsiBarSaturation simulations
 
     testdPsiBarSaturation_Qspaces(fixed=False, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, dim=2, qspaces=[4,10,30], purpose="standard")

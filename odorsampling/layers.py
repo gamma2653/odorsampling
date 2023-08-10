@@ -68,17 +68,10 @@ class GlomLayer(list[cells.Glom]):
         """
         assert isinstance(x, int), "x is not an int"
         assert isinstance(y, int), "y is not an int"
-        glom_layer: GlomLayer = GlomLayer()
-        glom_layer = cls(
+        return cls(
             cells.Glom(None, 0.0, [countX, countY], [y, x], 0)
             for countY in range(y) for countX in range(x)
         )
-
-        for glom in glom_layer:
-            logger.debug("%s location: (%s)", glom, glom.loc)
-
-        return glom_layer
-
     def clearActiv(self) -> None:
         for glom in self:
             glom.activ = 0.0
@@ -547,22 +540,22 @@ class MitralLayer(list[cells.Mitral]):
 
         # TODO: Fix "magic" numbers
         numLayers = math.ceil((-4+math.sqrt(16-16*(-(cr-1))))/8)
-        logger.debug("numLayers: " + str(numLayers))
+        # logger.debug("numLayers: " + str(numLayers))
         numToSelect = (cr-1) - (8*(((numLayers-1)*(numLayers))/2))
-        logger.debug("numToSelect: " + str(int(numToSelect))) # number to select in the outermost layer
-        logger.debug("dimensions: " + str(gl[0].dim[0]) + "X" + str(gl[0].dim[1]))
+        # logger.debug("numToSelect: " + str(int(numToSelect))) # number to select in the outermost layer
+        # logger.debug("dimensions: " + str(gl[0].dim[0]) + "X" + str(gl[0].dim[1]))
 
         if fix:
             while counter < len(self):
                 num = utils.RNG.integers(0,len(gl))
                 x, y = gl[num].loc
-                logger.debug("parent glom location: (" + str(x) + ", " + str(y) + ")")
+                # logger.debug("parent glom location: (" + str(x) + ", " + str(y) + ")")
                 xUpperBound = numLayers+x
                 xLowerBound = x-numLayers
-                logger.debug("x: [" + str(xLowerBound) + ", " + str(xUpperBound) + "]")  
+                # logger.debug("x: [" + str(xLowerBound) + ", " + str(xUpperBound) + "]")  
                 yUpperBound = numLayers+y
                 yLowerBound = y-numLayers
-                logger.debug("y: [" + str(yLowerBound) + ", " + str(yUpperBound) + "]")
+                # logger.debug("y: [" + str(yLowerBound) + ", " + str(yUpperBound) + "]")
                 gloms = []
                 act = utils.RNG.uniform(0,1)
                 map_.append([self[counter].id, num, act])

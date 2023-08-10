@@ -82,11 +82,8 @@ class QSpace:
     def size(self, value: list[tuple[float, float]]) -> None:
         """Sets size equal to value.
         Precondition: Value is a list of tuples"""
-        value = list(map(tuple, value))
-        old = getattr(self, "_size", None)
-        logger.debug("QSpace size changed: [%s->%s]", old, value)
         # TODO: assert values are floats for consistency
-        self._size = value
+        self._size = list(map(tuple, value))
     
     def __init__(self, size: list[tuple[float, float]]):
         self.size = size
@@ -133,10 +130,7 @@ class Ligand:
     def id(self, value: int) -> None:
         """Sets id equal to value.
         Precondition: Value is an int"""
-        value = int(value)
-        old = getattr(self, "_id", None)
-        logger.debug("Ligand id changed: [%s->%s]", old, value)
-        self._id = value
+        self._id = int(value)
     
     @property
     def loc(self) -> tuple[float, float]:
@@ -148,10 +142,7 @@ class Ligand:
         """Sets loc equal to value.
         Precondition: Value is a List"""
         # TODO: make tuple everywhere
-        old = getattr(self, "_loc", None)
-        logger.debug("Ligand loc changed: [%s->%s]", old, value)
-        value = tuple(map(float, value))     
-        self._loc = value
+        self._loc = tuple(map(float, value))
     
     @property
     def dim(self) -> int:
@@ -162,10 +153,7 @@ class Ligand:
     def dim(self, value: int) -> None:
         """Sets dim equal to value.
         Precondition: Value is an int"""
-        old = getattr(self, "_dim", None)
-        logger.debug("Ligand dim changed: [%s->%s]", old, value)
-        value = int(value)
-        self._dim = value
+        self._dim = int(value)
     
     @property
     def conc(self) -> float:
@@ -177,9 +165,6 @@ class Ligand:
         """Sets conc equal to value.
         Precondition: Value is a nonZero number"""
         assert value != 0, "Conc can't be 0!"
-        value = float(value)
-        old = getattr(self, "_conc", None)
-        logger.debug("Ligand conc changed: [%s->%s]", old, value)
         self._conc = float(value)
     
     @property
@@ -191,10 +176,7 @@ class Ligand:
     def aff(self, value: float) -> None:
         """Sets aff equal to value.
         Precondition: Value is a float"""
-        value = float(value)
-        old = getattr(self, "_aff", None)
-        logger.debug("Ligand aff changed: [%s->%s]", old, value)
-        self._aff = value
+        self._aff = float(value)
     
     @property
     def eff(self) -> float:
@@ -205,11 +187,7 @@ class Ligand:
     def eff(self, value: float) -> None:
         """Sets eff equal to value.
         Precondition: Value is a float btwn 0..1"""
-        value = float(value)
-        assert value >= 0 and value <= 1, "Eff is not btwn 0 and 1"
-        old = getattr(self, "_eff", None)
-        logger.debug("Ligand eff changed: [%s->%s]", old, value)
-        self._eff = value
+        self._eff = float(value)
     
     @property
     def occ(self) -> float:
@@ -220,33 +198,22 @@ class Ligand:
     def occ(self, value: float) -> None:
         """Sets occ equal to value.
         Precondition: Value is an float btwn 0..1"""
-        value = float(value)
         assert value >= 0.0 and value <= 1.0, "Occ is not btwn 0 and 1"
-        old = getattr(self, "_occ", None)
-        logger.debug("Ligand occ changed: [%s->%s]", old, value)
-        self._occ = value
+        self._occ = float(value)
 
     def appendToAffs(self, value: float) -> None:
         """adds aff equal to value.
         Precondition: Value is a float"""
-        value = float(value)
-        old = getattr(self, "_affs", None)
-        logger.debug("Ligand aff appended: [%s+%s]", old, value)
-        self._affs.append(value)
+        self._affs.append(float(value))
 
     def appendToEffs(self, value: float) -> None:
         """adds eff equal to value.
         Precondition: Value is a float"""
-        value = float(value)
-        old = getattr(self, "_effs", None)
-        logger.debug("Ligand eff appended: [%s+%s]", old, value)
-        self._effs.append(value)
+        self._effs.append(float(value))
 
     def appendToOdors2(self, value: Ligand) -> None:
         """adds odor2 equal to value.
         Precondition: odor2 is type of Ligand"""
-        old = getattr(self, "_odors2", None)
-        logger.debug("Ligand odor2 appended: [%s+%s]", old, value)
         self._odors2.append(value)
 
     # TODO: return copy
@@ -359,10 +326,7 @@ class Odorscene:
     def id(self, value: int) -> None:
         """Sets id equal to value.
         Precondition: Value is an int"""
-        value = int(value)
-        old = getattr(self, "_id", None)
-        logger.debug("Odorscene id changed: [%s->%s]", old, value)
-        self._id = value
+        self._id = int(value)
 
     @property
     def dim(self) -> int:
@@ -373,10 +337,7 @@ class Odorscene:
     def dim(self, value: int) -> None:
         """Sets dim equal to value.
         Precondition: Value is an int"""
-        value = int(value)
-        old = getattr(self, "_dim", None)
-        logger.debug("Odorscene dim changed: [%s->%s]", old, value)
-        self._dim = value
+        self._dim = int(value)
 
     @property
     def odors(self) -> list[Ligand]:
@@ -522,10 +483,7 @@ class Receptor:
     def id(self, value):
         """Sets id to value
         Precondtion: value is an int"""
-        value = int(value)
-        old = getattr(self, "_id", None)
-        logger.debug("Receptor id changed: [%s->%s]", old, value)
-        self._id = value
+        self._id = int(value)
     
     @property
     def mean(self):
@@ -536,10 +494,7 @@ class Receptor:
     def mean(self, value: Sequence):
         """Sets id to value
         Precondtion: value is an list"""
-        value = tuple(value)
-        old = getattr(self, "_mean", None)
-        logger.debug("Receptor mean changed: [%s->%s]", old, value)
-        self._mean = value
+        self._mean = tuple(value)
         self._mean_sd_change = True
     
     @property
@@ -551,11 +506,7 @@ class Receptor:
     def sdA(self, value: tuple):
         """Sets sdA equal to value.
         Precondition: Value is a List with dim Q"""
-        value = tuple(value)
-        assert len(value) == len(self._mean), "Dimension is not consistent with dim of mean"
-        old = getattr(self, "_sdA", None)
-        logger.debug("Receptor sdA changed: [%s->%s]", old, value)
-        self._sdA = value
+        self._sdA = tuple(value)
         self._mean_sd_change = True
 
     @property
@@ -567,12 +518,7 @@ class Receptor:
     def sdE(self, value: tuple):
         """Sets sdE equal to value.
         Precondition: Value is a List with dim Q"""
-        value = tuple(value)
-        # TODO: assert it is a tuple
-        assert len(value) == len(self._mean), "Dimension is not consistent with dim of mean"
-        old = getattr(self, "_sdE", None)
-        logger.debug("Receptor sdE changed: [%s->%s]", old, value)
-        self._sdE = value
+        self._sdE = tuple(value)
         self._mean_sd_change = True
     
     @staticmethod
@@ -585,7 +531,7 @@ class Receptor:
                 self._scale = mvn.pdf(self.mean, self.mean, self._covA)
                 self._effScale = float(mvn.pdf(self.mean, self.mean, self._covE))
                 self._mean_sd_change = False
-            return getter()
+            return getter(self)
         return wrapper
 
     @property
@@ -673,8 +619,10 @@ class Receptor:
         to how to randomly distribute those values.
         scaleEff is empty unless want to have a diff sd for aff and eff.
         Precondition: qspace must have "dim" dimensions"""
-        assert len(qspace._size) == dim, logger.error("QSpace dims do not match. (QSpace:%s, passed:%s)",
-                                                      qspace._size, dim); "Qspace doesn't have right dimensions"
+        print(qspace)
+        print(qspace._size)
+        print(dim)
+        assert len(qspace._size) == dim, f"QSpace dims do not match. (QSpace:{qspace._size}, passed:{dim})"
         mean = _distributeMean(dim, qspace, constMean)
         sdA = _distributeSD(dim, scale)
         sdE = _distributeSD(dim, scaleEff) if scaleEff is not None else sdA
@@ -764,6 +712,12 @@ class Receptor:
         #     st = st + str(num) + ", "
         return f"ID {self.id} Mean: {', '.join(map(str, self.mean))}."
         # return "ID " + str(self._id) + " Mean: " + st[:-2] + "."  #Can add mean if prefer
+    
+    def __repr__(self) -> str:
+        """
+        Returns a developer friendly string reperesentation of the Receptor.
+        """
+        return f"Receptor({self.id}, {self.mean}, {self.sdA}, {self.sdE}, {self.activ}, {self._occ}, {self._odoAmt})"
     
 
 class Epithelium:
@@ -905,7 +859,7 @@ def activateGL_QSpace(epith: Epithelium, odorscene: Odorscene, gl: layers.GlomLa
     Precondition: Epith and odorscene have the same dimension Q and # of receptors = len(gl)"""    
     assert len(epith.recs[0].mean) == odorscene.odors[0].dim, "Dimensions aren't equal"
     assert len(epith.recs) == len(gl), "Receptors:GL is not 1:1"
-    
+    logger.info("Activating GL QSpace.")
     gl.clearActiv()
     
     #Loop through each receptor and eventually calculate activation level
@@ -1009,7 +963,8 @@ def sumOfSquares(epithelium: Epithelium, odorscene: Odorscene, dn: list[int], fi
     If c!=1, then use function to activate glom with 1:c ratio of Glom:Rec
     Precondtion: dn=list in correct dim"""
     assert odorscene.dim== len(dn), "dimension not consistent with dn"
-    
+    logger.debug("Performing sumOfSquares.")
+
     dPsi = 0
     recs2 = copy.deepcopy(epithelium.recs)
     gl.clearActiv() #Sets gl activations and recConn back to 0.0
@@ -1139,6 +1094,8 @@ def sumOfSquaresVectorized(epithelium: Epithelium, odorscene: Odorscene, dn, rep
     If c!=1, then use function to activate glom with 1:c ratio of Glom:Rec
     Precondtion: dn=list in correct dim"""
     
+    logger.debug("Performing sumOfSquaresVecotrized.")
+
     #assert odorscene.dim== len(dn), "dimension not consistent with dn"
     gl = layers.GlomLayer() if gl is None else gl
 
@@ -1498,18 +1455,18 @@ def colorMapSumOfSquares(epithelium: Epithelium, odorscenes: list[Odorscene], r,
             x += 1
         graph.append(row)
         y += 1
-    print(graph)
-    print("before \n")
-    print(len(odorscenes))
+    # print(graph)
+    # print("before \n")
+    # print(len(odorscenes))
     ##Similar code to above - calc individual dPsi for ligands
     for odorscene in odorscenes:
         dPsiBar = dPsiBarCalcAnglesOrig(epithelium, odorscene, r, True) 
-        print(odorscene.odors[0].loc)
+        # print(odorscene.odors[0].loc)
 
         graph[int(config.PIXEL_PER_Q_UNIT*(odorscene.odors[0].loc[1]))][int(config.PIXEL_PER_Q_UNIT*(odorscene.odors[0].loc[0]))] = dPsiBar
     
-    print("-----------------------------")
-    print(graph)
+    # print("-----------------------------")
+    # print(graph)
 
 
     #     #TESTING FOR RECEPTOR ELLIPSE ADD-ON
@@ -1522,9 +1479,9 @@ def colorMapSumOfSquares(epithelium: Epithelium, odorscenes: list[Odorscene], r,
             else:
                 ii= config.RECEPTOR_INDEX      
             if i == ii:   
-                print("rec" + str(rec.id) + ":")
-                print("Mean:" + str(rec.mean))
-                print("SdA:" + str(rec.sdA))
+                # print("rec" + str(rec.id) + ":")
+                # print("Mean:" + str(rec.mean))
+                # print("SdA:" + str(rec.sdA))
                 # print("eff: ")
                 # for e in rec.effs:
                 #     print(e)
@@ -1619,7 +1576,7 @@ def colorMapSumOfSquares(epithelium: Epithelium, odorscenes: list[Odorscene], r,
 
     if config.SHOW_SDA_ELLIPSE:
         for e in ells_sda:
-            print("The center is " + str(e.center))
+            logger.debug("The center is " + str(e.center))
             ax.add_artist(e)
             e.set_clip_box(ax.bbox)
             #e.set_alpha(rnd.rand())
@@ -1647,7 +1604,7 @@ def colorMapSumOfSquares(epithelium: Epithelium, odorscenes: list[Odorscene], r,
             e.set_label("SDE")
             e.set_linewidth (config.LINE_WIDTH)
 
-        print(qspace.size[0])
+        logger.debug(qspace.size[0])
         ax.set_xlim(qspace.size[0])
         ax.set_ylim(qspace.size[0])
 
@@ -1727,7 +1684,7 @@ def dPsiBarSaturation(epithelium: Epithelium, r, qspace: QSpace, pdfName: str, l
     """
     
     startTime = time.time()
-    print("start of dPsiBarSaturation:" + str(startTime))
+    logger.debug("start of dPsiBarSaturation:" + str(startTime))
 
     size = config.ODOR_REPETITIONS #amount of odorscenes we want to avg out
     #conc = 1e-5
@@ -1957,7 +1914,7 @@ def dPsiBarSaturation(epithelium: Epithelium, r, qspace: QSpace, pdfName: str, l
         if close == True:
             plt.close()
 
-    print("time elapsed each qspace:"+ str(time.time() - startTime))
+    logger.debug("time elapsed each qspace:"+ str(time.time() - startTime))
 
 def createLoc(qspace: QSpace):
     """Given a qspace, return a list of randomized numbers (len=dim) within the qspace"""
@@ -2050,8 +2007,8 @@ def drawEllipseGraph(qspace: QSpace, epithelium: Epithelium, odorscenesArray: li
             ells_sda.append(Ellipse(xy=config.MOCK_RECEPTOR_MEAN2, width=config.MOCK_RECEPTOR_SDA2[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, height=config.MOCK_RECEPTOR_SDA2[1]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION*2, angle=ang2))
         
         #if params.MOCK_RECEPTOR_MEAN[0] + params.MOCK_RECEPTOR_SDA[0]*params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION > params.MOCK_QSPACE_DIMENSION[1]:
-            print("xy=" + str(config.MOCK_RECEPTOR_MEAN[0] + config.MOCK_RECEPTOR_SDA[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION ))
-            print("dim=" + str(config.MOCK_QSPACE_DIMENSION[1]))
+            logger.debug("xy=" + str(config.MOCK_RECEPTOR_MEAN[0] + config.MOCK_RECEPTOR_SDA[0]*config.RECEPTOR_ELLIPSE_STANDARD_DEVIATION ))
+            logger.debug("dim=" + str(config.MOCK_QSPACE_DIMENSION[1]))
 
             # # left side
             # newMean=[(params.MOCK_QSPACE_DIMENSION[1]-params.MOCK_RECEPTOR_MEAN[0])*-1,params.MOCK_RECEPTOR_MEAN[1]]
@@ -2173,10 +2130,10 @@ def drawEllipseGraph(qspace: QSpace, epithelium: Epithelium, odorscenesArray: li
             else:
                 ii= config.RECEPTOR_INDEX      
             if i == ii:   
-                print("rec" + str(rec.id) + ":")
-                print("Mean:" + str(rec.mean))
-                print("SdA:" + str(rec.sdA))
-                print("Qspace size is " + str(qspace.size[1][1]))
+                logger.debug("rec" + str(rec.id) + ":")
+                logger.debug("Mean:" + str(rec.mean))
+                logger.debug("SdA:" + str(rec.sdA))
+                logger.debug("Qspace size is " + str(qspace.size[1][1]))
         
                 qspaceBoundary = qspace.size[1][1]
                 # ang = rnd.rand()*360
@@ -2252,7 +2209,7 @@ def drawEllipseGraph(qspace: QSpace, epithelium: Epithelium, odorscenesArray: li
 
     if config.SHOW_SDA_ELLIPSE:
         for e in ells_sda:
-            print("The center is " + str(e.center))
+            logger.debug("The center is " + str(e.center))
             ax.add_artist(e)
             e.set_clip_box(ax.bbox)
             #e.set_alpha(rnd.rand())
@@ -2305,7 +2262,7 @@ def drawEllipseGraph(qspace: QSpace, epithelium: Epithelium, odorscenesArray: li
         # locSizes.append((math.log10(params.ODOR_CONCENTRATION)+10)*10)
         #locXaxis = params.MOCK_ODORS_X
         #locYaxis = params.MOCK_ODORS_Y
-        print('Using mock values')
+        logger.info('Using mock values')
         for li, loc in enumerate(config.MOCK_ODORS):
                 
             locSizes.append((math.log10(config.ODOR_CONCENTRATION)+10)*10)
@@ -2316,7 +2273,7 @@ def drawEllipseGraph(qspace: QSpace, epithelium: Epithelium, odorscenesArray: li
             locYaxis.append(loc[1])
 
     else:
-        print('NOT using mock values')
+        logger.info('NOT using mock values')
         for odor in odorscenesArray[config.ODORSCENE_INDEX][config.ODORSCENE_REP_NUMBER].odors: #odorscenesArray[k][i].odors
             # FIXME: Hotfix. Inspected data suggests they were arrays of the same value. Additionally, the lists were exactly 2*[expected_len].
             #  Moving this into this if case fixes the issue, and provides results, however, I am not sure if the results are correct.
@@ -2570,7 +2527,7 @@ def recDensityDpsiGraph(r, qspace: QSpace, odorscene: Odorscene, dim: int, name:
         receptors.append(i**2)
         i -= 1
 
-    print(receptors)
+    # print(receptors)
     text = Text("Receptors, Activ_Lvl, Occ, Num_Odo" + '\n', "exp2")
     
     #Calculate values for graph for each qspace
@@ -2585,7 +2542,7 @@ def recDensityDpsiGraph(r, qspace: QSpace, odorscene: Odorscene, dim: int, name:
         dPsibar = dPsiBarCalcAngles(epi, odorscene, r, fixed, text)
         recDist.append(dist)
         dPsiValues.append(dPsibar)
-        print(amt)
+        # print(amt)
         amt += 1
     
     #Store data in csv file
@@ -2733,7 +2690,7 @@ def recDensityDpsiGraphRandomized(r, qspace: QSpace, odorscene: Odorscene, dim: 
     while i < len(receptorNum):
         dPsi.append(0)
         i+=1
-    print(receptorNum)
+    # print(receptorNum)
 
     repeats = 0
     text = Text("Receptors, Activ_Lvl, Occ, Num_Odo" + '\n', "exp2")
@@ -2744,8 +2701,8 @@ def recDensityDpsiGraphRandomized(r, qspace: QSpace, odorscene: Odorscene, dim: 
             epi = Epithelium.create(receptorNum[num], dim, qspace, scale=(.5,1.5))
             dPsi[num] += dPsiBarCalcAngles(epi, odorscene, r, fixed, text)
             num+=1
-            print(num)
-        print(repeats)
+        #     print(num)
+        # print(repeats)
         text._st += "Repeat again" + "\n"
         repeats += 1
     #Average the dPsi calculations

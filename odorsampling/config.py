@@ -1,7 +1,11 @@
 import logging
 import builtins
 
-DEBUG = builtins.__debug__
+
+NAME = 'odorsampling'
+DESCRIPTION = (f'This program allows for the user to define different configurations of a theoretical model '
+               f'of odor sampling in the olfactory bulb. '
+               f'')
 
 LOG_MSG_FMT: str = '[%(asctime)s] [%(name)s]: [%(levelname)s] %(message)s'
 LOG_DATE_FMT: str = '%m-%d-%Y %H:%M:%S'
@@ -9,21 +13,22 @@ LOG_FILE_NAME: str = 'output.log'
 
 LOG_FORMATTER = logging.Formatter(LOG_MSG_FMT, LOG_DATE_FMT)
 
-LOG_STREAM_HANDLER = logging.StreamHandler()
-LOG_FILE_HANDLER = logging.FileHandler(LOG_FILE_NAME)
-
-LOG_STREAM_HANDLER.setFormatter(LOG_FORMATTER)
-LOG_FILE_HANDLER.setFormatter(LOG_FORMATTER)
-LOG_STREAM_HANDLER.close()
-LOG_FILE_HANDLER.close()
-
+# Default Arguments
+DEBUG = builtins.__debug__
 LOG_LEVEL = logging.DEBUG if DEBUG else logging.WARNING
+ODOR_CONCENTRATION = 1e-8
+PEAK_AFFINITY = -8     # literally 10e-8, not influenced by minimum_affinity value
+MIN_AFFINITY = 2   # asymptotic affinity exponent, negligible
+HILL_COEFF = 1 # Hill Coefficient, often labeled as "m"
+ODOR_REPETITIONS = 2 #Amount of odorscene repetitions to create a smooth graph
+ANGLES_REP = 2
 
-def copy_handler(template: logging.Handler, **kwargs) -> logging.Handler:
-    handler_ = template.__class__(**kwargs)
-    handler_.setFormatter(template.formatter)
-    handler_.setLevel(template.level)
-    return handler_
+# location distributions control params, eg., uniform, gaussian...1 and only 1 type needs to be true at any given time
+DIST_TYPE_GAUSS = False
+DIST_TYPE_UNIF = True
+MU = 6
+SIG = 12
+
 
 def default_log_setup(logger: logging.Logger, log_level: int = None, stream_handler_level = logging.WARNING, file_handler_level = logging.DEBUG):
     """
@@ -35,19 +40,16 @@ def default_log_setup(logger: logging.Logger, log_level: int = None, stream_hand
         The logger to setup with the default configuration.
     """
     logger.setLevel(LOG_LEVEL if log_level is None else log_level)
-    file_handler = copy_handler(LOG_FILE_HANDLER, filename=LOG_FILE_HANDLER.baseFilename)
-    stream_handler = copy_handler(LOG_STREAM_HANDLER)
+    file_handler = logging.FileHandler(LOG_FILE_NAME)
+    stream_handler = logging.StreamHandler()
+    file_handler.setFormatter(LOG_FORMATTER)
+    stream_handler.setFormatter(LOG_FORMATTER)
     file_handler.setLevel(file_handler_level)
     stream_handler.setLevel(stream_handler_level)
     logger.addHandler(file_handler)
     logger.addHandler(stream_handler)
 
 
-PEAK_AFFINITY = -8     # literally 10e-8, not influenced by minimum_affinity value
-MIN_AFFINITY = 2   # asymptotic affinity exponent, negligible
-HILL_COEFF = 1 # Hill Coefficient, often labeled as "m"
-ODOR_REPETITIONS = 2 #Amount of odorscene repetitions to create a smooth graph
-ANGLES_REP = 2
 
 
 GL_EXT = ".gl"
@@ -68,7 +70,6 @@ ODOR_COLOR = 'black'
 # RECEPTOR_INDEX = 21 # e.g., pick a receptor from 0 - 29
 RECEPTOR_INDEX = 'ALL' # e.g., display receptors
 
-
 SHOW_SDA_ELLIPSE = True
 SHOW_SDE_ELLIPSE = True
 
@@ -84,17 +85,6 @@ XLABEL = ''
 YLABEL = ''
 GRAPH_FILE_NAME = 'Receptor-Odor Coverage '
 
-
-# odor concentration (driving the size of the odors)
-# ODOR_CONCENTRATION = 1e-5
-ODOR_CONCENTRATION = 1e-8
-
-# location distributions control params, eg., uniform, gaussian...1 and only 1 type needs to be true at any given time
-DIST_TYPE_GAUSS = False
-MU = 6
-SIG = 12
-
-DIST_TYPE_UNIF = True
 
 
 # Mock qspace

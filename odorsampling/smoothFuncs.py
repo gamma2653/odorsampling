@@ -7,8 +7,9 @@ import multiprocessing
 
 from odorsampling.RnO import (
     QSpace, Epithelium, Odorscene, Ligand, dPsiBarSaturation, colorMapSumOfSquares,
-    graphFromExcel, dPsiGraphFromExcel, dPsiOccActGraphFromExcel
+    graphFromExcel, dPsiGraphFromExcel, dPsiOccActGraphFromExcel, glom_penetrance
 )
+from odorsampling import config
 
 
 def testdPsiBarSat(fixed, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, dim=2, qspaces=[4,10,30], purpose="standard"):
@@ -396,14 +397,15 @@ def purpFunction(purpose, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, 
     elif purpose == "recs":
         return ", numRecs=" + str(numRecs)
     elif purpose == "redAff":
-        num = str(8 + peak_affinity)
+        num = str(8 + config.PEAK_AFFINITY)
         return ", redAff by 10^" + num
     elif purpose == "dim":
         return ", dim=" + str(dim)
     else: #purpose == "standard"
         return ""
     
-    
+
+
 def test():
 
     # runReceptorOdorGraphToolStandAlone()
