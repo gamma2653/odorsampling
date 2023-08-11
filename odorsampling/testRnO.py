@@ -233,8 +233,8 @@ def increasingRecDistTest():
         ligands.append(modifyLoc(odo, small_qspace, 2))
     odosmall = Odorscene(0, ligands)
     
-    print("big distance is: " + str(sumOfSquares(epibig, odobig, [.01,01], False)))
-    print("small distance is: " + str(sumOfSquares(epismall, odosmall, [.01,01], False)))
+    print("big distance is: " + str(sumOfSquares(epibig, odobig, [.01,1], False)))
+    print("small distance is: " + str(sumOfSquares(epismall, odosmall, [.01,1], False)))
 
 def testdPsiBarCalc():
     #Define a 3D Qspace 
@@ -606,5 +606,5 @@ def test():
     # testGlomRecConnNew2()
     #testGlomRecConnNew3()
 
-
-test()
+if __name__ == '__main__':
+    test()

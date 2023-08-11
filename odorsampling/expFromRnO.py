@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from scipy.stats import multivariate_normal as mvn
 import random
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import logging
 
 from odorsampling import config, layers
@@ -591,16 +591,22 @@ def purpFunction(purpose: str, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, 
 class Experiment:
     id: int
     func: Callable
-    arg_map: Sequence[Any]
-    kwarg_map: Mapping[str, Any]
+    arg_map: Sequence[Any] = field(default=list)
+    kwarg_map: Mapping[str, Any] = field(default=dict)
+    msg: str = "Performing experiment #%s..."
 
     def __call__(self):
-        print(f"Performing experiment #{self.id}...")
+        print(self.msg % (self.id))
         return self.func(*self.arg_map, **self.kwarg_map)
-    
+
+class NonExperiment(Experiment):
+    """
+    For non-experiment procedures between tests.
+    """
+    msg: str = "Performing cleanup operation #%s..."
+
 DEFAULT_EXPERIMENTS = [
     Experiment(1, testdPsiBarSaturation_Qspaces,
-               arg_map=[],
                kwarg_map={
                    'fixed':False,
                    'aff_sd':[0.5, 1.5],
@@ -611,14 +617,59 @@ DEFAULT_EXPERIMENTS = [
                    'qspace':[4,10,30],
                    'purpose':'standard'
                }),
-    # Experiment(2, )
+    Experiment(2, testdPsiBarSaturationDim,
+               kwarg_map={
+                   'dims':[3,4],
+                   'fixed': False,
+                   'aff_sd': [.5,1.5],
+                   'eff_sd': [.05,1.0],
+                   'numRecs': 30,
+                   'c': 1
+               }),
+    Experiment(3, runDPsiOccActGraphFromExcel,
+               kwarg_map={
+                   'aff_sd': [0.5,1.5],
+                   'eff_sd': [0.05,1.0],
+                   'numRecs': 30,
+                   'c': 1,
+                   'purpose': "redAff"
+               }),
+    NonExperiment(4, changeMean,
+                arg_map=["1. SavedEpi_(0, 4)", 2, [0,15]]),
+    NonExperiment(5, changeOne,
+                arg_map=["1. SavedEpi_(0, 4)", 2, "aff", [.5,2.5]]),
+    NonExperiment(6, makeSimilar, 
+                arg_map=[30, [.5,1.5], [0.05,1.0], "dim", [4,10,30], 4]),
+    Experiment(7, testRecDensityDpsiGraph1),
+    Experiment(8, testRecDensityDpsiGraph2),
+    Experiment(9, effAnalysis,
+                arg_map = [ [.5,1.0] ],
+                kwarg_map={
+                    'affSD': [2,2],
+                    'qspace': (0,4),
+                    'fixed': True
+                }),
+    Experiment(10, occVsLocGraph,
+               kwarg_map={
+                   'affList': [2, 1.5, 1, .5],
+               }),
+    Experiment(11, effVsLocGraph,
+               kwarg_map={
+                   'effList': [3, 2, 1, .5, .1]
+               })
 ]
 
 def test(to_test: list[Experiment]):
+    
+    return [
+        experiment() for experiment in to_test
+    ]
+
+# NOTE: Left here for reference, for now.
     ####dPsiBarSaturation simulations
 
-    testdPsiBarSaturation_Qspaces(fixed=False, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, dim=2, qspaces=[4,10,30], purpose="standard")
-    #testdPsiBarSaturationDim(dims=[3,4], fixed=False, aff_sd=[.5,1.5], eff_sd=[.05,1.0], numRecs=30, c=1)
+    # testdPsiBarSaturation_Qspaces(fixed=False, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, dim=2, qspaces=[4,10,30], purpose="standard")
+    # testdPsiBarSaturationDim(dims=[3,4], fixed=False, aff_sd=[.5,1.5], eff_sd=[.05,1.0], numRecs=30, c=1)
     
     ####Creating dPsi vs Occ and Act graphs from excel docs
     

@@ -413,7 +413,7 @@ class MitralLayer(list[cells.Mitral]):
             return self.simpleSampleLocation(gl, cr, fix, sd)
         else: #sel == 'biased'
             logger.debug("MCLSamplingMap with biasSample.")
-            return biasSample(gl, self, cr, fix, bias, sd)
+            return self.biasSample(gl, cr, fix, bias, sd)
         #Can call a clean up function here if we want
         #print(unsampledGlom(gl, self, Map)               #PRINTING HERE
 
@@ -653,51 +653,48 @@ class MitralLayer(list[cells.Mitral]):
         return map_
  
 
-def biasSample(gl: GlomLayer, mcl: MitralLayer, cr, fix, bias, sd=0) -> ConnMap:
-    """Builds a map by choosing glomeruli to sample to mitral cells, but the more times
-    a glomeruli is sampled, the less likely it is to be chosen again (either a linear
-    degression or exponential based on bias). If fix != true, cr serves as mean for
-    # of glom sample to each mitral cell. Weights are randomly chosen uniformly."""
-    # NOTE: cr = "Connection Ratio"
-    map_ = []
-    #determine scale
-    calc = (len(mcl)/len(gl))
-    # TODO: replace magic numbers
-    scale = max(7, int(calc*1.7*cr))  
-    #Build weights
-    weights = gl._buildWeights(bias, scale)
-    if bias == "lin":
-        s = len(weights)*scale
-    else:
-        s = len(weights)*(2**scale)
-    
+    def biasSample(self, gl: GlomLayer, cr, fix, bias, sd=0) -> ConnMap:
+        """Builds a map by choosing glomeruli to sample to mitral cells, but the more times
+        a glomeruli is sampled, the less likely it is to be chosen again (either a linear
+        degression or exponential based on bias). If fix != true, cr serves as mean for
+        # of glom sample to each mitral cell. Weights are randomly chosen uniformly."""
+        # NOTE: cr = "Connection Ratio"
+        map_ = []
+        #determine scale
+        MIN_SCALE, SCALE_FACTOR = 7, 1.7
+        scale = max(MIN_SCALE, math.floor((len(self)/len(gl)) * SCALE_FACTOR * cr))
+        #Build weights
+        weights = gl._buildWeights(bias, scale)
+        if bias == "lin":
+            s = len(weights)*scale
+        else:
+            s = len(weights)*(2**scale)
+        
 
-    def select_glom(rand, weights, glom_weight_idx):
-        """
-        Steps through indexes until weights are exhausted.
-        """
-        while rand > 0:
-            rand = rand - weights[glom_weight_idx]
-            glom_weight_idx += 1
-        return glom_weight_idx
-    cr_orig = cr
-    for mitral_idx in range(len(mcl)):  # start looping through each mitral cell
-        if not fix: # Generate new cr per mitral `if not fix``.
-            cr = min(max(int(utils.RNG.normal(cr_orig, sd)), 1), len(gl))
-        gl_indexes: list[int] = []
-        for _ in range(cr): # start connecting mitral cell to (multiple) glom
-            glom_weight_idx = select_glom(utils.RNG.integers(1, s, endpoint=True), weights, glom_weight_idx)
-            while glom_weight_idx in gl_indexes:
-                glom_weight_idx = select_glom(utils.RNG.integers(1, s, endpoint=True), weights, glom_weight_idx) - 1
-    
-            # glom_weight_idx = gl._prevDuplicates(glom_weight_idx, gl_indexes, weights, s)
-            map_.append((mitral_idx, glom_weight_idx, utils.RNG.uniform(0,.4)))
-            gl_indexes.append(glom_weight_idx)
-            const = _recalcWeights(weights, glom_weight_idx, bias, s)
-            weights = const[0]
-            s = const[1]
-        # print(f"Selected: {gl_indexes}")
-    return map_
+        def select_glom(rand, weights, glom_weight_idx):
+            """
+            Steps through indexes until weights are exhausted.
+            """
+            while rand > 0:
+                rand = rand - weights[glom_weight_idx]
+                glom_weight_idx += 1
+            return glom_weight_idx
+        cr_orig = cr
+        for mitral_idx in range(len(self)):  # start looping through each mitral cell
+            if not fix: # Generate new cr per mitral `if not fix``.
+                cr = min(max(int(utils.RNG.normal(cr_orig, sd)), 1), len(gl))
+            gl_indexes: list[int] = []
+            for _ in range(cr): # start connecting mitral cell to (multiple) glom
+                glom_weight_idx = select_glom(utils.RNG.integers(1, s, endpoint=True), weights, glom_weight_idx)
+                while glom_weight_idx in gl_indexes:
+                    glom_weight_idx = select_glom(utils.RNG.integers(1, s, endpoint=True), weights, glom_weight_idx) - 1
+        
+                # glom_weight_idx = gl._prevDuplicates(glom_weight_idx, gl_indexes, weights, s)
+                map_.append((mitral_idx, glom_weight_idx, utils.RNG.uniform(0,.4)))
+                gl_indexes.append(glom_weight_idx)
+                weights, s = _recalcWeights(weights, glom_weight_idx, bias, s)
+            # print(f"Selected: {gl_indexes}")
+        return map_
 
 # TODO: figure out types
 

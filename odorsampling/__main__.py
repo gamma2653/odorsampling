@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from argparse import ArgumentParser
+from pprint import pprint
 
-from . import config, expFromRnO
+from . import config, expFromRnO, testLayers, testRnO
 
-# from typing import TYPE_CHECKING
-# if TYPE_CHECKING:
-#     from types import ModuleType
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from typing import Iterable
 
 def prep_parser() -> ArgumentParser:
     """
@@ -31,21 +32,48 @@ def prep_parser() -> ArgumentParser:
     parser.add_argument('-ar', '--angle-reps', action='store', type=float, default=config.ANGLES_REP,
                         help="Used to set the angle reps, scientific notation is allowed.")
     # TODO: Better document
-    parser.add_argument('-pe', '--perform-experiment', action='store', type=int, nargs='+',
+    parser.add_argument('-pe', '--perform-experiment', action='store', type=int, nargs='*', metavar='EXP#',
                         help="Used to set which experiments to run according to the paper.")
+    parser.add_argument('-t', '--run-tests', action='store', type=str, nargs='*', metavar='TEST_NAME',
+                        help="Used to set which tests to run. Eg) 'layers' and 'RnO' are valid.")
 
     return parser
+
+def _special_init(namespace, name, init_factory):
+    try:
+        if not getattr(namespace, name):
+            raise AttributeError
+    except AttributeError:
+        setattr(namespace, name, init_factory())
+        
+#     if not getattr(namespace, name, None):
+#         setattr(namespace, name, init_factory())
+
+TESTS = {
+    'layers': [testLayers.test],
+    'RnO': [testRnO.test]
+}
+
+def perform_experiments(experiments):
+    print(f"Performing experiments... {','.join(map(str, experiments))}")
+    expFromRnO.test([expFromRnO.DEFAULT_EXPERIMENTS[i-1] for i in experiments])
+
+def perform_tests(test_names: Iterable[str]):
+    print(f"Performing tests... {','.join(map(str, test_names))}")
+    for test in test_names:
+        if test in TESTS:
+            print(f"Performing test `{test}`.")
+            [subtest() for subtest in TESTS[test]]
 
 def main() -> None:
     parser = prep_parser()
     known_args, _ = parser.parse_known_args()
     
     # Patch defaults for complex args
-    try:
-        known_args.perform_experiment = known_args.perform_experiment if known_args.perform_experiment else []
-    except AttributeError:
-        known_args.perform_experiment = []
-
+    _special_init(known_args, 'perform_experiment', list)
+    _special_init(known_args, 'run_tests', list)
+    print("Configuration:")
+    pprint(known_args.__dict__)
     # Set configuration values
     # print(dir(known_args))
     config.DEBUG = known_args.debug
@@ -56,8 +84,12 @@ def main() -> None:
     config.ODOR_REPETITIONS = known_args.odor_repetitions
     config.ANGLES_REP = known_args.angle_reps
 
-    print(f"Performing experiments... {','.join(map(str, known_args.perform_experiment))}")
-    expFromRnO.test([expFromRnO.DEFAULT_EXPERIMENTS[i-1] for i in known_args.perform_experiment])
+    perform_experiments(known_args.perform_experiment)
+    perform_tests(known_args.run_tests)
+
+
+
+
 
 if __name__ == '__main__':
     main()
