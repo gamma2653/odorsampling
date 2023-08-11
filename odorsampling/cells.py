@@ -32,9 +32,10 @@ Maps cell type to the number of cells of that type that have been created.
 """
 
 # TODO: Add multithreading support
-def _add_cell(cell_type: type[Cell]) -> None:
+def _add_cell(cell_type: type[Cell], start_0: bool = True) -> None:
     """Increments the number of cells of the given type that have been created."""
     cell_counter[cell_type] += 1
+    return cell_counter[cell_type] - start_0
 
 # TODO: consider making these dataclasses
 
@@ -48,7 +49,7 @@ class Cell:
         """Sets value to id.
         Precondition: value is an integer"""
         if value is None:
-            self._id = cell_counter[self.__class__]
+            self._id = _add_cell(self.__class__)
         else:
             self._id = int(value)
 
@@ -80,7 +81,7 @@ class Cell:
     
     def __init__(self, id_: Optional[int], activ: float, loc: tuple[Real, Real]) -> None:
         """Initializes a cell with an id, activation level, and location."""
-        self.id = _add_cell(self.__class__) if id_ is None else id_
+        self.id = id_
         self.activ = activ
         self.loc = loc
         
@@ -154,15 +155,15 @@ class Glom(Cell):
         return f"Id: {self.id} activ: {self.activ}"
 
     # TODO: Double check if implemented correctly
-    @classmethod
+    @staticmethod
     def generate_random_loc(xLowerBound: int, xUpperBound: int, yLowerBound: int, yUpperBound: int) -> tuple[int, int]:
         """Returns a random glom location"""
-        randomGlomX = utils.RNG.integers(xLowerBound, xUpperBound, endpoint=True)
-        if (randomGlomX, randomGlomY) == (xLowerBound, yLowerBound):
-            randomGlomY = utils.RNG.integers(yLowerBound, yUpperBound, endpoint=True)
+        randomGlomX = utils.RNG.integers(xLowerBound, xUpperBound, endpoint=False)
+        if randomGlomX == xLowerBound or randomGlomX == xUpperBound:
+            randomGlomY = utils.RNG.integers(yLowerBound, yUpperBound, endpoint=False)
         else:
             randomGlomY = utils.RNG.choice([yLowerBound, yUpperBound])
-        return (randomGlomX, randomGlomY)
+        return randomGlomX, randomGlomY
 
 class Mitral(Cell):
     """Represents a mitral cell that samples from glomeruli.

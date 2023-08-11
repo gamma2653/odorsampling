@@ -596,11 +596,12 @@ class MitralLayer(list[cells.Mitral]):
                             # if g.loc == randomGlom:
                             if g.loc == [randomGlom[0]%(gl[0].dim[1]), randomGlom[1]%(gl[0].dim[0])]:
                                 num = g.id
-
+                        print(f"GlomID: {num}")
                         map_.append([self[counter].id, num, act])
                     print(gloms)
 
                 elif int(numLayers) == 2:
+                    print("numLayers == 2")
                     # get first layer first (the surrounding 8)
                     xInner = x - 1
                     xOuter = x + 1
@@ -617,13 +618,14 @@ class MitralLayer(list[cells.Mitral]):
 
                     for a in firstLayer:
                         for g in gl:
-                            if g.loc == (g[0], g[1]):
+                            if g.loc == (a[0], a[1]):
                                 num = g.id
                                 act = utils.RNG.uniform(0, leftover)
                                 leftover -= act
+                                print(f"GlomID: {num}")
                                 map_.append([self[counter].id, num, act])
-                            else:
-                                logger.debug("glom locs don't match: ", g.loc, " and ", (g[0], g[1]))
+                            # else:
+                            #     logger.debug("glom locs don't match: ", g.loc, " and ", (a[0], a[1]))
 
                     # second layer
                     selected = 0
@@ -642,10 +644,10 @@ class MitralLayer(list[cells.Mitral]):
                             # print("g id: " + str(g.id)))
                             # if g.loc == randomGlom:
                             if g.loc == (randomGlom[0]%(gl[0].dim[1]), randomGlom[1]%(gl[0].dim[0])):
-                                print(randomGlom)
+                                # print(randomGlom)
                                 num = g.id
-                            else:
-                                logger.debug("glom locs don't match: ", g.loc, " and ", (g[0], g[1]))
+                            # else:
+                            #     logger.debug("glom locs don't match: ", g.loc, " and ", (randomGlom[0]%(gl[0].dim[1]), randomGlom[1]%(gl[0].dim[0])))
 
                         map_.append([self[counter].id, num, act])
                 counter+=1
@@ -901,14 +903,14 @@ def apply_sample_map(gl: GlomLayer, mcl: MitralLayer, map_: list[list[int]]) -> 
     test = 0
     mcl[map_[0][0]].loc = gl[map_[0][1]].loc
 
-    for conn in map_:
-        if conn[0] != test:
-            test = test+1
-            mcl[conn[0]].loc = gl[conn[1]].loc
-            mcl[conn[0]].glom = {}
-        mcl[conn[0]].glom[conn[1]]=conn[2]  #format: mc.glom[glom]=weight
-        mcl[conn[0]].glom = mcl[conn[0]].glom
-        gl[conn[1]].conn = gl[conn[1]].conn + 1
+    for mitral_id, glom_id, weight in map_:
+        if mitral_id != test:
+            test += 1
+            mcl[mitral_id].loc = gl[glom_id].loc
+            mcl[mitral_id].glom = {}
+        mcl[mitral_id].glom[glom_id]=weight
+        
+        gl[glom_id].conn += 1
 
     return (mcl, gl)
 

@@ -14,7 +14,7 @@ from odorsampling.layers import (
     GraphGlomActivation, GraphMitralActivation, normalize, graphLayer, colorMapWeights,
     MitralLayer, GlomLayer
 )
-from odorsampling import utils
+from odorsampling import utils, cells
 
 # TODO: Use Unit testing
 
@@ -252,7 +252,6 @@ def testGraphMitralActivation():
     gl.activate_random(utils.uniform_activation)
     mcl = MitralLayer.create(10)
     Map = mcl.createSamplingMap(gl, 10, True, "location")
-    #print(Map)
     for elem in Map:
         print("Mitral: " + str(elem[0]) + " Glom: " + str(elem[1]) + " Weight: " + str(elem[2]))
     apply_sample_map(gl,mcl,Map)
