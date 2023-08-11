@@ -2421,15 +2421,9 @@ def dPsiOccActGraphFromExcel(nameDpsi: str, nameAO: str, xaxis: list[int], numRe
     occ = []
     
     ###extract dPsi info
-    text = open(nameDpsi)    
-    i = 0
-    for line in text:
-        if i > 0:
-            comma = line.find(",")
-            dPsi.append(float(line[comma+1:]))
-        i+=1
-    text.close()
-    
+    with open(nameDpsi) as f:
+        dPsi = [float(line[line.find(",")+1:]) for i, line in enumerate(f.readlines()) if i>0]
+    print(dPsi)
     ###extract act and occ info
     length = len(xaxis)
     text = open(nameAO)

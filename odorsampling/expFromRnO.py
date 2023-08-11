@@ -591,8 +591,8 @@ def purpFunction(purpose: str, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, 
 class Experiment:
     id: int
     func: Callable
-    arg_map: Sequence[Any] = field(default=list)
-    kwarg_map: Mapping[str, Any] = field(default=dict)
+    arg_map: Sequence[Any] = field(default_factory=list)
+    kwarg_map: Mapping[str, Any] = field(default_factory=dict)
     msg: str = "Performing experiment #%s..."
 
     def __call__(self):
@@ -614,8 +614,8 @@ DEFAULT_EXPERIMENTS = [
                    'numRecs':30,
                    'c':1,
                    'dim':2,
-                   'qspace':[4,10,30],
-                   'purpose':'standard'
+                   'qspaces':[4,10,30],
+                   'purpose':'redAff'
                }),
     Experiment(2, testdPsiBarSaturationDim,
                kwarg_map={

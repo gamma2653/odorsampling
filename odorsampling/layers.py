@@ -571,11 +571,9 @@ class MitralLayer(list[cells.Mitral]):
                 num = utils.RNG.integers(0,len(gl))
                 x, y = gl[num].loc
                 # logger.debug("parent glom location: (" + str(x) + ", " + str(y) + ")")
-                xUpperBound = numLayers+x
-                xLowerBound = x-numLayers
+                xBounds = x-numLayers, x+numLayers
                 # logger.debug("x: [" + str(xLowerBound) + ", " + str(xUpperBound) + "]")  
-                yUpperBound = numLayers+y
-                yLowerBound = y-numLayers
+                yBounds = y-numLayers, y+numLayers
                 # logger.debug("y: [" + str(yLowerBound) + ", " + str(yUpperBound) + "]")
                 gloms = []
                 act = utils.RNG.uniform(0,1)
@@ -585,7 +583,7 @@ class MitralLayer(list[cells.Mitral]):
                 if int(numLayers) == 1:
                     selected = 0
                     # FIXME: Why in the world is the y and x dims swapped
-                    randomGlom = cells.Glom.generate_random_loc(xLowerBound, xUpperBound, yLowerBound, yUpperBound)
+                    randomGlom = cells.Glom.generate_random_loc(xBounds, yBounds)
                     while selected < int(numToSelect):
                         if selected == int(numToSelect)-1:
                             act = leftover
@@ -593,7 +591,7 @@ class MitralLayer(list[cells.Mitral]):
                             act = utils.RNG.uniform(0, leftover)
                             leftover -= act
                         while randomGlom in gloms:
-                            randomGlom = cells.Glom.generate_random_loc(xLowerBound, xUpperBound, yLowerBound, yUpperBound)
+                            randomGlom = cells.Glom.generate_random_loc(xBounds, yBounds)
                         gloms.append(randomGlom)
                         selected += 1
                         for g in gl:
@@ -601,12 +599,12 @@ class MitralLayer(list[cells.Mitral]):
                             # if g.loc == randomGlom:
                             if g.loc == [randomGlom[0]%(gl[0].dim[1]), randomGlom[1]%(gl[0].dim[0])]:
                                 num = g.id
-                        print(f"GlomID: {num}")
+                        # print(f"GlomID: {num}")
                         map_.append([self[counter].id, num, act])
-                    print(gloms)
+                    # print(gloms)
 
                 elif int(numLayers) == 2:
-                    print("numLayers == 2")
+                    # print("numLayers == 2")
                     # get first layer first (the surrounding 8)
                     xInner = x - 1
                     xOuter = x + 1
@@ -627,14 +625,14 @@ class MitralLayer(list[cells.Mitral]):
                                 num = g.id
                                 act = utils.RNG.uniform(0, leftover)
                                 leftover -= act
-                                print(f"GlomID: {num}")
+                                # print(f"GlomID: {num}")
                                 map_.append([self[counter].id, num, act])
                             # else:
                             #     logger.debug("glom locs don't match: ", g.loc, " and ", (a[0], a[1]))
 
                     # second layer
                     selected = 0
-                    randomGlom = cells.Glom.generate_random_loc(xLowerBound, xUpperBound, yLowerBound, yUpperBound)
+                    randomGlom = cells.Glom.generate_random_loc(xBounds, yBounds)
                     while selected < int(numToSelect):
                         if selected == int(numToSelect)-1:
                             act = leftover
@@ -642,7 +640,7 @@ class MitralLayer(list[cells.Mitral]):
                             act = utils.RNG.uniform(0, leftover)
                             leftover -= act
                         while randomGlom in gloms:
-                            randomGlom = cells.Glom.generate_random_loc(xLowerBound, xUpperBound, yLowerBound, yUpperBound)
+                            randomGlom = cells.Glom.generate_random_loc(xBounds, yBounds)
                         gloms.append(randomGlom)
                         selected += 1
                         for g in gl:
@@ -823,7 +821,7 @@ def GraphMitralActivation(gl: GlomLayer, mcl: MitralLayer, n, m):
                     # print(mitralActivations.get(str([x,y/maxMitrals]))[y%(len(mitralActivations.get(str([x,y/maxMitrals]))))])
                     graph[y][x] = mitralActivations.get(key)[y%(len(mitralActivations.get(key)))]
 
-    print(graph)  
+    # print(graph)  
 
     #   https://stackoverflow.com/questions/22121239/matplotlib-imshow-default-colour-normalisation 
 
@@ -1025,7 +1023,7 @@ def colorMapWeights(map_, gl: GlomLayer, mcl: MitralLayer):
     """Builds a colormap with MCL on y axis and GL on x axis while color=weights"""
     #Create graph with all 0's
     graph = [[0 for _ in gl] for _ in mcl]
-    print(map_)
+    # print(map_)
     #Add weights
     index = 0
     while index < len(map_):

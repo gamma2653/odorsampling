@@ -10,6 +10,7 @@ from __future__ import annotations
 from collections import Counter
 import logging
 import builtins
+from abc import ABC
 # Used for asserts
 if builtins.__debug__:
     from numbers import Real
@@ -32,58 +33,109 @@ Maps cell type to the number of cells of that type that have been created.
 """
 
 # TODO: Add multithreading support
+# FIXME: Fix `start_0`.
 def add_count(cell_type: type[Cell], start_0: bool = True) -> None:
-    """Increments the number of cells of the given type that have been created."""
+    """
+    Increments the number of cells of the given type that have been created.
+    
+    Parameters
+    ----------
+    cell_type
+        The Cell type who's ID to increment.
+    start_0
+        WIP, low-priority; An optional boolean argument whether to start IDs from 0 or 1.
+        True by default. Currently, if set to False, may break the program.
+    """
     cell_counter[cell_type] += 1
     return cell_counter[cell_type] - start_0
 
 def reset_count(cell_type: type[Cell]):
+    """
+    Resets the counter for the given type.
+    """
     del cell_counter[cell_type]
 
 # TODO: consider making these dataclasses
 
-class Cell:
+class Cell(ABC):
+    """
+    Abstract class to be extended by `Glom` and `Mitral`.
+    """
+    def _add_count(self, start_0: bool = True):
+        return add_count(self.__class__, start_0=start_0)
+
     @property
     def id(self) -> int:
+        """
+        ID of the cell.
+        """
         return self._id
     
     @id.setter
     def id(self, value: Optional[int]) -> None:
-        """Sets value to id.
-        Precondition: value is an integer"""
+        """
+        If set to None, will assign a new ID using add_count. 
+        """
         if value is None:
-            self._id = add_count(self.__class__)
+            self._id = self._add_count()
         else:
             self._id = int(value)
 
     @property
     def activ(self) -> float:
-        """Returns activation level of Glom."""
+        """
+        Returns activation level of the Glom.
+        """
         return self._activ
 
     @activ.setter
     def activ(self, value: float) -> None:
-        """Rounds value and sets it to activation level.
-        Precondition: Value is a float between 0 and 1."""
+        """
+        Rounds value and sets it to activation level.
+
+        Parameters
+        ----------
+        value
+            Value is a float between 0 and 1.
+        """
         N_DIGITS = 6
         assert value <= 1 and value >= 0, "Not between 0 and 1"
         self._activ = round(float(value), N_DIGITS)
 
     @property
     def loc(self) -> tuple[Real, Real]:
-        """Returns location of glom"""
+        """
+        Returns location of the glom.
+        """
         return self._loc
 
     @loc.setter
     def loc(self, value: tuple[Real, Real]) -> None:
-        """Sets value to loc.
-        Precondition: value is a 2D list of numbers"""
+        """
+        Sets value to loc.
+
+        Parameters
+        ----------
+        value
+            is a 2D list of numbers
+        """
         # FIXME: ensure tuple
         assert len(value) == 2 and isinstance(value[0], Real), "Not a 2D list of numbers!"
         self._loc = tuple(value)
     
     def __init__(self, id_: Optional[int], activ: float, loc: tuple[Real, Real]) -> None:
-        """Initializes a cell with an id, activation level, and location."""
+        """
+        Initializes a cell with an id, activation level, and location.
+
+        Parameters
+        ----------
+        id_ - Optional[int]
+            the ID to assign the cell.
+        activ - float
+            The initial activation level of the cell.
+        loc - tuple[Real, Real]
+            The initial location of the cell.
+        """
         self.id = id_
         self.activ = activ
         self.loc = loc
@@ -96,15 +148,15 @@ class Glom(Cell):
 
     Attributes
     ----------
-    _id : int
-        Identifies the glomerulus
-    _activ : float
-        Between (0,1) - activation level of glomerulus
-    _loc : Tuple[float, float]
+    id : int
+        Identifies the glomerulus cell.
+    activ : float
+        Between (0,1) - activation level of glomerulus cell.
+    loc : Tuple[float, float]
         x,y coordinates of the glom on the surface of the Olfactory bulb
-    _dim : Tuple[float, float]
+    dim : Tuple[float, float]
         row x columns 
-    _conn : int
+    conn : int
         Number of mitral cells connected to
     _recConn : dict
         dict of connecting recs:weights
@@ -112,39 +164,74 @@ class Glom(Cell):
 
     @property
     def dim(self) -> tuple[int]:
-        """Returns dimensions of glom"""
+        """
+        Returns the dimensions of the glom.
+        """
         return self._dim
 
     @dim.setter
     def dim(self, value: tuple[int]) -> None:
-        """Sets value to dim.
-        Precondition: value is a 2D list of numbers"""
+        """
+        Sets dim to value.
+        
+        Parameters
+        ----------
+        value
+            A length 2 list of numbers.
+        """
         assert len(value) == 2 and isinstance(value[0], int), "Not a 2D list of numbers!"
         self._dim = tuple(value)
         
     @property
     def conn(self) -> int:
-        """Returns connections of glom"""
+        """
+        Returns conn of glom.
+        """
         return self._conn
     
     @conn.setter
     def conn(self, value: int) -> None:
-        """Sets value to conn.
-        Precondition: value is an int"""
+        """
+        Sets value to conn.
+        
+        Parameters
+        ----------
+        value - int
+            Value to set conn.
+        """
         self._conn = int(value)
     
     def setRecConn(self, value: dict) -> dict:
-        """Sets value to recConn"""
+        """
+        Sets value to recConn
+        """
         self._recConn = dict(value)
 
     def addRecConn(self, key: dict, weight):
-        """Sets value to recConn"""
+        """
+        Sets value to recConn
+        """
         logger.debug("Glom cell[%s] added receptivity connection: [%s]", self._id, key)
         self._recConn[key] = weight
     
 
     def __init__(self, id_: Optional[int], activ=0.0, loc=(0,0), dim=(0,0), conn=0):
-        """Initializes Glom object"""
+        """
+        Initializes the Glom object
+        
+        Parameters
+        ----------
+        id_
+            The ID with which to initialize the glom cell.
+        activ
+            The initial activation level of the cell.
+        loc
+            The initial location of the cell.
+        dim
+            The initial dims of the cell.
+        conn
+            The initial conn of the cell.
+        """
         super().__init__(id_, activ, loc)
         self._dim: tuple[float, float] = dim
         self._conn: int = conn
@@ -159,8 +246,19 @@ class Glom(Cell):
 
     # TODO: Double check if implemented correctly
     @staticmethod
-    def generate_random_loc(xLowerBound: int, xUpperBound: int, yLowerBound: int, yUpperBound: int) -> tuple[int, int]:
-        """Returns a random glom location"""
+    # def generate_random_loc(xLowerBound: int, xUpperBound: int, yLowerBound: int, yUpperBound: int) -> tuple[int, int]:
+    def generate_random_loc(xBounds: tuple[int, int], yBounds: tuple[int, int]) -> tuple[int, int]:
+        """
+        Returns a random glom location.
+        
+        Parameters
+        ----------
+        xBounds
+            Tuple of low-highs
+        yBounds
+            Tuple of low-highs
+        """
+        (xLowerBound, xUpperBound), (yLowerBound, yUpperBound) = xBounds, yBounds
         randomGlomX = utils.RNG.integers(xLowerBound, xUpperBound, endpoint=False)
         if randomGlomX == xLowerBound or randomGlomX == xUpperBound:
             randomGlomY = utils.RNG.integers(yLowerBound, yUpperBound, endpoint=False)

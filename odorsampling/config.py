@@ -24,8 +24,8 @@ MIN_AFFINITY = 2   # asymptotic affinity exponent, negligible
 HILL_COEFF = 1 # Hill Coefficient, often labeled as "m"
 ODOR_REPETITIONS = 2 #Amount of odorscene repetitions to create a smooth graph
 ANGLES_REP = 2
-# RANDOM_SEED = 1865 # Random selected seed
-RANDOM_SEED = None
+RANDOM_SEED = 1865 # Random selected seed
+# RANDOM_SEED = None
 
 # location distributions control params, eg., uniform, gaussian...1 and only 1 type needs to be true at any given time
 DIST_TYPE_GAUSS = False
@@ -33,6 +33,8 @@ DIST_TYPE_UNIF = True
 MU = 6
 SIG = 12
 
+# DIGIT_PREC: int = 6
+# """Digit precision, numbers are rounded to this value."""
 
 def default_log_setup(logger: logging.Logger, log_level: int = None, stream_handler_level = logging.WARNING, file_handler_level = logging.DEBUG):
     """
@@ -52,8 +54,6 @@ def default_log_setup(logger: logging.Logger, log_level: int = None, stream_hand
     stream_handler.setLevel(stream_handler_level)
     logger.addHandler(file_handler)
     logger.addHandler(stream_handler)
-
-
 
 
 GL_EXT = ".gl"
