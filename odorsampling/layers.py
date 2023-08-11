@@ -46,13 +46,16 @@ ConnMap = list[tuple[int, int, float]]
 Connections from Glom to Mitral cells, and their weights.
 """
 
+# Considering changing cells.Glom to GlomType = cells.Glom
+#  to alias the structure- though not sure if worth it.
 class GlomLayer(list[cells.Glom]):
-
     def __init__(self, cells: Iterable[cells.Glom] = tuple()):
         super().__init__(cells)
     
     @classmethod
-    def create(cls, n: int):
+    def create(cls, n: int, reset_id_count: bool = True):
+        if reset_id_count:
+            cells.reset_count(cells.Glom)
         logger.debug("Creating glom layer of %s cells.", n)
         return cls((cells.Glom(i) for i in range(n)))
     
@@ -308,8 +311,10 @@ class MitralLayer(list[cells.Mitral]):
         super().__init__(cells)
 
     @classmethod
-    def create(cls, n: Real):
-        assert isinstance(n, Real)
+    def create(cls, n: int, reset_id_count: bool = True):
+        assert isinstance(n, int)
+        if reset_id_count:
+            cells.reset_count(cells.Mitral)
         logger.debug("Creating mitral layer of %s cells.", n)
         return cls((cells.Mitral(i, 0.0, (0, 0), {}) for i in range(n)))
     
@@ -804,21 +809,21 @@ def GraphMitralActivation(gl: GlomLayer, mcl: MitralLayer, n, m):
 
     for x in range(m):
         for y in range(len(graph)):
-            if str([x,y/maxMitrals]) in mitralActivations:
-                numActivations = len(mitralActivations.get(str([x,y/maxMitrals])))
+            key = str((x,math.floor(y/maxMitrals)))
+            if key in mitralActivations:
+                numActivations = len(mitralActivations.get(key))
                 if numActivations == 1:
-                    graph[y][x] = mitralActivations.get(str([x,y/maxMitrals]))[0]
+                    graph[y][x] = mitralActivations.get(key)[0]
                 elif numActivations < maxMitrals:
                     if y%maxMitrals < numActivations:
-                        graph[y][x] = mitralActivations.get(str([x,y/maxMitrals]))[y%maxMitrals]
+                        graph[y][x] = mitralActivations.get(key)[y%maxMitrals]
                     else:
                         graph[y][x] = -0.15
-
                 else:
                     # print(mitralActivations.get(str([x,y/maxMitrals]))[y%(len(mitralActivations.get(str([x,y/maxMitrals]))))])
-                    graph[y][x] = mitralActivations.get(str([x,y/maxMitrals]))[y%(len(mitralActivations.get(str([x,y/maxMitrals]))))]
+                    graph[y][x] = mitralActivations.get(key)[y%(len(mitralActivations.get(key)))]
 
-    print(graph)         
+    print(graph)  
 
     #   https://stackoverflow.com/questions/22121239/matplotlib-imshow-default-colour-normalisation 
 
@@ -909,7 +914,7 @@ def apply_sample_map(gl: GlomLayer, mcl: MitralLayer, map_: list[list[int]]) -> 
             mcl[mitral_id].loc = gl[glom_id].loc
             mcl[mitral_id].glom = {}
         mcl[mitral_id].glom[glom_id]=weight
-        
+
         gl[glom_id].conn += 1
 
     return (mcl, gl)

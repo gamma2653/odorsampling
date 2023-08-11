@@ -24,7 +24,8 @@ MIN_AFFINITY = 2   # asymptotic affinity exponent, negligible
 HILL_COEFF = 1 # Hill Coefficient, often labeled as "m"
 ODOR_REPETITIONS = 2 #Amount of odorscene repetitions to create a smooth graph
 ANGLES_REP = 2
-RANDOM_SEED = 1865 # Random selected seed
+# RANDOM_SEED = 1865 # Random selected seed
+RANDOM_SEED = None
 
 # location distributions control params, eg., uniform, gaussian...1 and only 1 type needs to be true at any given time
 DIST_TYPE_GAUSS = False

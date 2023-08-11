@@ -32,10 +32,13 @@ Maps cell type to the number of cells of that type that have been created.
 """
 
 # TODO: Add multithreading support
-def _add_cell(cell_type: type[Cell], start_0: bool = True) -> None:
+def add_count(cell_type: type[Cell], start_0: bool = True) -> None:
     """Increments the number of cells of the given type that have been created."""
     cell_counter[cell_type] += 1
     return cell_counter[cell_type] - start_0
+
+def reset_count(cell_type: type[Cell]):
+    del cell_counter[cell_type]
 
 # TODO: consider making these dataclasses
 
@@ -49,7 +52,7 @@ class Cell:
         """Sets value to id.
         Precondition: value is an integer"""
         if value is None:
-            self._id = _add_cell(self.__class__)
+            self._id = add_count(self.__class__)
         else:
             self._id = int(value)
 

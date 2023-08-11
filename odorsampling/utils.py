@@ -37,11 +37,14 @@ def init_dist_func_kwargs(kwargs: dict[str, Any], **defaults):
 
 # Not the cleanest, but not bad considering what we needed to do in layers.py
 # TODO: Check if ternary is necessary for excluding endpoint (`b`).
-uniform_activation: DistributionFunc = lambda a, b, **_: RNG.uniform(a, b) if (a,b) != (0,1) else RNG.random()
-gaussian_activation: DistributionFunc = lambda mu, sigma, **_: RNG.normal(mu, sigma)
-"""
-If a,b == (0,1), will resort to Random.random to not include b.
-"""
-choice_gauss_activation: DistributionFunc = lambda mu, sigma, **_: \
-    RNG.choice([1,-1])*gaussian_activation(mu, sigma)
-expovar_activation: DistributionFunc = lambda lambd, **_: RNG.exponential(1/lambd)
+def uniform_activation(a, b, **_):
+    """
+    If a,b == (0,1), will resort to Random.random to not include b.
+    """
+    return RNG.uniform(a, b)
+def gaussian_activation(mu, sigma, **_):
+    return RNG.normal(mu, sigma)
+def choice_gauss_activation(mu, sigma, **_):
+    return RNG.choice([1,-1])*gaussian_activation(mu, sigma)
+def expovar_activation(lambd, **_):
+    return RNG.exponential(1/lambd)
