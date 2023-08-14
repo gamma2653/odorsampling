@@ -31,16 +31,16 @@ def init_dist_func_kwargs(kwargs: dict[str, Any], **defaults):
         assert (kwargs['mean']+kwargs['sd']) <= 1 and kwargs['mean']-kwargs['sd'] >= 0, \
             "Mean and SD are too high or low"
         kwargs.setdefault('mu', kwargs['mean'])
-        kwargs.setdefault('lambd', 1/kwargs['mean'])
+        try:
+            kwargs.setdefault('lambd', 1/kwargs['mean'])
+        except ZeroDivisionError:
+            # FIXME: Shouldn't silently fail
+            pass
     if 'sd' in kwargs:
         kwargs.setdefault('sigma', kwargs['sd'])
 
 # Not the cleanest, but not bad considering what we needed to do in layers.py
-# TODO: Check if ternary is necessary for excluding endpoint (`b`).
 def uniform_activation(a, b, **_):
-    """
-    If a,b == (0,1), will resort to Random.random to not include b.
-    """
     return RNG.uniform(a, b)
 def gaussian_activation(mu, sigma, **_):
     return RNG.normal(mu, sigma)

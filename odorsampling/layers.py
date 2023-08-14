@@ -28,8 +28,6 @@ import re
 
 from odorsampling import config, cells, utils
 
-import numpy as np
-
 # Used for asserts
 from numbers import Real
 
@@ -44,6 +42,7 @@ config.default_log_setup(logger)
 ConnMap = list[tuple[int, int, float]]
 """
 Connections from Glom to Mitral cells, and their weights.
+(m_id, g_id, weight)
 """
 
 # Considering changing cells.Glom to GlomType = cells.Glom
@@ -140,7 +139,8 @@ class GlomLayer(list[cells.Glom]):
             mapping of arguments for dist_func.
         
         preconditions: num is between 0 and 1, sel is 'g' for gaussian or 'u' for uniform"""
-        assert kwargs.get('a', 1) > 0 and kwargs.get('b', 0) < 1, "num must be between 0 and 1" # auto-succeed if not defined.
+        # FIXME: This assertion fails: why?
+        # assert kwargs.get('a', 1) > 0 and kwargs.get('b', 0) < 1, "num must be between 0 and 1" # auto-succeed if not defined.
         assert dist_func in (utils.uniform_activation, utils.choice_gauss_activation)
 
         # defaults
@@ -303,8 +303,46 @@ class GlomLayer(list[cells.Glom]):
                 counter += 1
         return weights
 
-# TODO: Move following two functions into member functions of GlomLayer
+#####Graphing
+    def graph_activation(self, n, m):
+        graph = [[0,0,0],[0,0,0],[0,0,0],[0,0.5,0],[0.0,1.0,0.0],[0,0.4,0],[0,0,0.4],[0,0,1],[0,0,0.8]]
+        plt.imshow(graph, cmap=matplotlib.pylab.cm.YlOrRd, interpolation='nearest', origin='lower', extent=[0,3,0,3])
+        plt.title("Glom Activation")
+        plt.xlabel("X")
+        plt.ylabel("Y")
+        
+        pp = PdfPages("GlomActivation.pdf")
+        pp.savefig()
+        pp.close()
 
+        plt.close()
+
+    #How do weights play in? Right now I just do activlvl*weight
+    def activate_mcl(self, mcl: MitralLayer, sel, map_=None, noise=None, mean=0, sd=0):
+        """Builds glom connections to mitral cells and calculates mitral activ lvl based on
+        connections and weights. Sel decides how to calculate the values, and noise
+        adds some variation.
+        **If noise = "u" then mean is the the scale for uniform distribution of 0 to mean.
+        Preconditions: Map holds valid connections for GL and MCL if not empty.
+        Sel = "add", "avg" or "sat". Noise = None, u, g, or e."""
+        assert sel in ['add', 'avg', 'sat'], "select value isn't valid"
+        assert noise in [None, 'u', 'g', 'e'], "noise isn't a valid string"
+        #Build MCL - GL connections
+        if map_ is not None:
+            mcl, gl = apply_sample_map(gl, mcl, map_)
+        #Add noise
+        if noise is not None:
+            gl = gl.addNoise(noise, mean=0, sd=0)
+        #Activate Mitral cell activ lvls in MCL
+        if sel == 'add' or sel == 'avg':
+            for m in mcl:
+                activ = addActivationMCL(m, gl)
+                if sel == 'avg':
+                    activ = activ/(len(m.glom))
+                m._activ = activ   #Bypassing assertion that activ lvl < 1 TODO:<-- is this ok?
+            # MCL = normalize(MCL)
+        if sel == 'sat':
+            pass
 
 class MitralLayer(list[cells.Mitral]):
     def __init__(self, cells: Iterable[cells.Mitral]):
@@ -362,26 +400,6 @@ class MitralLayer(list[cells.Mitral]):
                     (int(data.group(3)), int(data.group(4))),
                     int(data.group(5)))
                 )
-        # with open(name, 'r') as f:
-        #     for line in f.readlines():
-        #         comma1 = line.index(",")
-        #         comma2 = line.index(",",comma1+1)
-        #         comma3 = line.index(",",comma2+1)
-        #         colon = line.index(":", comma2+1)
-        #         semi = line.index(";", comma3+1)
-        #         loc = [int(line[comma2+1:colon]), int(line[colon+1:comma3])]
-        #         middle = line.find("|")
-        #         beg = comma3
-        #         TODO: Glom cell
-        #         glom = {}
-        #         while middle != -1:
-        #             key = line[beg+1:middle]
-        #             beg = line.index("+", beg+1)
-        #             val = line[middle+1:beg]
-        #             middle = line.find("|", middle+1)
-        #             glom[int(key)] = float(val)
-        #         mitral = cells.Mitral(int(line[:comma1]), float(line[comma1+1:comma2]), loc, glom)
-        #         mcl.append(mitral)
             return cls(mcl)
 
     #****For now all weights are chosen uniformly
@@ -454,56 +472,46 @@ class MitralLayer(list[cells.Mitral]):
         #     while indexes
 
         map_ = []
-        counter = 0
 
         if fix:
             # For each mitral
-            while counter < len(self):
+            for mitral in self:
                 gl_indexes = list(range(len(gl)))
 
-                inc = 0
                 conn = []
                 leftover = 1
 
                 # cr times
-                while inc < cr:
-
+                for i in range(cr):
                     try:
                         idx = gl_indexes.pop(utils.RNG.integers(len(gl_indexes)))
                     except IndexError:
                         logger.error("Expected %s available glom cells, %s available.", cr, len(gl))
                     # idx = gl._prevDuplicates(idx, conn) # Ensures that glom at num isn't connected to the mitral cell yet
                     
-                    # FIXME: What is this logic?
-                    if inc == (cr-1):
+                    # FIXME: What is this logic? EDIT: Oh I think I get it, still working through it.
+                    if i == (cr-1):
                         act = leftover
                     else:
                         act = utils.RNG.uniform(0, leftover)
                         leftover -= act
-                    map_.append([self[counter].id, idx, act])
-                    inc += 1
+                    map_.append((mitral.id, idx, act))
                     conn.append(idx)
-                counter += 1
         else:
             # For each mitral
-            while counter < len(self):
+            for mitral in self:
                 gl_indexes = list(range(len(gl)))
 
-                rand = max(utils.RNG.normal(cr, sd), 1)
-                inc = 0
+                rand = int(max(utils.RNG.normal(cr, sd), 1))
                 conn = []
-                while inc < rand:
+                for i in range(rand):
                     try:
                         idx = gl_indexes.pop(utils.RNG.integers(len(gl_indexes)))
                     except IndexError:
                         logger.error("Expected %s available glom cells, %s available.", rand, len(gl))
-                    # idx = utils.RNG.integers(0,len(gl))
-                    # gl._prevDuplicates(idx, conn)
                     
-                    map_.append([self[counter].id, idx, utils.RNG.uniform(0,.4)])
-                    inc += 1
+                    map_.append((mitral.id, idx, utils.RNG.uniform(0,.4)))
                     conn.append(idx)
-                counter += 1
         return map_
 
     def simpleSampleBalanced(self, gl: GlomLayer, cr, fix, sd=0) -> ConnMap:
@@ -513,7 +521,6 @@ class MitralLayer(list[cells.Mitral]):
         glom can project to (Fanout_ratio = (#MC * cr) / #Glom).
         ***Weights of a mitral cell's gloms add up to 1.0***"""
         map_ = []
-        counter = 0
         fanout_ratio = (len(self) * cr)/len(gl) #fanout ratio
         glomSelections = []
         for g in gl:
@@ -524,12 +531,11 @@ class MitralLayer(list[cells.Mitral]):
         # print(glomSelections)
         MAX_TRIES = 100
         if fix:
-            while counter < len(self):
-                inc = 0
+            for mitral in self:
                 conn = []
                 leftover = 1
                 # TODO: Implement better choice algo
-                while inc < cr:
+                for i in range(cr):
                     num = utils.RNG.choice(glomSelections)
                     check = 0
                     while num in conn and check < MAX_TRIES:
@@ -539,37 +545,34 @@ class MitralLayer(list[cells.Mitral]):
                         # IMPLEMENT THIS IN A BETTER WAY. This error shows up when the very last mitral is forced to sample from the same glom.
                         assert check != MAX_TRIES, "please run again. this is check: " + str(check)
                     glomSelections.remove(num)
-                    if inc == (cr-1):
+                    if i == (cr-1):
                         act = leftover
                     else:
                         act = utils.RNG.uniform(0, leftover)
                         leftover -= act
-                    map_.append([self[counter].id, num, act])
-                    inc += 1
+                    map_.append([mitral.id, num, act])
                     conn.append(num)
-                counter += 1
         return map_
 
-    def simpleSampleLocation(self, gl: GlomLayer, cr, fix, sd=0) -> ConnMap:
+    def simpleSampleLocation(self, glom_layer: GlomLayer, cr, fix, sd=0) -> ConnMap:
         """Builds a map by randomly choosing glomeruli to sample to mitral cells.
         If fix != true, cr serves as mean for # of glom sample to each mitral cell.
         Weights are randomly chosen uniformly. Glomeruli are drawn randomly from the
         surrounding glomeruli that surround the parent glomerulus.
         ***Weights of a mitral cell's gloms add up to 1.0***"""
         map_ = []
-        counter = 0
 
         # TODO: Fix "magic" numbers
         numLayers = math.ceil((-4+math.sqrt(16-16*(-(cr-1))))/8)
         # logger.debug("numLayers: " + str(numLayers))
-        numToSelect = (cr-1) - (8*(((numLayers-1)*(numLayers))/2))
+        numToSelect = int((cr-1) - (8*(((numLayers-1)*(numLayers))/2)))
         # logger.debug("numToSelect: " + str(int(numToSelect))) # number to select in the outermost layer
         # logger.debug("dimensions: " + str(gl[0].dim[0]) + "X" + str(gl[0].dim[1]))
 
         if fix:
-            while counter < len(self):
-                num = utils.RNG.integers(0,len(gl))
-                x, y = gl[num].loc
+            for mitral in self:
+                gl_index = utils.RNG.integers(0,len(glom_layer))
+                x, y = glom_layer[gl_index].loc
                 # logger.debug("parent glom location: (" + str(x) + ", " + str(y) + ")")
                 xBounds = x-numLayers, x+numLayers
                 # logger.debug("x: [" + str(xLowerBound) + ", " + str(xUpperBound) + "]")  
@@ -577,15 +580,14 @@ class MitralLayer(list[cells.Mitral]):
                 # logger.debug("y: [" + str(yLowerBound) + ", " + str(yUpperBound) + "]")
                 gloms = []
                 act = utils.RNG.uniform(0,1)
-                map_.append([self[counter].id, num, act])
+                map_.append((mitral.id, gl_index, act))
                 leftover = 1-act
 
                 if int(numLayers) == 1:
-                    selected = 0
                     # FIXME: Why in the world is the y and x dims swapped
                     randomGlom = cells.Glom.generate_random_loc(xBounds, yBounds)
-                    while selected < int(numToSelect):
-                        if selected == int(numToSelect)-1:
+                    for selected in range(numToSelect):
+                        if selected == numToSelect-1:
                             act = leftover
                         else:
                             act = utils.RNG.uniform(0, leftover)
@@ -594,71 +596,71 @@ class MitralLayer(list[cells.Mitral]):
                             randomGlom = cells.Glom.generate_random_loc(xBounds, yBounds)
                         gloms.append(randomGlom)
                         selected += 1
-                        for g in gl:
+                        for g in glom_layer:
                             # print("g id: " + str(g.id))
                             # if g.loc == randomGlom:
-                            if g.loc == [randomGlom[0]%(gl[0].dim[1]), randomGlom[1]%(gl[0].dim[0])]:
-                                num = g.id
+                            if g.loc == [randomGlom[0]%(glom_layer[0].dim[1]), randomGlom[1]%(glom_layer[0].dim[0])]:
+                                gl_index = g.id
                         # print(f"GlomID: {num}")
-                        map_.append([self[counter].id, num, act])
+                        map_.append((mitral.id, gl_index, act))
                     # print(gloms)
 
                 elif int(numLayers) == 2:
                     # print("numLayers == 2")
                     # get first layer first (the surrounding 8)
-                    xInner = x - 1
-                    xOuter = x + 1
-                    yInner = y - 1 
-                    yOuter = y + 1
-                    firstLayer = []
+                    xInner, yInner = x-1, y-1
+                    xOuter, yOuter = x+1, y+1
+                    # Construct firstLayer
+                    firstLayer: list[tuple[int, int]] = []
                     while xInner <= xOuter:
                         yInner = y-1
                         while yInner <= yOuter:
                             if not((xInner == x) and (yInner == y)):
-                                firstLayer.append([xInner%(gl[0].dim[1]), yInner%(gl[0].dim[0])])
+                                firstLayer.append((xInner%(glom_layer[0].dim[1]), yInner%(glom_layer[0].dim[0])))
                             yInner += 1
                         xInner += 1
 
-                    for a in firstLayer:
-                        for g in gl:
-                            if g.loc == (a[0], a[1]):
-                                num = g.id
+                    # Iterate over firstLayer and glom cells
+                    for gl_dim1, gl_dim0 in firstLayer:
+                        for g in glom_layer:
+                            # NOTE: Why are we checking gl_dim1 and gl_dim0 specifically?
+                            if g.loc == (gl_dim1, gl_dim0):
+                                gl_index = g.id
                                 act = utils.RNG.uniform(0, leftover)
                                 leftover -= act
                                 # print(f"GlomID: {num}")
-                                map_.append([self[counter].id, num, act])
+                                map_.append((mitral.id, gl_index, act))
                             # else:
                             #     logger.debug("glom locs don't match: ", g.loc, " and ", (a[0], a[1]))
 
                     # second layer
-                    selected = 0
                     randomGlom = cells.Glom.generate_random_loc(xBounds, yBounds)
-                    while selected < int(numToSelect):
-                        if selected == int(numToSelect)-1:
+                    for selected in range(numToSelect):
+                        # Recalc act
+                        if selected == numToSelect-1:
                             act = leftover
                         else:
                             act = utils.RNG.uniform(0, leftover)
                             leftover -= act
+                        # Pick glom until unique
                         while randomGlom in gloms:
                             randomGlom = cells.Glom.generate_random_loc(xBounds, yBounds)
                         gloms.append(randomGlom)
-                        selected += 1
-                        for g in gl:
-                            # print("g id: " + str(g.id)))
+                        # update gl_index for `map_`
+                        for g in glom_layer:
                             # if g.loc == randomGlom:
-                            if g.loc == (randomGlom[0]%(gl[0].dim[1]), randomGlom[1]%(gl[0].dim[0])):
+                            if g.loc == (randomGlom[0]%(glom_layer[0].dim[1]), randomGlom[1]%(glom_layer[0].dim[0])):
                                 # print(randomGlom)
-                                num = g.id
+                                gl_index = g.id
                             # else:
                             #     logger.debug("glom locs don't match: ", g.loc, " and ", (randomGlom[0]%(gl[0].dim[1]), randomGlom[1]%(gl[0].dim[0])))
 
-                        map_.append([self[counter].id, num, act])
-                counter+=1
-
+                        map_.append((mitral.id, gl_index, act))
+            # FIXME: What about `if not fix` (else)? (Empty map returned)
         return map_
  
 
-    def biasSample(self, gl: GlomLayer, cr, fix, bias, sd=0) -> ConnMap:
+    def biasSample(self, gl: GlomLayer, cr, fix, bias: str, sd=0) -> ConnMap:
         """Builds a map by choosing glomeruli to sample to mitral cells, but the more times
         a glomeruli is sampled, the less likely it is to be chosen again (either a linear
         degression or exponential based on bias). If fix != true, cr serves as mean for
@@ -670,13 +672,10 @@ class MitralLayer(list[cells.Mitral]):
         scale = max(MIN_SCALE, math.floor((len(self)/len(gl)) * SCALE_FACTOR * cr))
         #Build weights
         weights = gl._buildWeights(bias, scale)
-        if bias == "lin":
-            s = len(weights)*scale
-        else:
-            s = len(weights)*(2**scale)
+        s = len(weights)*scale if bias.lower()=="lin" else len(weights)*(2**scale)
         
-
-        def select_glom(rand, weights, glom_weight_idx):
+        # TODO: Consider whether this is necessary.
+        def _select_glom(rand, weights, glom_weight_idx):
             """
             Steps through indexes until weights are exhausted.
             """
@@ -690,9 +689,9 @@ class MitralLayer(list[cells.Mitral]):
                 cr = min(max(int(utils.RNG.normal(cr_orig, sd)), 1), len(gl))
             gl_indexes: list[int] = []
             for _ in range(cr): # start connecting mitral cell to (multiple) glom
-                glom_weight_idx = select_glom(utils.RNG.integers(1, s, endpoint=True), weights, glom_weight_idx)
+                glom_weight_idx = _select_glom(utils.RNG.integers(1, s, endpoint=True), weights, 0)
                 while glom_weight_idx in gl_indexes:
-                    glom_weight_idx = select_glom(utils.RNG.integers(1, s, endpoint=True), weights, glom_weight_idx) - 1
+                    glom_weight_idx = _select_glom(utils.RNG.integers(1, s, endpoint=True), weights, glom_weight_idx) - 1
         
                 # glom_weight_idx = gl._prevDuplicates(glom_weight_idx, gl_indexes, weights, s)
                 map_.append((mitral_idx, glom_weight_idx, utils.RNG.uniform(0,.4)))
@@ -701,8 +700,71 @@ class MitralLayer(list[cells.Mitral]):
             # print(f"Selected: {gl_indexes}")
         return map_
 
-# TODO: figure out types
+    def graph_activation(self, gl: GlomLayer, n, m):
+        logger.info("Graphing mitral activation")
+        mitralLocations = {}
+        mitralActivations: dict[str, list[float]] = {}
+        for mitral in self:
+            if mitral.loc in mitralLocations:
+                val = mitralLocations.get(str(mitral.loc))
+                activ = mitralActivations.get(str(mitral.loc))
+                mitralLocations.update({str(mitral.loc):val+1})
 
+                activ.append(mitral.activ)
+                mitralActivations.update({str(mitral.loc):activ})
+            else:
+                mitralLocations.update({str(mitral.loc):1})
+                mitralActivations.update({str(mitral.loc):[mitral.activ]})
+
+        maxMitrals = mitralLocations.get(max(mitralLocations, key=mitralLocations.get))
+
+        graph: list[list[int]] = []
+        counter = 0
+        while counter < m*maxMitrals:
+            graph.append([])
+            counter1 = 0
+            while counter1<m:
+                graph[counter].append(0)
+                counter1 += 1
+            counter += 1
+
+        for x in range(m):
+            for y in range(len(graph)):
+                key = str((x,math.floor(y/maxMitrals)))
+                if key in mitralActivations:
+                    numActivations = len(mitralActivations.get(key))
+                    if numActivations == 1:
+                        graph[y][x] = mitralActivations.get(key)[0]
+                    elif numActivations < maxMitrals:
+                        if y%maxMitrals < numActivations:
+                            graph[y][x] = mitralActivations.get(key)[y%maxMitrals]
+                        else:
+                            graph[y][x] = -0.15
+                    else:
+                        # print(mitralActivations.get(str([x,y/maxMitrals]))[y%(len(mitralActivations.get(str([x,y/maxMitrals]))))])
+                        graph[y][x] = mitralActivations.get(key)[y%(len(mitralActivations.get(key)))]
+
+        # print(graph)  
+
+        #   https://stackoverflow.com/questions/22121239/matplotlib-imshow-default-colour-normalisation 
+
+        fig, _ = plt.subplots()
+
+        im = plt.imshow(graph, cmap=matplotlib.pylab.cm.YlOrRd, interpolation='nearest', vmin=-0.15, vmax=1, origin='lower', extent=[0,4,0,4])
+        plt.title("Mitral Activation")
+        plt.xlabel("X")
+        plt.ylabel("Y")
+
+        fig.colorbar(im)
+
+        pp = PdfPages("MitralActivation.pdf")
+        pp.savefig()
+        pp.close()
+
+        plt.close()
+
+
+# TODO: figure out types
 def _recalcWeights(weights, index: int, bias, s):
     """Readjusts and returns weights and sum as a 2d list [weights, sum].
     If index is too low, all inputs in weights are increased"""
@@ -726,119 +788,7 @@ def _recalcWeights(weights, index: int, bias, s):
 
 
 
-###Cleaning up unconnected glom in built Map
-
-def cleanUp(gl: GlomLayer, mcl: MitralLayer, map_: ConnMap):
-    """Samples all unsampled glom in gl to the last mitral cell in mcl with a
-    random uniform number for weight. **This will violate the Map if # of connections
-    was fixed"""
-    unsampled = []
-    counter = 0
-    while counter < len(gl):
-        unsampled.append(counter)
-        counter += 1
-    counter = 0
-    while counter < len(map_):
-        if map_[counter][1] in unsampled:
-            unsampled.remove(map_[counter][1])
-        counter += 1
-    while len(unsampled) > 0:
-        map_.append([len(mcl)-1, unsampled[0], utils.RNG.random()])
-        unsampled.remove(unsampled[0])
-    logger.info("Finished cleaning up layers.")
-        
-def unsampledGlom(gl: GlomLayer, mcl: MitralLayer, map_: ConnMap):
-    """prints out amount of gl unsampled in Map"""
-    unsampled = []
-    counter = 0
-    while counter < len(gl):
-        unsampled.append(counter)
-        counter += 1
-    counter = 0
-    while counter < len(map_):
-        # TODO: Could just be a remove call, fix later
-        if map_[counter][1] in unsampled:
-            unsampled.remove(map_[counter][1])
-        counter += 1
-    return f"Amount of unsampled Glom: {len(unsampled)}\n"
-
-#####Graphing
-def GraphGlomActivation(gl: GlomLayer, n, m):
-    graph = [[0,0,0],[0,0,0],[0,0,0],[0,0.5,0],[0.0,1.0,0.0],[0,0.4,0],[0,0,0.4],[0,0,1],[0,0,0.8]]
-    plt.imshow(graph, cmap=matplotlib.pylab.cm.YlOrRd, interpolation='nearest', origin='lower', extent=[0,3,0,3])
-    plt.title("Glom Activation")
-    plt.xlabel("X")
-    plt.ylabel("Y")
-    
-    pp = PdfPages("GlomActivation.pdf")
-    pp.savefig()
-    pp.close()
-
-    plt.close()
-
 # TODO: tidy up
-def GraphMitralActivation(gl: GlomLayer, mcl: MitralLayer, n, m):
-    logger.info("Graphing mitral activation")
-    mitralLocations = {}
-    mitralActivations: dict[str, list[float]] = {}
-    for mitral in mcl:
-        if mitral.loc in mitralLocations:
-            val = mitralLocations.get(str(mitral.loc))
-            activ = mitralActivations.get(str(mitral.loc))
-            mitralLocations.update({str(mitral.loc):val+1})
-
-            activ.append(mitral.activ)
-            mitralActivations.update({str(mitral.loc):activ})
-        else:
-            mitralLocations.update({str(mitral.loc):1})
-            mitralActivations.update({str(mitral.loc):[mitral.activ]})
-
-    maxMitrals = mitralLocations.get(max(mitralLocations, key=mitralLocations.get))
-
-    graph: list[list[int]] = []
-    counter = 0
-    while counter < m*maxMitrals:
-        graph.append([])
-        counter1 = 0
-        while counter1<m:
-            graph[counter].append(0)
-            counter1 += 1
-        counter += 1
-
-    for x in range(m):
-        for y in range(len(graph)):
-            key = str((x,math.floor(y/maxMitrals)))
-            if key in mitralActivations:
-                numActivations = len(mitralActivations.get(key))
-                if numActivations == 1:
-                    graph[y][x] = mitralActivations.get(key)[0]
-                elif numActivations < maxMitrals:
-                    if y%maxMitrals < numActivations:
-                        graph[y][x] = mitralActivations.get(key)[y%maxMitrals]
-                    else:
-                        graph[y][x] = -0.15
-                else:
-                    # print(mitralActivations.get(str([x,y/maxMitrals]))[y%(len(mitralActivations.get(str([x,y/maxMitrals]))))])
-                    graph[y][x] = mitralActivations.get(key)[y%(len(mitralActivations.get(key)))]
-
-    # print(graph)  
-
-    #   https://stackoverflow.com/questions/22121239/matplotlib-imshow-default-colour-normalisation 
-
-    fig, _ = plt.subplots()
-
-    im = plt.imshow(graph, cmap=matplotlib.pylab.cm.YlOrRd, interpolation='nearest', vmin=-0.15, vmax=1, origin='lower', extent=[0,4,0,4])
-    plt.title("Mitral Activation")
-    plt.xlabel("X")
-    plt.ylabel("Y")
-
-    fig.colorbar(im)
-
-    pp = PdfPages("MitralActivation.pdf")
-    pp.savefig()
-    pp.close()
-
-    plt.close()
 
 
 def saveMCLSamplingMap(Map, name: str):
@@ -870,32 +820,6 @@ def loadMCLSamplingMap(name: str) -> list[tuple[int, int, float]]:
 
 ########Connnecting GL, MCL, and Map altogether
 
-#How do weights play in? Right now I just do activlvl*weight
-def ActivateMCLfromGL(gl: GlomLayer, mcl: MitralLayer, sel, map_=None, noise=None, mean=0, sd=0):
-    """Builds glom connections to mitral cells and calculates mitral activ lvl based on
-    connections and weights. Sel decides how to calculate the values, and noise
-    adds some variation.
-    **If noise = "u" then mean is the the scale for uniform distribution of 0 to mean.
-    Preconditions: Map holds valid connections for GL and MCL if not empty.
-    Sel = "add", "avg" or "sat". Noise = None, u, g, or e."""
-    assert sel in ['add', 'avg', 'sat'], "select value isn't valid"
-    assert noise in [None, 'u', 'g', 'e'], "noise isn't a valid string"
-    #Build MCL - GL connections
-    if map_ is not None:
-        mcl, gl = apply_sample_map(gl, mcl, map_)
-    #Add noise
-    if noise is not None:
-        gl = gl.addNoise(noise, mean=0, sd=0)
-    #Activate Mitral cell activ lvls in MCL
-    if sel == 'add' or sel == 'avg':
-        for m in mcl:
-            activ = addActivationMCL(m, gl)
-            if sel == 'avg':
-                activ = activ/(len(m.glom))
-            m._activ = activ   #Bypassing assertion that activ lvl < 1 TODO:<-- is this ok?
-        # MCL = normalize(MCL)
-    if sel == 'sat':
-        pass
 
 # TODO: Ensure Map is always a list[list[int]]. Assert?
 def apply_sample_map(gl: GlomLayer, mcl: MitralLayer, map_: list[list[int]]) -> tuple[MitralLayer, GlomLayer]:

@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import sys
 from argparse import ArgumentParser
 from pprint import pprint
+
+
+import matplotlib
 
 from . import config, expFromRnO, testLayers, testRnO
 
@@ -36,6 +40,8 @@ def prep_parser() -> ArgumentParser:
                         help="Used to set which experiments to run according to the paper.")
     parser.add_argument('-t', '--run-tests', action='store', type=str, nargs='*', metavar='TEST_NAME',
                         help="Used to set which tests to run. Eg) 'layers' and 'RnO' are valid.")
+    parser.add_argument('-mplb', '--mpl-backend', action='store', type=str, default='tkAgg',
+                        help="Used to set the backend used by matplotlib for the graphs.")
 
     return parser
 
@@ -83,7 +89,12 @@ def main() -> None:
     config.HILL_COEFF = known_args.hill_coefficient
     config.ODOR_REPETITIONS = known_args.odor_repetitions
     config.ANGLES_REP = known_args.angle_reps
-
+    try:
+        matplotlib.use(known_args.mpl_backend)
+    except ModuleNotFoundError as e:
+        print(f"Unable to load matplotlib backend '{known_args.mpl_backend}'. Please ensure any required packages are installed to use this backend.")
+        print(e, file=sys.stderr)
+    print(f"Using {matplotlib.get_backend()} as the matplotlib backend.")
     perform_experiments(known_args.perform_experiment)
     perform_tests(known_args.run_tests)
 
