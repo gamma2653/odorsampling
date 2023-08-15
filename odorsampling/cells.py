@@ -91,7 +91,7 @@ class Cell(ABC):
         Returns activation level of the cell.
 
         As a property, any Rational type can be assigned to activ, as it will be converted to a float.
-        Rounds value and sets it to activation level.
+        Rounds `value` and sets it to activation level.
 
         Parameters
         ----------

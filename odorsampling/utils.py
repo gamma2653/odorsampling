@@ -98,6 +98,9 @@ class ReaderWriterSuite:
                 self.writer_active_con.notify_all()
 
     def acquire_writer(self) -> None:
+        """
+        Called to acquire the writer slot.
+        """
         with self.g:
             self.num_writers_waiting += 1
             while self.num_readers_active > 0 or self.writer_active:
