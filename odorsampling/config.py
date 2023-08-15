@@ -26,6 +26,11 @@ ODOR_REPETITIONS = 2 #Amount of odorscene repetitions to create a smooth graph
 ANGLES_REP = 2
 RANDOM_SEED = 1865 # Random selected seed
 # RANDOM_SEED = None
+GLOM_PENETRANCE = .68  # primary glom:rec connection weight if c != 1
+S_WEIGHTS = [0.12,0.08,0.03,0.03,0.02,0.02,0.01,0.01] # The remaining glom:rec connection weights if c != 1
+NUM_ROW = 6 # num of rows of glom
+NUM_COL = 5 # num of cols of glom  (numRow*numCol = total number of Glom)
+CONSTANT_ATTACHMENTS = True
 
 # location distributions control params, eg., uniform, gaussian...1 and only 1 type needs to be true at any given time
 DIST_TYPE_GAUSS = False

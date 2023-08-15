@@ -6,7 +6,7 @@
 # Summer of 2023
 
 """
-    This module builds layers of Golemruli and Mitral cells, including connections between them.
+    This module builds layers of Glomeruli and Mitral cells, including connections between them.
     This includes:
         - Building glom layer and initializing activation levels
         - Building a list of similarly activated glom layers given a gl
@@ -29,13 +29,15 @@ import re
 from odorsampling import config, cells, utils
 
 # Used for asserts
-from numbers import Real
+from numbers import Rational
 
 # Type checking
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Union, Iterable, TypeAlias
+    from typing import Union, Iterable
+
+
 logger = logging.getLogger(__name__)
 config.default_log_setup(logger)
 
@@ -45,6 +47,7 @@ Connections from Glom to Mitral cells, and their weights.
 (m_id, g_id, weight)
 """
 
+
 # Considering changing cells.Glom to GlomType = cells.Glom
 #  to alias the structure- though not sure if worth it.
 class GlomLayer(list[cells.Glom]):
@@ -52,14 +55,15 @@ class GlomLayer(list[cells.Glom]):
         super().__init__(cells)
     
     @classmethod
-    def create(cls, n: int, reset_id_count: bool = True):
-        if reset_id_count:
-            cells.reset_count(cells.Glom)
+    def create(cls, n: int, reset_id_count: bool = True) -> GlomLayer:
+        # TODO: Implement count reset
+        # if reset_id_count:
+        #     cells.reset_count(cells.Glom)
         logger.debug("Creating glom layer of %s cells.", n)
         return cls((cells.Glom(i) for i in range(n)))
     
     @classmethod
-    def createGL_dimensions(cls, x: int, y: int):
+    def createGL_dimensions(cls, x: int, y: int) -> GlomLayer:
         """
         Returns an array of x number of glom objects with activation levels
         and loc set to defaults. ID refers to its index in the array.
@@ -77,18 +81,21 @@ class GlomLayer(list[cells.Glom]):
             cells.Glom(None, 0.0, [countX, countY], [y, x], 0)
             for countY in range(y) for countX in range(x)
         )
-    def clearActiv(self) -> None:
+
+
+    def clear_activations(self) -> None:
         for glom in self:
             glom.activ = 0.0
-            glom.setRecConn({})
+            glom.rec_conn_map = {}
         logger.debug("Glom cell layer activations cleared.")
 
     #For now, if a number is generated to be over 1 or under 0 in Gaussian or
     #exponential, the function will be called again to generate a different number.
     # TODO: Change sel to an enum or some other fixed type
-    def activate_random(self, dist_func: utils.DistributionFunc = utils.uniform_activation, **kwargs):
+    def activate_random(self, dist_func: utils.DistributionFunc = utils.uniform_activation, **kwargs) -> None:
         """
         Initializes the activation levels for the glom layer instance.
+
         PARAMETERS
         ----------
         kwargs
@@ -121,7 +128,7 @@ class GlomLayer(list[cells.Glom]):
         logger.info("Glom cell layer activation levels initialized to `%s`.", dist_func.__name__)
     #For now, any number that is incremented to be over 1 or under 0 is just set
     # to 1 or 0 respectively.
-    def activate_similar(self, dist_func: utils.DistributionFunc = utils.uniform_activation, new_ = True, **kwargs):
+    def activate_similar(self, dist_func: utils.DistributionFunc = utils.uniform_activation, new_ = True, **kwargs) -> GlomLayer:
         """Returns a glomeruli layer with activation levels similar to gl, by randomly
         picking a number between -num and num and incrementing (or if gaussian then picked
         using mean and sd). If new_ is True, then create new gl, otherwise this method fills
@@ -160,19 +167,20 @@ class GlomLayer(list[cells.Glom]):
         return gl2
     
     #Creating array of GL's with similar activation
-    def create_array(self, x: int, opt: str, dist_func: utils.DistributionFunc, num, mean=0, sd=0):
+    @staticmethod
+    def create_array(glom_layer: GlomLayer, n_layers: int, opt: str, dist_func: utils.DistributionFunc, num: float, mean=0, sd=0) -> list[GlomLayer]:
         """Given a glomeruli layer, returns x amount of similar gl's using
         the similarity method specified with opt and sel. Original activ lvl is incremented by <= num.
         Preconditions: gl is a list of glomeruli, x is an int sel is star or ser"""
-        assert type(x) == int, "x is not an int"
+        assert type(n_layers) == int, "x is not an int"
         #Everything else is asserted in helper function below
-        if not x:
+        if not n_layers: # 0
             logger.debug("createGLArray called with x=0.")
-            return GlomLayer([])
-        gl = self.activate_similar(a=-num, b=num, dist_func=dist_func, mean=mean, sd=sd)
-        snd_gl = self if opt == 'star' else gl
-        logger.info("GlomLayer Array created with depth %s using sel param %s and opt %s.", x, dist_func, opt)
-        return [gl] + GlomLayer.create_array(snd_gl, x-1, opt, dist_func, num, mean, sd)
+            return []
+        new_glom = glom_layer.activate_similar(a=-num, b=num, dist_func=dist_func, mean=mean, sd=sd)
+        snd_gl = glom_layer if opt == 'star' else new_glom
+        logger.info("GlomLayer Array created with depth %s using sel param %s and opt %s.", n_layers, dist_func, opt)
+        return [new_glom] + GlomLayer.create_array(snd_gl, n_layers-1, opt, dist_func, num, mean, sd)
     
     #####Loading and Storing a GL, MCL, and Map
     def save(self, name: str):
@@ -288,10 +296,10 @@ class GlomLayer(list[cells.Glom]):
 
     #     return 
 
-    def _buildWeights(self, bias: str, scale):
+    def _buildWeights(self, bias: str, scale: int) -> list[int]:
         """Returns a list len(gl), with each index starting with the same number
         which depends on bias"""
-        weights = []
+        weights: list[int] = []
         counter = 0
         if bias == "lin":
             while counter < len(self):
@@ -304,7 +312,7 @@ class GlomLayer(list[cells.Glom]):
         return weights
 
 #####Graphing
-    def graph_activation(self, n, m):
+    def graph_activation(self, n, m) -> None:
         graph = [[0,0,0],[0,0,0],[0,0,0],[0,0.5,0],[0.0,1.0,0.0],[0,0.4,0],[0,0,0.4],[0,0,1],[0,0,0.8]]
         plt.imshow(graph, cmap=matplotlib.pylab.cm.YlOrRd, interpolation='nearest', origin='lower', extent=[0,3,0,3])
         plt.title("Glom Activation")
@@ -318,7 +326,7 @@ class GlomLayer(list[cells.Glom]):
         plt.close()
 
     #How do weights play in? Right now I just do activlvl*weight
-    def activate_mcl(self, mcl: MitralLayer, sel, map_=None, noise=None, mean=0, sd=0):
+    def activate_mcl(self, mcl: MitralLayer, sel, map_=None, noise=None, mean=0, sd=0) -> None:
         """Builds glom connections to mitral cells and calculates mitral activ lvl based on
         connections and weights. Sel decides how to calculate the values, and noise
         adds some variation.
@@ -339,7 +347,7 @@ class GlomLayer(list[cells.Glom]):
                 activ = addActivationMCL(m, gl)
                 if sel == 'avg':
                     activ = activ/(len(m.glom))
-                m._activ = activ   #Bypassing assertion that activ lvl < 1 TODO:<-- is this ok?
+                m._activation = activ   #Bypassing assertion that activ lvl < 1 TODO:<-- is this ok?
             # MCL = normalize(MCL)
         if sel == 'sat':
             pass
@@ -404,7 +412,7 @@ class MitralLayer(list[cells.Mitral]):
 
     #****For now all weights are chosen uniformly
     #connections are either fixed or cr serves as the mean with a sd for amount of connections
-    def createSamplingMap(self, gl: GlomLayer, cr: Real, fix: bool, sel: str, sd=0, bias='lin') -> ConnMap:
+    def createSamplingMap(self, gl: GlomLayer, cr: Rational, fix: bool, sel: str, sd=0, bias='lin') -> ConnMap:
         """Returns a map in the form of [[Mi, G, W],[Mi, G, W]...] where
         Mi and G are ID's and W is the weight.
         1. The convergence ratio (cr) determines the amount of glom sample to each
@@ -847,7 +855,7 @@ def addActivationMCL(m: cells.Mitral, gl: GlomLayer):
     """Returns updated MCL where each mitral cell's activation level is calculated
     based on adding connecting glom activation levels*weight of connection"""
     glom = m.glom.keys()
-    activ = 0
+    activ: int = 0
     for g in glom:
         # FIXME: Critical- oh no. The GLs are maps aren't they? (after checking, they shouldn't be)
         temp = gl[g].activ*m.glom[g]  #Activ lvl of attached glom * weight

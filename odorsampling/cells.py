@@ -13,14 +13,14 @@ import builtins
 from abc import ABC
 # Used for asserts
 if builtins.__debug__:
-    from numbers import Real
+    from numbers import Rational, Integral
 
 from odorsampling import config, utils
 
 # Type checking
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from typing import MutableMapping, Optional
+    from typing import MutableMapping, Optional, Mapping, Hashable
     from RnO import Receptor
     
 
@@ -34,7 +34,7 @@ Maps cell type to the number of cells of that type that have been created.
 
 # TODO: Add multithreading support
 # FIXME: Fix `start_0`.
-def add_count(cell_type: type[Cell], start_0: bool = True) -> None:
+def add_count(cell_type: Hashable, dec: int = True) -> int:
     """
     Increments the number of cells of the given type that have been created.
     
@@ -42,14 +42,15 @@ def add_count(cell_type: type[Cell], start_0: bool = True) -> None:
     ----------
     cell_type
         The Cell type who's ID to increment.
-    start_0
+    dec
         WIP, low-priority; An optional boolean argument whether to start IDs from 0 or 1.
         True by default. Currently, if set to False, may break the program.
+        Also supports decrementing the 
     """
     cell_counter[cell_type] += 1
-    return cell_counter[cell_type] - start_0
+    return cell_counter[cell_type] - dec
 
-def reset_count(cell_type: type[Cell]):
+def reset_count(cell_type: Hashable):
     """
     Resets the counter for the given type.
     """
@@ -61,21 +62,22 @@ class Cell(ABC):
     """
     Abstract class to be extended by `Glom` and `Mitral`.
     """
-    def _add_count(self, start_0: bool = True):
-        return add_count(self.__class__, start_0=start_0)
+    # Augment add_count w/ this class's most-specific subclass.
+    def _add_count(self, start_0: bool = True) -> int:
+        return add_count(self.__class__, dec=start_0)
 
     @property
     def id(self) -> int:
         """
         ID of the cell.
+
+        As a property, any Integral type can be assigned to ID, as it will be converted to an int.
+        If set to None, will assign a new ID using add_count. 
         """
         return self._id
     
     @id.setter
-    def id(self, value: Optional[int]) -> None:
-        """
-        If set to None, will assign a new ID using add_count. 
-        """
+    def id(self, value: Optional[Integral]) -> None:
         if value is None:
             self._id = self._add_count()
         else:
@@ -85,12 +87,8 @@ class Cell(ABC):
     def activ(self) -> float:
         """
         Returns activation level of the Glom.
-        """
-        return self._activ
 
-    @activ.setter
-    def activ(self, value: float) -> None:
-        """
+        As a property, any Rational type can be assigned to activ, as it will be converted to a float.
         Rounds value and sets it to activation level.
 
         Parameters
@@ -98,44 +96,53 @@ class Cell(ABC):
         value
             Value is a float between 0 and 1.
         """
+        return self._activation
+
+    @activ.setter
+    def activ(self, value: Rational) -> None:
         N_DIGITS = 6
         assert value <= 1 and value >= 0, "Not between 0 and 1"
-        self._activ = round(float(value), N_DIGITS)
+        self._activation = float(round(float(value), N_DIGITS))
 
     @property
-    def loc(self) -> tuple[Real, Real]:
+    def loc(self) -> tuple[float, float]:
         """
         Returns location of the glom.
-        """
-        return self._loc
 
-    @loc.setter
-    def loc(self, value: tuple[Real, Real]) -> None:
-        """
+        As a property, any pair of Rational numbers can be assigned to loc, as it will be converted to a tuple[float, float].
         Sets value to loc.
 
         Parameters
         ----------
         value
-            is a 2D list of numbers
+            is a tuple of Rational numbers
         """
-        # FIXME: ensure tuple
-        assert len(value) == 2 and isinstance(value[0], Real), "Not a 2D list of numbers!"
-        self._loc = tuple(value)
+        return self._loc
+
+    @loc.setter
+    def loc(self, value: tuple[Rational, Rational]) -> None:
+        assert len(value) == 2 and all(map(lambda x: isinstance(x, Rational), value)) and isinstance(value, tuple), "Not a pair of numbers!"
+        self._loc = tuple(map(float, value))
     
-    def __init__(self, id_: Optional[int], activ: float, loc: tuple[Real, Real]) -> None:
+    def __init__(self, id_: Optional[Integral], activ: Rational, loc: tuple[Rational, Rational]) -> None:
         """
         Initializes a cell with an id, activation level, and location.
 
         Parameters
         ----------
-        id_ - Optional[int]
+        id_ - Optional[Integral]
             the ID to assign the cell.
-        activ - float
+        activ - Rational
             The initial activation level of the cell.
-        loc - tuple[Real, Real]
+        loc - tuple[Rational, Rational]
             The initial location of the cell.
         """
+        # Internal field type hints
+        self._id: int
+        self._activ: float
+        self._loc: tuple[float, float]
+
+        # Assign properties, and override type hints
         self.id = id_
         self.activ = activ
         self.loc = loc
@@ -163,14 +170,14 @@ class Glom(Cell):
     """
 
     @property
-    def dim(self) -> tuple[int]:
+    def dim(self) -> tuple[int, int]:
         """
         Returns the dimensions of the glom.
         """
         return self._dim
 
     @dim.setter
-    def dim(self, value: tuple[int]) -> None:
+    def dim(self, value: tuple[Integral, Integral]) -> None:
         """
         Sets dim to value.
         
@@ -180,7 +187,7 @@ class Glom(Cell):
             A length 2 list of numbers.
         """
         assert len(value) == 2 and isinstance(value[0], int), "Not a 2D list of numbers!"
-        self._dim = tuple(value)
+        self._dim = tuple(map(int, value))
         
     @property
     def conn(self) -> int:
@@ -190,7 +197,7 @@ class Glom(Cell):
         return self._conn
     
     @conn.setter
-    def conn(self, value: int) -> None:
+    def conn(self, value: Integral) -> None:
         """
         Sets value to conn.
         
@@ -201,21 +208,26 @@ class Glom(Cell):
         """
         self._conn = int(value)
     
-    def setRecConn(self, value: dict) -> dict:
-        """
-        Sets value to recConn
-        """
-        self._recConn = dict(value)
-
-    def addRecConn(self, key: dict, weight):
-        """
-        Sets value to recConn
-        """
-        logger.debug("Glom cell[%s] added receptivity connection: [%s]", self._id, key)
-        self._recConn[key] = weight
+    @property
+    def rec_conn_map(self) -> dict['Receptor', float]:
+        return self._recConn
+    
+    @rec_conn_map.setter
+    def rec_conn_map(self, value: Mapping['Receptor', Rational]):
+        if config.DEBUG:
+            try:
+                from odorsampling.RnO import Receptor
+            except ImportError as e:
+                logger.error("Debug is True, but unable to import Receptor.")
+                raise ValueError("DEBUG is True, but unable to import Receptor.") from e
+        assert all(map(
+            lambda k,v: isinstance(k, Receptor) and isinstance(v, Rational), value.items())
+        ), "Not a mapping of Receptor->Rational"
+        self._recConn = dict(map(lambda k,v: (k, float(v)), value.items()))
     
 
-    def __init__(self, id_: Optional[int], activ=0.0, loc=(0,0), dim=(0,0), conn=0):
+    def __init__(self, id_: Optional[int], activ: Rational = 0.0, loc: tuple[Rational, Rational]=(0,0),
+                 dim: tuple[Integral, Integral] = (0,0), conn: Integral = 0):
         """
         Initializes the Glom object
         
@@ -233,12 +245,16 @@ class Glom(Cell):
             The initial conn of the cell.
         """
         super().__init__(id_, activ, loc)
-        self._dim: tuple[float, float] = dim
-        self._conn: int = conn
-        # TODO: Took me some time to track down this type. Would be a circular import,
-        # but possible using PEP 484#forward-references. Still, best to remove potentially
-        # circular import when possible
-        self._recConn: dict['Receptor', float] = {}
+
+        # Internal field type hints
+        self._dim: tuple[float, float]
+        self._conn: int
+        self._recConn: dict['Receptor', float]
+
+        # Assign properties
+        self.dim = dim
+        self.conn = conn
+        self.rec_conn_map = {}
 
     def __str__(self):
         """Returns a Glomural object description with activation energy"""
@@ -246,7 +262,6 @@ class Glom(Cell):
 
     # TODO: Double check if implemented correctly
     @staticmethod
-    # def generate_random_loc(xLowerBound: int, xUpperBound: int, yLowerBound: int, yUpperBound: int) -> tuple[int, int]:
     def generate_random_loc(xBounds: tuple[int, int], yBounds: tuple[int, int]) -> tuple[int, int]:
         """
         Returns a random glom location.
@@ -260,11 +275,13 @@ class Glom(Cell):
         """
         (xLowerBound, xUpperBound), (yLowerBound, yUpperBound) = xBounds, yBounds
         randomGlomX = utils.RNG.integers(xLowerBound, xUpperBound, endpoint=False)
+        
         if randomGlomX == xLowerBound or randomGlomX == xUpperBound:
             randomGlomY = utils.RNG.integers(yLowerBound, yUpperBound, endpoint=False)
         else:
             randomGlomY = utils.RNG.choice([yLowerBound, yUpperBound])
         return randomGlomX, randomGlomY
+
 
 class Mitral(Cell):
     """Represents a mitral cell that samples from glomeruli.
@@ -282,17 +299,18 @@ class Mitral(Cell):
     """
         
     @property
-    def glom(self) -> MutableMapping[Glom, float]:
+    def glom(self) -> dict[Glom, float]:
         """Returns dictionary of connected glom"""
         return self._glom
 
     @glom.setter
-    def glom(self, value: MutableMapping[Glom, float]) -> None:
+    def glom(self, value: Mapping[Glom, float]) -> None:
         """Sets glomeruli to value.
-        Precondition: Value is a dict containing glomeruli id's and weights."""
+        Precondition: Value is a mapping containing glomeruli id's and weights."""
         self._glom = dict(value)
 
-    def __init__(self, id_: Optional[int], activ=0.0, loc: tuple[float, float]=(0.0,0.0), glom=None):
+    def __init__(self, id_: Optional[int], activ: Rational = 0.0, loc: tuple[Rational, Rational]=(0.0,0.0),
+                 glom: Optional[Mapping[Glom, float]] = None):
         """Initializes a Mitral cell"""
         super().__init__(id_, activ, loc)
         self.glom = {} if glom is None else glom
@@ -301,5 +319,4 @@ class Mitral(Cell):
         """Returns a Mitral object description with activation energy and ID's 
         of connected glomeruli."""
         # *********************** From Python 3.6 onwards, the standard dict type maintains insertion order by default *****************************
-        gstring = self.glom.keys()
-        return f"Mitral ID: {self.id} Mitral Activ: {self.activ} Glom: {gstring}"
+        return f"Mitral ID: {self.id} Mitral Activ: {self.activ} Glom: {self.glom.keys()}"

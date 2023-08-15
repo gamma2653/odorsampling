@@ -527,7 +527,7 @@ def testGlomRecConnNew3():
             print("rec2 id: " + str(rec.id) + " weight: " + str(gl2[i]._recConn[rec]) + " rec activ: " + str(rec._activ))
         #print(gl[i]._activ)
         #print(gl2[i]._activ)
-        dphi = gl2[i]._activ - gl[i]._activ
+        dphi = gl2[i]._activation - gl[i]._activation
         dpsi += dphi**2
         i+=1
     print("dpsi is: " + str(math.sqrt(dpsi)))

@@ -28,7 +28,7 @@ import matplotlib.pylab
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.patches import Ellipse
 
-from odorsampling import cells, layers, config, utils
+from odorsampling import layers, config, utils
 
 # Used for asserts
 from numbers import Real
@@ -39,13 +39,10 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import Union, Optional, Any
     from numbers import Number
-    # from typing import Tuple
-    # from typing import List
-    # ^Removed in favor of Python 3.9 list generics (see PEP 585)
+    from odorsampling import cells
 
 logger = logging.getLogger(__name__)
 config.default_log_setup(logger)
-
 
 
 # SD_NUMBER = 1.5
@@ -53,11 +50,11 @@ config.default_log_setup(logger)
 
 # TODO: Move to params.py
 ###Global Variables when c!=1 (multiple conn between rec and glom)
-glom_penetrance = .68  # primary glom:rec connection weight if c != 1
+# glom_penetrance = .68  # primary glom:rec connection weight if c != 1
 s_weights = [0.12,0.08,0.03,0.03,0.02,0.02,0.01,0.01] # The remaining glom:rec connection weights if c != 1
-numRow = 6 # num of rows of glom
-numCol = 5 # num of cols of glom  (numRow*numCol = total number of Glom)
-constant_attachments = True
+# numRow = 6 # num of rows of glom
+# numCol = 5 # num of cols of glom  (numRow*numCol = total number of Glom)
+# constant_attachments = True
 
 
 class QSpace:
@@ -856,7 +853,7 @@ def activateGL_QSpace(epith: Epithelium, odorscene: Odorscene, gl: layers.GlomLa
     assert len(epith.recs[0].mean) == odorscene.odors[0].dim, "Dimensions aren't equal"
     assert len(epith.recs) == len(gl), "Receptors:GL is not 1:1"
     logger.info("Activating GL QSpace.")
-    gl.clearActiv()
+    gl.clear_activations()
     
     #Loop through each receptor and eventually calculate activation level
     for rec in epith.recs:
@@ -963,7 +960,7 @@ def sumOfSquares(epithelium: Epithelium, odorscene: Odorscene, dn: list[int], fi
 
     dPsi = 0
     recs2 = copy.deepcopy(epithelium.recs)
-    gl.clearActiv() #Sets gl activations and recConn back to 0.0
+    gl.clear_activations() #Sets gl activations and recConn back to 0.0
     
     counter = 0 #for storing info in rec2
     for rec in epithelium.recs:
@@ -1097,7 +1094,7 @@ def sumOfSquaresVectorized(epithelium: Epithelium, odorscene: Odorscene, dn, rep
 
     dPsi = 0
     recs2 = copy.deepcopy(epithelium.recs)
-    gl.clearActiv() #Sets gl activations and recConn back to 0.0
+    gl.clear_activations() #Sets gl activations and recConn back to 0.0
     
     
     #print("before loop levl 1:" + str(time.time()))
@@ -1414,7 +1411,7 @@ def recToText(epithelium: Epithelium, gl: list[cells.Glom], c: int, text: Text):
     if c!= 1:
         text._st2 += "glom_numOdo=" + str(num)
         for glom in gl:
-            text._st2 += "," + str(glom._activ)
+            text._st2 += "," + str(glom._activation)
         text._st2 += '\n'
         
 def convStrToNum(s: str):
@@ -2714,35 +2711,31 @@ def recDensityDpsiGraphRandomized(r, qspace: QSpace, odorscene: Odorscene, dim: 
     plt.show()
 
 def glomRecConnNew(recs: list[Receptor], gl: list[cells.Glom], c=9, conn: list[list[int]] = []) -> list[list[int]]:
-    """New function that deploys gl into olfactory bulb space (numRow X numCol)
+    """New function that deploys gl into olfactory bulb space (config.NUM_ROW X config.NUM_COL)
     and connects to primary and secondary recs with given weights.
     c = num of recs connected to each glom
     conn = Used for random assignment to ensure dPsi is calculated using odors with identical connections
     The following variables are global variables:
-    glom_penetrance = primary weight
+    config.GLOM_PENETRANCE = primary weight
+    # FIXME: Why is s_weights global?
     s_weights = a list of floats for the remaining weights. If empty, the rest of
     the weights are (1-p_weight)/(c-1)
-    Preconditons: # of recs in epi == numRow*numCol == len(gl)
+    Preconditons: # of recs in epi == config.NUM_ROW*config.NUM_COL == len(gl)
                   if constant=True then c must be 9"""
     assert len(gl) == len(recs), "# of recs != # of glom"
-    assert len(gl) == numRow*numCol, "Glomeruli don't fit in space. Change numRow and numCol global variables on top of RnO.py"
+    assert len(gl) == config.NUM_ROW*config.NUM_COL, "Glomeruli don't fit in space. Change config.NUM_ROW and config.NUM_COL global variables on top of RnO.py"
     assert len(s_weights) == 0 or c-1, "weights is an incorrect length"
 
-    i = 0
-    row = 0
-    
     #Deploy each glom into space and add primary receptor
-    while row < numRow:
-        col = 0
-        while col < numCol:
-            gl[i].loc = [row,col]
-            gl[i].setRecConn[recs[i]](glom_penetrance)
-            col += 1
+    i = 0
+    for row in range(config.NUM_ROW):
+        for col in range(config.NUM_COL):
+            gl[i].loc = (row,col)
+            gl[i].rec_conn_map[recs[i]] = config.GLOM_PENETRANCE
             i += 1
-        row += 1
     
-    if s_weights == []:
-        w = float(1-glom_penetrance)/float(c-1)
+    if not s_weights:
+        w = float(1-config.GLOM_PENETRANCE)/float(c-1)
         for i in range(c):
             s_weights.append(w)
 
@@ -2767,7 +2760,7 @@ def attachSecondaryRecs(gl: list[cells.Glom], recs: list[Receptor], c: int, conn
     If conn = [], randomly assign. If conn isn't empty, than use the given conn info to attach recs
     Returns conn"""
 
-    if constant_attachments: #Loop through glom and find all surrounding gloms to add their recs as secondary
+    if config.CONSTANT_ATTACHMENTS: #Loop through glom and find all surrounding gloms to add their recs as secondary
         for glom in gl: 
             locations = getLocations(glom.loc)
             i = 0
@@ -2775,7 +2768,7 @@ def attachSecondaryRecs(gl: list[cells.Glom], recs: list[Receptor], c: int, conn
                 if glom2.loc in locations:
                     for rec in glom2._recConn.keys():
                         # FIXME: Shouldn't access private vars outside of class
-                        if glom2._recConn[rec] == glom_penetrance:
+                        if glom2._recConn[rec] == config.GLOM_PENETRANCE:
                             glom._recConn[rec] = s_weights[i]
                     i += 1
 
@@ -2812,13 +2805,13 @@ def attachSecondaryRecs(gl: list[cells.Glom], recs: list[Receptor], c: int, conn
 
 def getLocations(location: tuple[float, float]):
     """Returns a list of 8 locations (2d list) that surround loc (modular
-    numRow and numCol to create tourus."""
+    config.NUM_ROW and config.NUM_COL to create tourus."""
     x = location[0]
     y = location[1]
     locations = [[x-1,y-1],[x,y-1],[x+1,y-1],[x-1,y],[x+1,y],[x-1,y+1],[x,y+1],[x+1,y+1]]
     for loc in locations:
-        loc[0] = loc[0]%numRow
-        loc[1] = loc[1]%numCol
+        loc[0] = loc[0]%config.NUM_ROW
+        loc[1] = loc[1]%config.NUM_COL
     return locations
     
     

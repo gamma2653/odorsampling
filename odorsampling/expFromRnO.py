@@ -19,8 +19,7 @@ import logging
 from odorsampling import config, layers
 from odorsampling.RnO import (
     QSpace, Ligand, Odorscene, Receptor, Epithelium, 
-    dPsiBarSaturation, graphFromExcel, recDensityDpsiGraph, activateGL_QSpace, dPsiOccActGraphFromExcel,
-    glom_penetrance
+    dPsiBarSaturation, graphFromExcel, recDensityDpsiGraph, activateGL_QSpace, dPsiOccActGraphFromExcel
 )
 
 from typing import TYPE_CHECKING
@@ -576,7 +575,7 @@ def purpFunction(purpose: str, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, 
         else:
             return ", eff_sd=" + str(eff_sd)
     elif purpose == "c":
-        return ", glom_pen=" + str(glom_penetrance)
+        return ", glom_pen=" + str(config.GLOM_PENETRANCE)
     elif purpose == "recs":
         return ", numRecs=" + str(numRecs)
     elif purpose == "redAff":
