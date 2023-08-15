@@ -692,6 +692,7 @@ class MitralLayer(list[cells.Mitral]):
                 glom_weight_idx += 1
             return glom_weight_idx
         cr_orig = cr
+        # FIXME: I broke it. Crashes on _recalcWeights call (IndexError)
         for mitral_idx in range(len(self)):  # start looping through each mitral cell
             if not fix: # Generate new cr per mitral `if not fix``.
                 cr = min(max(int(utils.RNG.normal(cr_orig, sd)), 1), len(gl))

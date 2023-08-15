@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import threading
+from contextlib import contextmanager
+
 import numpy as np
 
 from odorsampling import config
 
 from typing import TYPE_CHECKING, Protocol
 if TYPE_CHECKING:
-    from typing import Optional, Any
+    from typing import Optional, Any, Generator
 
 
 RNG = np.random.default_rng(config.RANDOM_SEED)
@@ -48,3 +51,61 @@ def choice_gauss_activation(mu, sigma, **_):
     return RNG.choice([1,-1])*gaussian_activation(mu, sigma)
 def expovar_activation(lambd, **_):
     return RNG.exponential(1/lambd)
+
+
+
+class ReaderWriterSuite:
+    """
+    Reader Writer lock suite. This implementation prefers writers.
+    """
+    # Based on wikipedia:
+    #   https://en.wikipedia.org/wiki/Readers%E2%80%93writer_lock
+
+    g = threading.Lock()
+    writer_active_con = threading.Condition(g)
+    writer_active = False
+    num_writers_waiting = 0
+    num_readers_active = 0
+
+    @contextmanager
+    def reader(self) -> Generator[None, Any, None]:
+        self.acquire_reader()
+        yield
+        self.release_reader()
+
+    @contextmanager
+    def writer(self) -> Generator[None, Any, None]:
+        self.acquire_writer()
+        yield
+        self.release_writer()
+
+    def acquire_reader(self) -> None:
+        """
+        Called to acquire a reader slot.
+        """
+        with self.g:
+            while self.num_writers_waiting > 0 or self.writer_active:
+                self.writer_active_con.wait()
+            self.num_readers_active += 1
+
+    def release_reader(self) -> None:
+        """
+        Called to release a reader slot.
+        """
+        with self.g:
+            self.num_readers_active -= 1
+            if self.num_readers_active == 0:
+                self.writer_active_con.notify_all()
+
+    def acquire_writer(self) -> None:
+        with self.g:
+            self.num_writers_waiting += 1
+            while self.num_readers_active > 0 or self.writer_active:
+                self.writer_active_con.wait()
+            self.num_writers_waiting -= 1
+            self.writer_active = True
+
+    def release_writer(self) -> None:
+        with self.g:
+            self.writer_active = False
+            self.writer_active_con.notify_all()
