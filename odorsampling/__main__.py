@@ -7,7 +7,7 @@ from pprint import pprint
 
 import matplotlib
 
-from . import config, expFromRnO, testLayers, testRnO
+from . import config, expFromRnO, testLayers, testRnO, utils
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -19,6 +19,14 @@ def prep_parser() -> ArgumentParser:
     """
     parser = ArgumentParser(prog=config.NAME,
                             description=config.DESCRIPTION)
+    parser.add_argument('-pe', '--perform-experiment', action='store', type=int, nargs='*', metavar='EXP#',
+                        help="Used to set which experiments to run according to the paper. Examples:"
+                             "`python -m odorsampling -pe 1 2 3 4`"
+                             "`python -m odorsampling -pe=1,2,3,4`"
+                             )
+    parser.add_argument('-t', '--run-tests', action='store', type=str, nargs='*', metavar='TEST_NAME',
+                        help="Used to set which tests to run. Eg) 'layers' and 'RnO' are valid.")
+    
     parser.add_argument('-d', '--debug', action='store_true', default=config.DEBUG,
                         help="Set to enable more extensive logging and some other debugging flags.")
     parser.add_argument('-oc', '--odor-concentration', action='store', type=float, default=config.ODOR_CONCENTRATION,
@@ -36,21 +44,24 @@ def prep_parser() -> ArgumentParser:
     parser.add_argument('-ar', '--angle-reps', action='store', type=float, default=config.ANGLES_REP,
                         help="Used to set the angle reps, scientific notation is allowed.")
     # TODO: Better document
-    parser.add_argument('-pe', '--perform-experiment', action='store', type=int, nargs='*', metavar='EXP#',
-                        help="Used to set which experiments to run according to the paper.")
-    parser.add_argument('-t', '--run-tests', action='store', type=str, nargs='*', metavar='TEST_NAME',
-                        help="Used to set which tests to run. Eg) 'layers' and 'RnO' are valid.")
     parser.add_argument('-mplb', '--mpl-backend', action='store', type=str, default='tkAgg',
-                        help="Used to set the backend used by matplotlib for the graphs.")
+                        help=("Used to set the backend used by matplotlib for the graphs. Read more about these at "
+                              "https://matplotlib.org/stable/users/explain/backends.html#the-builtin-backends"))
+    parser.add_argument('-rs', '--random-seed', action='store', type=int, nargs='+', default=None,
+                        help="Used to set the RNG's seed value. None/default operating system entropy used if not set."
+                        "Eg) `python -m odorsampling -rs 1865`")
 
     return parser
 
-def _special_init(namespace, name, init_factory):
+def _special_init(namespace, name, init_factory, *args, **kwargs):
+    """
+    Falsey/DNE catch-all initialization
+    """
     try:
         if not getattr(namespace, name):
             raise AttributeError
     except AttributeError:
-        setattr(namespace, name, init_factory())
+        setattr(namespace, name, init_factory(*args, **kwargs))
         
 #     if not getattr(namespace, name, None):
 #         setattr(namespace, name, init_factory())
@@ -76,7 +87,7 @@ def main() -> None:
     known_args, _ = parser.parse_known_args()
     
     # Patch defaults for complex args
-    _special_init(known_args, 'perform_experiment', list)
+    _special_init(known_args, 'perform_experiment', lambda: list(range(1, len(expFromRnO.DEFAULT_EXPERIMENTS)+1)))
     _special_init(known_args, 'run_tests', list)
     print("Configuration:")
     pprint(known_args.__dict__)
@@ -89,6 +100,7 @@ def main() -> None:
     config.HILL_COEFF = known_args.hill_coefficient
     config.ODOR_REPETITIONS = known_args.odor_repetitions
     config.ANGLES_REP = known_args.angle_reps
+    utils.set_seed(known_args.random_seed)
     try:
         matplotlib.use(known_args.mpl_backend)
     except ModuleNotFoundError as e:

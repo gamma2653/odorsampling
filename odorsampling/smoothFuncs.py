@@ -7,7 +7,7 @@ import multiprocessing
 
 from odorsampling.RnO import (
     QSpace, Epithelium, Odorscene, Ligand, dPsiBarSaturation, colorMapSumOfSquares,
-    graphFromExcel, dPsiGraphFromExcel, dPsiOccActGraphFromExcel, glom_penetrance
+    graphFromExcel, dPsiGraphFromExcel, dPsiOccActGraphFromExcel
 )
 from odorsampling import config
 
@@ -116,10 +116,10 @@ def testdPsiBarSatColorMap(fixed, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=3
         qspace = QSpace(space)
 
 
-        epith = Epithelium.load("1. SavedEpi_" + str(qspace.getSize()[0]) + purp + ".csv")
+        epith = Epithelium.load("1. SavedEpi_" + str(qspace.size[0]) + purp + ".csv")
 
-        labelNames.append(str(qspace.getSize()[0]) + " qspace")
-        excelNames.append("LigandSat with " + str(qspace.getSize()[0]) + " qspace" + purp)
+        labelNames.append(str(qspace.size[0]) + " qspace")
+        excelNames.append("LigandSat with " + str(qspace.size[0]) + " qspace" + purp)
     
         # if i == (len(qspaces) - 1):
         #     end = True
@@ -128,10 +128,10 @@ def testdPsiBarSatColorMap(fixed, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=3
         y = 0
         ID = 0
         odorscenes = []
-        #while x < qspace.getSize()[0][1]:
+        #while x < qspace.size[0][1]:
         while x < qunits*10:
             y = 0
-            #while y < qspace.getSize()[1][1]:
+            #while y < qspace.size[1][1]:
             while y < qunits*10:
                 odorscenes.append(Odorscene(x,[Ligand(ID, [x/float(qunits),y/float(qunits)], .004)]))
                 y += 1
@@ -208,7 +208,7 @@ def allGraphsFromExcel(aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, dim
     i = 0
     pdfName = "LigandSat with varying qspaces" + purp
     titleName = "Saturation of dPsiBar" + purp
-    qspaceList=[]
+    qspaceList: list[QSpace]=[]
     dPsiName=[]
     end = False
     while i < len(qspaces):
@@ -219,7 +219,7 @@ def allGraphsFromExcel(aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, dim
             space.append((0,qspaces[i]))
             j+=1
         qspaceList.append(QSpace(space))
-        dPsiName.append("dPsi, qspace=" + str(qspaceList[i].getSize()[0]) + purp + ".csv")
+        dPsiName.append("dPsi, qspace=" + str(qspaceList[i].size[0]) + purp + ".csv")
 
         if i == (len(qspaces)-1):
             end = True
@@ -235,16 +235,16 @@ def allGraphsFromExcel(aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, dim
         else:
             toggle = "Occ"
     
-        pdfName = "Rec" + toggle + " vs num of Ligands" + purp
-        titleName = "Rec " + toggle + " vs num of Ligands" + purp
+        pdfName = f"Rec{toggle} vs num of Ligands{purp}"
+        titleName = f"Rec {toggle} vs num of Ligands{purp}"
         
         k = 0
         labelNames=[]
         excelName=[]
         end = False
         while k < len(qspaces):
-            labelNames.append(str(qspaceList[k].getSize()[0]) + " qspace")
-            excelName.append("LigandSat with " + str(qspaceList[k].getSize()[0]) + " qspace" + purp)
+            labelNames.append(str(qspaceList[k].size[0]) + " qspace")
+            excelName.append("LigandSat with " + str(qspaceList[k].size[0]) + " qspace" + purp)
             
             if k == (len(qspaces)-1):
                 end = True
@@ -275,7 +275,7 @@ def allGraphsFromExcel(aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, dim
         while k < len(qspaces):
             if k == (len(qspaces)-1):
                 end = True
-            name = "Glom_act with c=" + str(c) + " with " + str(qspaceList[k].getSize()[0]) + " qspace"
+            name = "Glom_act with c=" + str(c) + " with " + str(qspaceList[k].size[0]) + " qspace"
             graphFromExcel(name + ".csv", xaxis, numRecs, labelNames[k], titleName, pdfName, "Act", rep, end)
             k += 1
         
@@ -298,7 +298,7 @@ def dimAllGraphsFromExcel(numRecs=30, dims=[2,3,4,5], rep=200.0):
             k+=1
         qspace = QSpace(space)
 
-        dPsiName.append("dPsi, qspace=" + str(qspace.getSize()[0]) + ", dim=" + str(dim) + ".csv")
+        dPsiName.append("dPsi, qspace=" + str(qspace.size[0]) + ", dim=" + str(dim) + ".csv")
 
         if i == (len(dims)-1):
             end = True
@@ -393,7 +393,7 @@ def purpFunction(purpose, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, 
         else:
             return ", eff_sd=" + str(eff_sd)
     elif purpose == "c":
-        return ", glom_pen=" + str(glom_penetrance)
+        return ", glom_pen=" + str(config.GLOM_PENETRANCE)
     elif purpose == "recs":
         return ", numRecs=" + str(numRecs)
     elif purpose == "redAff":

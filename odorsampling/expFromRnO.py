@@ -194,7 +194,7 @@ def testdPsiBarSaturationDim(dims: list[int], fixed=False, aff_sd=None, eff_sd=N
             
             if k == (len(dims)-1):
                 end = True
-                
+            print(excels[k])    
             graphFromExcel(excels[k] + ".csv", xaxis, numRecs, labels[k], titleName, pdfName, toggle, rep, end)
             k+=1
         
@@ -269,10 +269,8 @@ def changeOne(name: str, dim: int, col: str, scale):
     for rec in epi2.recs:
         if col == "aff":
             rec.sdA = sdSave[i]
-            rec.covA = None
         else:
             rec.sdE = sdSave[i]
-            rec.covE = None
         i += 1
     
     name3 = name[:name.index("(")] + "(0, 30)"
@@ -281,10 +279,8 @@ def changeOne(name: str, dim: int, col: str, scale):
     for rec in epi3.recs:
         if col == "aff":
             rec.sdA = sdSave[i]
-            rec.covA = None
         else:
             rec.sdE = sdSave[i]
-            rec.covE = None
         i += 1
 
     epi.save(name +  ", " + col + "_sd=" + str(scale))
@@ -328,6 +324,7 @@ def testRecDensityDpsiGraph1():
         labelName = str(numOdo) + " odors"
         excelName = "Rec dist vs Dpsi, " + str(numOdo) + " odorants 2"
         #numReceptors, dn, #ofLigands in Odorscene, dim, name, label name, fixed efficacy
+        # FIXME: Crashes because _affs and _effs are empty.
         recDensityDpsiGraph(.01, qspace, odorscene, dim, PDFname, labelName, excelName, .5, False)
         numOdo -=50
 
@@ -614,7 +611,7 @@ DEFAULT_EXPERIMENTS = [
                    'c':1,
                    'dim':2,
                    'qspaces':[4,10,30],
-                   'purpose':'redAff'
+                   'purpose':'standard'
                }),
     Experiment(2, testdPsiBarSaturationDim,
                kwarg_map={
@@ -631,7 +628,7 @@ DEFAULT_EXPERIMENTS = [
                    'eff_sd': [0.05,1.0],
                    'numRecs': 30,
                    'c': 1,
-                   'purpose': "redAff"
+                   'purpose': "standard"
                }),
     NonExperiment(4, changeMean,
                 arg_map=["1. SavedEpi_(0, 4)", 2, [0,15]]),
