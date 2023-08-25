@@ -44,7 +44,7 @@ def prep_parser() -> ArgumentParser:
     parser.add_argument('-ar', '--angle-reps', action='store', type=float, default=config.ANGLES_REP,
                         help="Used to set the angle reps, scientific notation is allowed.")
     # TODO: Better document
-    parser.add_argument('-mplb', '--mpl-backend', action='store', type=str, default='tkAgg',
+    parser.add_argument('-mplb', '--mpl-backend', action='store', type=str, default='TkAgg',
                         help=("Used to set the backend used by matplotlib for the graphs. Read more about these at "
                               "https://matplotlib.org/stable/users/explain/backends.html#the-builtin-backends"))
     parser.add_argument('-rs', '--random-seed', action='store', type=int, nargs='+', default=None,

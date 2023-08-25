@@ -250,7 +250,7 @@ class GlomLayer(list[cells.Glom]):
         return False
 
         
-
+# NOTE: Make sure that this was replaced properly
     # def _prevDuplicates(self, num: int, conn: list[int], weights=None, s=1):
     #     """If a mitral cell already connects to glom at index num, then pick
     #     a new number. To prevent infinite loop, if a certain number of loops

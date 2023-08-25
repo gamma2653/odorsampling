@@ -209,6 +209,7 @@ def testdPsiBarSaturationDim(dims: list[int], fixed=False, aff_sd=None, eff_sd=N
 #3. changeMean = given a saved epithelium, creates an identical epithelium with diff qspace/mean
 
 # TODO: either rename or change qspaces
+# TODO: Maybe here is where pandas could be useful?
 def makeSimilar(numRecs: int, aff_sd: list[float], eff_sd: list[float], purpose="eff", qspaces=[4,10,30], dim=2):
     """Creates and saves three epithelium determined by qspaces.
     It keeps aff and eff SD identical and only changes means."""

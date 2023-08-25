@@ -48,6 +48,9 @@ config.default_log_setup(logger)
 # SD_NUMBER = 1.5
 # SD_NUMBER = params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION
 
+# TODO: Replace some of the tuples w/ np arrays (acts like vectors)
+#  also sum of squares could be accelerated using (arr**2).sum()
+
 # TODO: Move to params.py
 ###Global Variables when c!=1 (multiple conn between rec and glom)
 # glom_penetrance = .68  # primary glom:rec connection weight if c != 1
