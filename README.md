@@ -32,3 +32,9 @@ This (`make`) requires Makefile to be installed.
 - On Linux/Debian systems, this can be installed with the `apt` command, `sudo apt install make`. Many linux distributions come with it preinstalled.
 - For Mac (untested), [use `xcode-select --install`](https://stackoverflow.com/questions/10265742/how-to-install-make-and-gcc-on-a-mac#answer-10265766). Also consider [this answer on the page](https://stackoverflow.com/questions/10265742/how-to-install-make-and-gcc-on-a-mac#answer-10265767) if you are having issues with `xcode-select`, something about needing to install it through the XCode GUI. Or, if you use Homebrew, `brew install make`, however some PATH setup may be required if using Homebrew.
 
+## Git branches:
+Checkout branches using `git checkout [branch_name]`
+- `py3`
+    - Python3 upgrade w/ data structures
+
+
