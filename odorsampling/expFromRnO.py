@@ -1,19 +1,41 @@
-#Running experiments on functions in RnO
-#Mitchell Gronowitz
-#2015-2017
+# Running experiments on functions in RnO
+# Mitchell Gronowitz
+# 2015-2017
 
-from RnO import *
+# Edited by Christopher De Jesus
+# Summer 2023
+
+from __future__ import annotations
+
+import time
+import math
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
+from scipy.stats import multivariate_normal as mvn
 import random
-import layers
-import copy
+from dataclasses import dataclass, field
+import logging
 
-#####Below are two simulations for dPsiBarSaturation Graphs.
-#The first tests different qspaces
-#The second tests different dimensions
-#makeSimilar is a helper function
+from odorsampling import config, layers
+from odorsampling.RnO import (
+    QSpace, Ligand, Odorscene, Receptor, Epithelium, 
+    dPsiBarSaturation, graphFromExcel, recDensityDpsiGraph, activateGL_QSpace, dPsiOccActGraphFromExcel
+)
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from typing import Callable, Mapping, Sequence, Any
+
+logger = logging.Logger(__name__)
+config.default_log_setup(logger)
+
+# ####Below are two simulations for dPsiBarSaturation Graphs.
+# The first tests different qspaces
+# The second tests different dimensions
+# makeSimilar is a helper function
 
 
-def testdPsiBarSaturation_Qspaces(fixed, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, dim=2, qspaces=[4,10,30], purpose="standard"):
+def testdPsiBarSaturation_Qspaces(fixed: bool, aff_sd=None, eff_sd=None, numRecs=30, c=1, dim=2, qspaces=[4,10,30], purpose="standard"):
     """Runs multiple graphs of given qspaces at one time
     Optional - run makeSimilar, to create epitheliums with equal eff and aff SD's (only rec means differ)
     Otherwise - make sure there are three saved epithelium files with correct names
@@ -25,6 +47,12 @@ def testdPsiBarSaturation_Qspaces(fixed, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], nu
     purpose = reason for running simulation = either "eff", "aff", "c", "recs", "redAff", "dim" or 'standard'"""
     
     #Run this function if don't already have saved epithelium files to use
+
+    # TODO: If these can be tuples, they can reside in the default parameter space.
+    if aff_sd is None:
+        aff_sd = [0.5,1.5]
+    if eff_sd is None:
+        eff_sd = [0.05,1.0]
     makeSimilar(numRecs, aff_sd, eff_sd, purpose, qspaces, dim)
     
     startTime = time.time()
@@ -46,10 +74,10 @@ def testdPsiBarSaturation_Qspaces(fixed, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], nu
             space.append((0,qspaces[i]))
             j+=1
         qspace = QSpace(space)
-        epith = loadEpithelium("1. SavedEpi_" + str(qspace.getSize()[0]) + purp + ".csv")
+        epith = Epithelium.load("1. SavedEpi_" + str(qspace.size[0]) + purp + ".csv")
 
-        labelNames.append(str(qspace.getSize()[0]) + " qspace")
-        excelNames.append("LigandSat with " + str(qspace.getSize()[0]) + " qspace" + purp)
+        labelNames.append(str(qspace.size[0]) + " qspace")
+        excelNames.append("LigandSat with " + str(qspace.size[0]) + " qspace" + purp)
         
         if i == (len(qspaces) - 1):
             end = True
@@ -58,13 +86,13 @@ def testdPsiBarSaturation_Qspaces(fixed, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], nu
         dPsiBarSaturation(epith, .01, qspace, pdfName, labelNames[i], excelNames[i], fixed ,c, plotTitle, end, purp, True)
         
         i += 1
-        print "Graph #" + str(i) + ": " + str((time.time() - startTime) / 60.0 ) + " minutes"
+        logger.info("Graph #" + str(i) + ": " + str((time.time() - startTime) / 60.0 ) + " minutes")
 
     #Creating Occ and Rec Act graphs
     ###################amt of rep in dPsiSaturation function and xAxis. MUST change if change in function
-    rep = ODOR_REPETITIONS        
+    rep = config.ODOR_REPETITIONS        
     xaxis = [1,2,3,4,5,7,10,15,20,25,30,35,40,45,50,60,70,80,90,100,120,140,160,200,250,300,350,400]
-    numRecs = len(epith.getRecs())
+    numRecs = len(epith.recs)
     
     for i in range(2):
         if i == 0:
@@ -92,14 +120,14 @@ def testdPsiBarSaturation_Qspaces(fixed, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], nu
         while k < len(qspaces):
             if k == (len(qspaces)-1):
                 end = True
-            name = "Glom_act with c=" + str(c) + " with " + str(qspace.getSize()[0]) + " qspace"
+            name = "Glom_act with c=" + str(c) + " with " + str(qspace.size[0]) + " qspace"
             graphFromExcel(name + ".csv", xaxis, numRecs, labelNames[k], titleName, pdfName, "Act", rep, end)
             k += 1
     
-    print "Overall time: " + str((time.time() - startTime) / 60.0 ) + " minutes"
+    logger.info("Overall time: " + str((time.time() - startTime) / 60.0 ) + " minutes")
 
 
-def testdPsiBarSaturationDim(dims, fixed=False, aff_sd=[.5,1.5], eff_sd=[.05,1.0], numRecs=30, c=1):
+def testdPsiBarSaturationDim(dims: list[int], fixed=False, aff_sd=None, eff_sd=None, numRecs=30, c=1):
     """Runs simulations of differing dimensions determined by dims all with (0,4) qspace.
     Since each simulation has an added dimension, it wasn't possible
     to make the epithelium identical. Therefore, all means, aff and eff
@@ -112,6 +140,11 @@ def testdPsiBarSaturationDim(dims, fixed=False, aff_sd=[.5,1.5], eff_sd=[.05,1.0
     
     Can uncomment loadEpithelium lines if you have saved epi excel docs"""
     
+    if aff_sd is None:
+        aff_sd = [.5,1.5]
+    if eff_sd is None:
+        eff_sd = [.05,1.0]
+
     startTime = time.time()
     
     pdfName = "LigandSat with varying dimensions"
@@ -128,8 +161,8 @@ def testdPsiBarSaturationDim(dims, fixed=False, aff_sd=[.5,1.5], eff_sd=[.05,1.0
             i+=1
         qspace = QSpace(space)
         #epith = loadEpithelium("SavedEpi_(0,4)_" + str(dim) + "Dim.csv")
-        epith = createEpithelium(numRecs, dim, qspace, aff_sd, eff_sd)
-        saveEpithelium(epith, "1. SavedEpi_(0,4), dim=" + str(dim))
+        epith = Epithelium.create(numRecs, dim, qspace, aff_sd, eff_sd)
+        epith.save("1. SavedEpi_(0,4), dim=" + str(dim))
         
         labels.append(str(dim) + "D")
         excels.append("LigandSat with (0, 4) qspace, dim=" + str(dim))
@@ -143,7 +176,7 @@ def testdPsiBarSaturationDim(dims, fixed=False, aff_sd=[.5,1.5], eff_sd=[.05,1.0
     
     #Creating Occ and Rec Act graphs
     ###################amt of rep in dPsiSaturation function and xAxis. MUST change if change in function
-    rep = ODOR_REPETITIONS      
+    rep = config.ODOR_REPETITIONS      
     xaxis = [1,2,3,4,5,7,10,15,20,25,30,35,40,45,50,60,70,80,90,100,120,140,160,200,250,300,350,400]
     
     for i in range(2):
@@ -161,12 +194,13 @@ def testdPsiBarSaturationDim(dims, fixed=False, aff_sd=[.5,1.5], eff_sd=[.05,1.0
             
             if k == (len(dims)-1):
                 end = True
-                
+            print(excels[k])    
             graphFromExcel(excels[k] + ".csv", xaxis, numRecs, labels[k], titleName, pdfName, toggle, rep, end)
             k+=1
         
-    print "Overall time: " + str((time.time() - startTime) / 60.0 ) + " minutes"
+    logger.info("Overall time: " + str((time.time() - startTime) / 60.0 ) + " minutes")
 
+# FIXME: Why are the below not just classmethods of Epithelium?
 #####Below are functions to create similar epithelium and save them. These
 #epithelium can then be used to run a function above.
 #1. makeSimilar = to create three new epithelium with standard qspaces (fixed aff and eff SD)
@@ -174,20 +208,19 @@ def testdPsiBarSaturationDim(dims, fixed=False, aff_sd=[.5,1.5], eff_sd=[.05,1.0
 #with standard qspaces and identical means and aff/eff and only changes aff/eff
 #3. changeMean = given a saved epithelium, creates an identical epithelium with diff qspace/mean
 
-def makeSimilar(numRecs, aff_sd, eff_sd, purpose="eff", qspaces=[4,10,30], dim=2):
+# TODO: either rename or change qspaces
+# TODO: Maybe here is where pandas could be useful?
+def makeSimilar(numRecs: int, aff_sd: list[float], eff_sd: list[float], purpose="eff", qspaces=[4,10,30], dim=2):
     """Creates and saves three epithelium determined by qspaces.
     It keeps aff and eff SD identical and only changes means."""
-    
+
+    # FIXME: Function seems to have a bloated interface. Consider refactoring. 
     purp = purpFunction(purpose, aff_sd, eff_sd, numRecs, 1, dim)
     
-    space = []
-    i = 0
-    while i < dim:
-        space.append((0,qspaces[0]))
-        i+=1
-    qspace = QSpace(space)
-    epith = createEpithelium(numRecs, dim, qspace, aff_sd, eff_sd) #amt, dim **amt = len(gl) and dim = dim of odorscene
-    saveEpithelium(epith, "1. SavedEpi_" + str(qspace.getSize()[0]) + purp)
+    qspace = QSpace([(0, qspaces[0]) for _ in range(dim)])
+
+    epith = Epithelium.create(numRecs, dim, qspace, aff_sd, eff_sd) #amt, dim **amt = len(gl) and dim = dim of odorscene
+    epith.save("1. SavedEpi_" + str(qspace.size[0]) + purp)
     
     i = 1
     while i < len(qspaces):
@@ -198,90 +231,81 @@ def makeSimilar(numRecs, aff_sd, eff_sd, purpose="eff", qspaces=[4,10,30], dim=2
             space.append((0,qspaces[i]))
             k+=1
         qspace = QSpace(space)
-        epith2 = createEpithelium(numRecs, dim, qspace, aff_sd, eff_sd)
+        epith2 = Epithelium.create(numRecs, dim, qspace, aff_sd, eff_sd)
     
         k = 0
-        for rec in epith2.getRecs():
-            rec.setSdA(epith.getRecs()[k].getSdA())
-            rec.setSdE(epith.getRecs()[k].getSdE())
-            rec.setCovA()
-            rec.setCovE()        
+        for rec in epith2.recs:
+            rec.sdA = epith.recs[k].sdA
+            rec.sdE = epith.recs[k].sdE     
             k += 1
     
-        saveEpithelium(epith2, "1. SavedEpi_" + str(qspace.getSize()[0]) + purp)
+        epith2.save("1. SavedEpi_" + str(qspace.size[0]) + purp)
         
         i += 1
 
     
-def changeOne(name, dim, col, scale):
+def changeOne(name: str, dim: int, col: str, scale):
     """Given a file with (0,4) qspace, change some columns while keeping everything else constant. Return
     3 new saved epithelium files associated with 3 qspaces.
     Precondition: col in ["aff", "eff"] and scale is a 2D list with a range
     AND the "name" file AND other qspace files are in the correct directory"""
-    assert col in ["aff", "eff"]
-    epi = loadEpithelium(name + ".csv")
+    assert col in ['aff', 'eff']
+    epi = Epithelium.load(f"{name}.csv")
     sdSave = []
 
-    for rec in epi.getRecs():
+    def calc_rec_sd(rec):
+        
+        return [random.uniform(*scale) for _ in range(dim)]
+
+    for rec in epi.recs:
         i = 0
-        sd = []
-        while i < dim:
-            sd.append(random.uniform(scale[0],scale[1]))
-            i += 1
-        if col == "aff":
-            rec.setSdA(sd)
-            rec.setCovA()
-        else: #col == "eff":
-            rec.setSdE(sd)
-            rec.setCovE()
+        sd = [random.uniform(*scale) for _ in range(dim)]
+        rec.sdA = sd if col == 'aff' else rec.sdA
+        rec.sdE = sd if col == 'eff' else rec.sdE
         sdSave.append(sd)
     
     name2 = name[:name.index("(")] + "(0, 10)"
-    epi2 = loadEpithelium(name2 + ".csv")
+    epi2 = Epithelium.load(name2 + ".csv")
     i=0
-    for rec in epi2.getRecs():
+    for rec in epi2.recs:
         if col == "aff":
-            rec.setSdA(sdSave[i])
-            rec.setCovA()
+            rec.sdA = sdSave[i]
         else:
-            rec.setSdE(sdSave[i])
-            rec.setCovE()
+            rec.sdE = sdSave[i]
         i += 1
     
     name3 = name[:name.index("(")] + "(0, 30)"
-    epi3 = loadEpithelium(name3 + ".csv")
+    epi3 = Epithelium.load(name3 + ".csv")
     i=0
-    for rec in epi3.getRecs():
+    for rec in epi3.recs:
         if col == "aff":
-            rec.setSdA(sdSave[i])
-            rec.setCovA()
+            rec.sdA = sdSave[i]
         else:
-            rec.setSdE(sdSave[i])
-            rec.setCovE()
+            rec.sdE = sdSave[i]
         i += 1
 
-    saveEpithelium(epi, name +  ", " + col + "_sd=" + str(scale))
-    saveEpithelium(epi2, name2 +  ", " + col + "_sd=" + str(scale))
-    saveEpithelium(epi3, name3 +  ", " + col + "_sd=" + str(scale))
+    epi.save(name +  ", " + col + "_sd=" + str(scale))
+    epi2.save(name2 +  ", " + col + "_sd=" + str(scale))
+    epi3.save(name3 +  ", " + col + "_sd=" + str(scale))
 
-def changeMean(name, dim, scale):
+def changeMean(name: str, dim: int, scale):
     """Given a file with name, change mean columns to new qspace scale
     while keeping everything else constant. Return new saved epithelium file.
     Precondition: scale = two extremes of the new qspace
     and the "name" file is in the correct directory"""
     
-    epi = loadEpithelium(name + ".csv")
+    epi = Epithelium.load(name + ".csv")
 
-    for rec in epi.getRecs():
+    for rec in epi.recs:
         i = 0
         mean = []
         while i < dim:
             mean.append(random.uniform(scale[0],scale[1]))
             i += 1
-            rec.setMean(mean)
+            rec.mean = mean
     
     newName = "1. SavedEpi_(" + str(scale[0]) + ", " + str(scale[1]) + ")"
-    saveEpithelium(epi, newName)
+    epi.save(newName)
     
 #########Below are three simulations for RecDensity vs DpsiBar graphs
 #The first test varyling ligands from 200 to 50 and returns 4 graphs
@@ -294,13 +318,14 @@ def testRecDensityDpsiGraph1():
     dim = 2
     qspace = QSpace([(0,2), (0, 2)])
     numOdo = 200
-    odorscene = createOdorscene(dim, [1e-5], [numOdo], qspace)
+    odorscene = Odorscene.create(dim, [1e-5], [numOdo], qspace)
     PDFname="receptor distance vs dPsi, varying ligands 2"
 
     while numOdo >= 50:
         labelName = str(numOdo) + " odors"
         excelName = "Rec dist vs Dpsi, " + str(numOdo) + " odorants 2"
         #numReceptors, dn, #ofLigands in Odorscene, dim, name, label name, fixed efficacy
+        # FIXME: Crashes because _affs and _effs are empty.
         recDensityDpsiGraph(.01, qspace, odorscene, dim, PDFname, labelName, excelName, .5, False)
         numOdo -=50
 
@@ -311,7 +336,7 @@ def testRecDensityDpsiGraph2():
     numOdo = 100
     sd = 1
     dim = 2
-    odorscene = createOdorscene(dim, [1e-5], [numOdo], qspace)
+    odorscene = Odorscene.create(dim, [1e-5], [numOdo], qspace)
     
     PDFname="receptor distance vs dPsi, varying Standard Dev"
     
@@ -337,23 +362,23 @@ def effAnalysis(effSD, affSD=[2,2], qspace=(0,4), fixed=False):
     #Consants
     dim = 2
     qspace = QSpace([qspace, qspace])
-    odorscenes = []  #Create 1600 odorscenes (with 1 ligand each) that span qspace from 0,0 to 3.9,3.9
-    gl = layers.createGL(1)
+    odorscenes: list[Odorscene] = []  #Create 1600 odorscenes (with 1 ligand each) that span qspace from 0,0 to 3.9,3.9
+    gl = layers.GlomLayer.create(1)
     i = 0.0
     ID = 0
-    while i < qspace.getSize()[0][1]:
+    while i < qspace.size[0][1]:
         j = 0.0
-        while j < qspace.getSize()[1][1]:
+        while j < qspace.size[1][1]:
             odo = Ligand(ID, [i,j], 1e-5) #ID, Loc, Conc
             odorscenes.append(Odorscene(0,[odo]))
             ID += 1
             j += .1
         i += .1
     
-    epi = createEpithelium(1, dim, qspace, affSD, effSD, True) #Creates an epithelium with 1 rec (and not constant mean)
-    print "Aff sd distr: " + str(epi.getRecs()[0]._sdA)
-    print "eff sd distr: " + str(epi.getRecs()[0]._sdE)
-    print "mean is " +str(epi.getRecs()[0]._mean)
+    epi = Epithelium.create(1, dim, qspace, affSD, effSD, True) #Creates an epithelium with 1 rec (and not constant mean)
+    logger.debug("Aff sd distr: " + str(epi.recs[0]._sdA))
+    logger.debug("eff sd distr: " + str(epi.recs[0]._sdE))
+    logger.debug("mean is " +str(epi.recs[0]._mean))
     
     bins = [0,.1,.2,.3,.4,.5,.6,.7,.8,.9]
     xAxis2 = [.05,.15,.25,.35,.45,.55,.65,.75,.85,.95]
@@ -363,12 +388,12 @@ def effAnalysis(effSD, affSD=[2,2], qspace=(0,4), fixed=False):
     #Loop through ligands, activate
     #Within loop:
     for odors in odorscenes:
-        ActivateGL_QSpace(epi, odors, gl, fixed) #if fixed=True, eff is fixed at 1
-        activ= epi.getRecs()[0].getActiv() 
+        activateGL_QSpace(epi, odors, gl, fixed) #if fixed=True, eff is fixed at 1
+        activ= epi.recs[0].activ 
         index = int(math.floor(activ*10.0))
         
         yAxis_act[index] += 1 #Add 1 to the correct location based on activation
-        yAxis_eff[index] += odors.getOdors()[0]._eff
+        yAxis_eff[index] += odors.odors[0]._eff
 
     i = 0
     for elem in yAxis_eff: #divide to get the avg efficacy
@@ -376,8 +401,8 @@ def effAnalysis(effSD, affSD=[2,2], qspace=(0,4), fixed=False):
         yAxis_eff[i] = elem/(float(yAxis_act[i]))
         i +=1
 
-    print "activation bin: " + str(yAxis_act)
-    print "mean efficacy: " + str(yAxis_eff)
+    logger.debug("activation bin: " + str(yAxis_act))
+    logger.debug("mean efficacy: " + str(yAxis_eff))
     
     #Hist of activation levels
   
@@ -416,17 +441,18 @@ def occVsLocGraph(affList=[2,1.5,1,.5]):
     Highest affSD is a solid line on the graph"""
     dim = 1
     qspace = QSpace([(0,4)])
-    odorscenes = []  #Create 1600 odorscenes (with 1 ligand each) that span qspace from 0 to 3.9
-    gl = layers.createGL(1)
+    # FIXME: THESE ARE NOT ODORSCENES EADJKFJASDJ
+    odorscenes: list[Ligand] = []  #Create 1600 odorscenes (with 1 ligand each) that span qspace from 0 to 3.9
+    gl = layers.GlomLayer.create(1)
     i = 0.0
     ID = 0
-    while i < qspace.getSize()[0][1]-.01:
+    while i < qspace.size[0][1]-.01:
         odo = Ligand(ID, [i], 1e-5) #ID, Loc, Conc
         odorscenes.append(odo)
         ID += 1
         i += .01
 
-    recs = []
+    recs: list[Receptor] = []
     for aff in affList:
         recs.append(Receptor(1,[2],[aff],[1])) #Id, mean, sda, sde
  
@@ -435,23 +461,23 @@ def occVsLocGraph(affList=[2,1.5,1,.5]):
         df = 0
         location=[]
         occupancy=[]
-        labelName = "AffSD=" + str(rec.getSdA())
-        if max(affList) in rec.getSdA():
+        labelName = "AffSD=" + str(rec.sdA)
+        if max(affList) in rec.sdA:
             line = "-"
         else:
             line = "--"
         for odor in odorscenes:
-            aff = mvn.pdf(odor.getLoc(), rec.getMean(), rec.getCovA())
-            aff = aff / rec.getScale() #Scales it from 0 to 1
+            aff = mvn.pdf(odor.loc, rec.mean, rec.covA)
+            aff = aff / rec.scale #Scales it from 0 to 1
                 
             #Now convert gaussian aff to kda
-            aff = 10**((aff * (peak_affinity - minimum_affinity)) + minimum_affinity) ##peak_affinity etc. are global variables
+            aff = 10**((aff * (config.PEAK_AFFINITY - config.MIN_AFFINITY)) + config.MIN_AFFINITY) ##peak_affinity etc. are global variables
             
-            odor.setAff(float(aff))
-            df = odor.getConc()/odor._aff
+            odor.aff = float(aff)
+            df = odor.conc/odor._aff
     
-            location.append(odor.getLoc())
-            occ = ( (1) / (1 + ( (odor._aff/odor.getConc()) * (1 + df - (odor.getConc() / odor._aff ) ) ) **m) ) #m=1
+            location.append(odor.loc)
+            occ = ( (1) / (1 + ( (odor._aff/odor.conc) * (1 + df - (odor.conc / odor._aff ) ) ) **config.HILL_COEFF) ) # m aka HILL_COEFF = 1
             occupancy.append(occ)
 
         plt.plot(location,occupancy, line, label=labelName)
@@ -473,37 +499,37 @@ def effVsLocGraph(effList=[.1,.5,1,2,3]):
     The highest effSD gives a solid line"""
     dim = 1
     qspace = QSpace([(0,4)])
-    odorscenes = []  #Create 1600 odorscenes (with 1 ligand each) that span qspace from 0 to 3.9
-    gl = layers.createGL(1)
+    odorscenes: list[Ligand] = []  #Create 1600 odorscenes (with 1 ligand each) that span qspace from 0 to 3.9
+    gl = layers.GlomLayer.create(1)
     i = 0.0
     ID = 0
-    while i < qspace.getSize()[0][1]-.01:
+    while i < qspace.size[0][1]-.01:
         odo = Ligand(ID, [i], 1e-5) #ID, Loc, Conc
         odorscenes.append(odo)
         ID += 1
         i += .01
 
-    recs = []
+    recs: list[Receptor] = []
     for eff in effList:
         recs.append(Receptor(1,[2],[1],[eff])) #Id, mean, sda, sde
         
     index = 0
     for rec in recs:
-        df = 0
+        # df = 0
         location=[]
         efficacy=[]
-        labelName = "EffSD=" + str(rec.getSdE())
-        effScale = float(mvn.pdf(rec.getMean(), rec.getMean(), rec.getCovE())  )
+        labelName = "EffSD=" + str(rec.sdE)
+        effScale = float(mvn.pdf(rec.mean, rec.mean, rec.covE)  )
 
-        if max(effList) in rec.getSdE():
+        if max(effList) in rec.sdE:
             line = "-"
         else:
             line = "--"
         for odor in odorscenes:
-            eff = mvn.pdf(odor.getLoc(), rec.getMean(), rec.getCovE())
+            eff = mvn.pdf(odor.loc, rec.mean, rec.covE)
             eff = float(eff) / effScale #Scales it from 0 to 1
     
-            location.append(odor.getLoc())
+            location.append(odor.loc)
             efficacy.append(eff)
 
         plt.plot(location,efficacy, line, label=labelName)
@@ -536,8 +562,8 @@ def runDPsiOccActGraphFromExcel(aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30,
     dPsiOccActGraphFromExcel(nameDpsi1, nameAO1, xaxis, numRecs, "(0,4) qspace", titleName, pdfName, 'b', rep=200.0, close=False)
     dPsiOccActGraphFromExcel(nameDpsi2, nameAO2, xaxis, numRecs, "(0,10) qspace", titleName, pdfName, 'g', rep=200.0, close=False)
     dPsiOccActGraphFromExcel(nameDpsi3, nameAO3, xaxis, numRecs, "(0,30) qspace", titleName, pdfName, 'r', rep=200.0, close=True)
-    
-def purpFunction(purpose, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, dim=2):
+
+def purpFunction(purpose: str, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, dim=2):
     """Returns a string that can be used for titles etc."""
     if purpose == "aff": 
         return ", aff_sd=" + str(aff_sd)
@@ -547,22 +573,100 @@ def purpFunction(purpose, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, 
         else:
             return ", eff_sd=" + str(eff_sd)
     elif purpose == "c":
-        return ", glom_pen=" + str(glom_penetrance)
+        return ", glom_pen=" + str(config.GLOM_PENETRANCE)
     elif purpose == "recs":
         return ", numRecs=" + str(numRecs)
     elif purpose == "redAff":
-        num = str(8 + peak_affinity)
+        num = str(8 + config.PEAK_AFFINITY)
         return ", redAff by 10^" + num
     elif purpose == "dim":
         return ", dim=" + str(dim)
     else: #purpose == "standard"
         return ""
+
+@dataclass
+class Experiment:
+    id: int
+    func: Callable
+    arg_map: Sequence[Any] = field(default_factory=list)
+    kwarg_map: Mapping[str, Any] = field(default_factory=dict)
+    msg: str = "Performing experiment #%s..."
+
+    def __call__(self):
+        print(self.msg % (self.id))
+        return self.func(*self.arg_map, **self.kwarg_map)
+
+class NonExperiment(Experiment):
+    """
+    For non-experiment procedures between tests.
+    """
+    msg: str = "Performing cleanup operation #%s..."
+
+DEFAULT_EXPERIMENTS = [
+    Experiment(1, testdPsiBarSaturation_Qspaces,
+               kwarg_map={
+                   'fixed':False,
+                   'aff_sd':[0.5, 1.5],
+                   'eff_sd':[0.05, 1.0],
+                   'numRecs':30,
+                   'c':1,
+                   'dim':2,
+                   'qspaces':[4,10,30],
+                   'purpose':'standard'
+               }),
+    Experiment(2, testdPsiBarSaturationDim,
+               kwarg_map={
+                   'dims':[3,4],
+                   'fixed': False,
+                   'aff_sd': [.5,1.5],
+                   'eff_sd': [.05,1.0],
+                   'numRecs': 30,
+                   'c': 1
+               }),
+    Experiment(3, runDPsiOccActGraphFromExcel,
+               kwarg_map={
+                   'aff_sd': [0.5,1.5],
+                   'eff_sd': [0.05,1.0],
+                   'numRecs': 30,
+                   'c': 1,
+                   'purpose': "standard"
+               }),
+    NonExperiment(4, changeMean,
+                arg_map=["1. SavedEpi_(0, 4)", 2, [0,15]]),
+    NonExperiment(5, changeOne,
+                arg_map=["1. SavedEpi_(0, 4)", 2, "aff", [.5,2.5]]),
+    NonExperiment(6, makeSimilar, 
+                arg_map=[30, [.5,1.5], [0.05,1.0], "dim", [4,10,30], 4]),
+    Experiment(7, testRecDensityDpsiGraph1),
+    Experiment(8, testRecDensityDpsiGraph2),
+    Experiment(9, effAnalysis,
+                arg_map = [ [.5,1.0] ],
+                kwarg_map={
+                    'affSD': [2,2],
+                    'qspace': (0,4),
+                    'fixed': True
+                }),
+    Experiment(10, occVsLocGraph,
+               kwarg_map={
+                   'affList': [2, 1.5, 1, .5],
+               }),
+    Experiment(11, effVsLocGraph,
+               kwarg_map={
+                   'effList': [3, 2, 1, .5, .1]
+               })
+]
+
+def test(to_test: list[Experiment]):
     
-def test():
+    return [
+        experiment() for experiment in to_test
+    ]
+
+# NOTE: Left here for reference, for now.
     ####dPsiBarSaturation simulations
 
-    testdPsiBarSaturation_Qspaces(fixed=False, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, dim=2, qspaces=[4,10,30], purpose="standard")
-    #testdPsiBarSaturationDim(dims=[3,4], fixed=False, aff_sd=[.5,1.5], eff_sd=[.05,1.0], numRecs=30, c=1)
+    # testdPsiBarSaturation_Qspaces(fixed=False, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, dim=2, qspaces=[4,10,30], purpose="standard")
+    # testdPsiBarSaturationDim(dims=[3,4], fixed=False, aff_sd=[.5,1.5], eff_sd=[.05,1.0], numRecs=30, c=1)
     
     ####Creating dPsi vs Occ and Act graphs from excel docs
     
@@ -586,5 +690,5 @@ def test():
     ####Loc graphs vs Occ and Eff
     #occVsLocGraph(affList=[2,1.5,1,.5])
     #effVsLocGraph(effList=[3,2,1,.5,.1])
-    
-test()
+if __name__ == "__main__":
+    test()
