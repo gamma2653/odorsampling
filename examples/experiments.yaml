@@ -3,7 +3,6 @@ functions:
   # These are the functions that can be used in the below experiments.
   #  Default args are used when no args are specified in the experiments.
   psi_bar_saturation:
-    func_name: psi_bar_saturation
     default_args: []
     default_kwargs:
       fixed: True
@@ -21,10 +20,12 @@ functions:
       graph: True
       
   psi_bar_saturation_dim:
-    func_name: psi_bar_saturation_dim
     default_args: []
     default_kwargs:
-      fixed: True
+      dims:
+        - 3
+        - 4
+      fixed: False
       aff_sd: 
         - .5
         - 1.5
@@ -33,12 +34,8 @@ functions:
         - 1.0
       numRecs: 30
       c: 1
-      purpose: "standard"
-      qspaces: [4,10,30]
-      dim: 2
       graph: True
   occ_vs_loc:
-    func_name: occ_vs_loc
     default_args: []
     default_kwargs:
       affList:
@@ -47,7 +44,6 @@ functions:
         - 1
         - .5
   eff_vs_loc:
-    func_name: eff_vs_loc
     default_args: []
     default_kwargs:
       effList:
@@ -57,7 +53,6 @@ functions:
         - .5
         - .1
   eff_analysis:
-    func_name: eff_analysis
     default_args: []
     default_kwargs:
       effSD:
@@ -74,10 +69,11 @@ functions:
 
 # These modify the default config values for the below experiments.
 # The order of priority for these configurations from lowest to highest is:
-# Default function values < YAML Config values < CMD line values
+# Default function values < YAML Config values < Experimental values < CMD line values
+# Case insensitive
 parameters:
-  # Remember! Exponential values require a period.
-  odor_concentration: 1.0e-09
+  # Remember! Exponential values require a period. If this is forgotten, the program's behavior may be undefined. (Types are not checked)
+  odor_concentration: null
   peak_affinity: null
   min_affinity: null
   hill_coefficient: null

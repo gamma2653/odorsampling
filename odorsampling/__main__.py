@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 from argparse import ArgumentParser
 from pprint import pprint
+import platform
 
 import yaml
 import matplotlib
@@ -11,9 +12,10 @@ from . import config, experiments, testLayers, testRnO, utils
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from typing import Iterable, Union
+    from typing import Iterable, Mapping, Optional
 
 
+# These may no longer be necessary. Will remove once I'm sure.
 def parse_range(s: str) -> Iterable[int]:
     """
     Parses a range of numbers into a list of ints. (Inclusive)
@@ -40,45 +42,121 @@ def parse_range_or_int(s: str) -> Iterable[int]:
         except ValueError:
             return [int(s.strip())]
 
+CMD_MAP: Mapping[str, tuple[list, dict]] = {
+    'debug': (
+        ['-d', '--debug'],
+        {
+            'action': 'store_true',
+            'help': "Set to enable more extensive logging and some other debugging flags."
+        },
+    ),
+    'config': (
+        ['-c', '--config'],
+        {
+            'action': 'store',
+            'type': str,
+            'default': "./experiment.yaml",
+            'help': "Experiment YAML file to load. See examples/experiments.yaml for an example."
+        },
+    ),
+    'odor_concentration': (
+        ['-oc', '--odor-concentration'],
+        {
+            'action': 'store',
+            'type': float,
+            'help': "Use to set the odor concentration. Scientific notation is allowed."
+        },
+    ),
+    'peak_affinity': (
+        ['-pa', '--peak-affinity'],
+        {
+            'action': 'store',
+            'type': float,
+            'help': "Used to set the peak affinity, scientific notation is allowed."
+        },
+    ),
+    'min_affinity': (
+        ['-ma', '--min-affinity'],
+        {
+            'action': 'store',
+            'type': float,
+            'help': "Used to set the minimum affinity, scientific notation is allowed."
+        },
+    ),
+    'hill_coefficient': (
+        ['-hc', '--hill-coefficient'],
+        {
+            'action': 'store',
+            'type': float,
+            'help': "Used to set the Hill Coefficient, scientific notation is allowed."
+        },
+    ),
+    'odor_repetitions': (
+        ['-or', '--odor-repetitions'],
+        {
+            'action': 'store',
+            'type': float,
+            'help': "Used to set the odor repetitions."
+        },
+    ),
+    'angle_reps': (
+        ['-ar', '--angle-reps'],
+        {
+            'action': 'store',
+            'type': float,
+            'help': "Used to set the angle reps, scientific notation is allowed."
+        },
+    ),
+    'perform_experiment': (
+        ['-pe', '--perform-experiment'],
+        {
+            'action': 'store',
+            'type': str,
+            'metavar': 'EXPERIMENT_NAME',
+            'help': "Used to set which experiments to run according to the paper. Can be defined as a single int, range, "
+                    "or a list. Eg) '2' and '1-3' and '1,2,3' are all valid. If there are spaces, the argument must be in quotes."
+        },
+    ),
+    'run_tests': (
+        ['-t', '--run-tests'],
+        {
+            'action': 'store',
+            'type': str,
+            'nargs': '*',
+            'metavar': 'TEST_NAME',
+            'help': "Used to set which tests to run. Eg) 'layers' and 'RnO' are valid."
+        },
+    ),
+    'mpl_backend': (
+        ['-mplb', '--mpl-backend'],
+        {
+            'action': 'store',
+            'type': str,
+            'default': 'tkAgg',
+            'help': "Used to set the backend used by matplotlib for the graphs."
+        },
+    ),
+    'random_seed': (
+        ['-rs', '--random-seed'],
+        {
+            'action': 'store',
+            'type': int,
+            'nargs': '+',
+            'default': None,
+            'help': "Used to set the RNG's seed value. None/default operating system entropy used if not set."
+                    "Eg) `python -m odorsampling -rs 1865`"
+        }
+    )
+}
 
-def prep_parser() -> ArgumentParser:
+def prep_parser(cmds: Mapping[str, tuple[list, dict]] = CMD_MAP) -> ArgumentParser:
     """
     Preps argument parser.
     """
     parser = ArgumentParser(prog=config.NAME,
                             description=config.DESCRIPTION)
-    parser.add_argument('-d', '--debug', action='store_true',
-                        help="Set to enable more extensive logging and some other debugging flags.")
-    parser.add_argument('-c', '--config', action='store', type=str, default="./experiment.yaml",
-                        help="Experiment YAML file to load. See examples/experiments.yaml for an example.")
-
-
-    parser.add_argument('-oc', '--odor-concentration', action='store', type=float,
-                        help="Use to set the odor concentration. Scientific notation is allowed.")
-    parser.add_argument('-pa', '--peak-affinity', action='store', type=float,
-                        help="Used to set the peak affinity, scientific notation is allowed.")
-    parser.add_argument('-ma', '--min-affinity', action='store', type=float,
-                        help="Used to set the minimum affinity, scientific notation is allowed.")
-    parser.add_argument('-hc', '--hill-coefficient', action='store', type=float,
-                        help="Used to set the Hill Coefficient, scientific notation is allowed.")
-    # TODO: Probably set this to an integer. Investigate this param.
-    parser.add_argument('-or', '--odor-repetitions', action='store', type=float,
-                        help="Used to set the odor repetitions.")
-    # TODO: Understand this param better.
-    parser.add_argument('-ar', '--angle-reps', action='store', type=float,
-                        help="Used to set the angle reps, scientific notation is allowed.")
-    # TODO: Better document
-    parser.add_argument('-pe', '--perform-experiment', action='store', type=str, nargs='*', metavar='EXPERIMENT_NAME',
-                        help="Used to set which experiments to run according to the paper. Can be defined as a single int, range, "
-                        "or a list. Eg) '2' and '1-3' and '1,2,3' are all valid. If there are spaces, the argument must be in quotes.")
-    parser.add_argument('-t', '--run-tests', action='store', type=str, nargs='*', metavar='TEST_NAME',
-                        help="Used to set which tests to run. Eg) 'layers' and 'RnO' are valid.")
-    parser.add_argument('-mplb', '--mpl-backend', action='store', type=str, default='tkAgg',
-                        help="Used to set the backend used by matplotlib for the graphs.")
-    parser.add_argument('-rs', '--random-seed', action='store', type=int, nargs='+', default=None,
-                        help="Used to set the RNG's seed value. None/default operating system entropy used if not set."
-                        "Eg) `python -m odorsampling -rs 1865`")
-
+    for config_key, (args, kwargs) in cmds.items():
+        parser.add_argument(*args, dest = config_key, **kwargs)
     return parser
 
 def _special_init(namespace, name, init_factory, *args, **kwargs):
@@ -100,10 +178,11 @@ TESTS = {
 }
 
 
-def perform_experiments(exps):
-    print(f"Performing experiments... {','.join(map(str, exps))}")
-    print(list(exps))
-    experiments.test([experiments.DEFAULT_EXPERIMENTS[i-1] for i in exps])
+def perform_experiments(experiments_to_run: Iterable[str], experiments_: Mapping[str, experiments.Experiment]):
+    print(f"Performing experiments... {','.join(map(str, experiments_to_run))}")
+    print(list(experiments_to_run))
+
+    experiments.test((experiments_[name] for name in experiments_to_run))
 
 def perform_tests(test_names: Iterable[str]):
     print(f"Performing tests... {','.join(map(str, test_names))}")
@@ -122,8 +201,8 @@ def main() -> None:
     _special_init(known_args, 'perform_experiment', list)
     _special_init(known_args, 'run_tests', list)
 
-    # Matplotlib backend
     utils.set_seed(known_args.random_seed)
+    # Matplotlib backend
     try:
         matplotlib.use(known_args.mpl_backend)
     except ModuleNotFoundError as e:
@@ -138,9 +217,6 @@ def main() -> None:
     try:
         with open(known_args.config, 'r') as f:
             yaml_config = yaml.safe_load(f)
-            print('yaml')
-            pprint(yaml_config)
-            print('end yaml')
     except FileNotFoundError:
         print(f"Unable to load experiment file '{known_args.config}'.")
         sys.exit(1)
@@ -149,19 +225,29 @@ def main() -> None:
     try:
         # Update config with only non-None values
         yaml_config['parameters'].update(((k,v) for k, v in known_args.__dict__.items() if v is not None))
-    except KeyError | AttributeError:
+    except (KeyError, AttributeError):
         yaml_config['parameters'] = known_args.__dict__
 
     # Override python file config with YAML/CMD config
     for key, value in yaml_config['parameters'].items():
-        if value is not None:
+        if value is not None and not key.startswith('__'):
             setattr(config, key.upper(), value)
-        
+    
+    # Validate YAML functions
+    try:
+        experiments_ = experiments.validate_exp_map(yaml_config['experiments'], experiments.validate_func_map(yaml_config['functions']))
+        pprint(experiments_)
+    except (KeyError, ValueError) as e:
+        # TODO: Logging
+        print("Invalid function map in experiment YAML file.")
+        print(e, file=sys.stderr)
+        sys.exit(1)
+
     print("Configuration:")
     pprint({ key: getattr(config, key) for key in dir(config) if not key.startswith('__')})
 
-    perform_experiments(known_args.perform_experiment)
-    perform_tests(known_args.run_tests)
+    perform_experiments(experiments_ if not config.PERFORM_EXPERIMENT else config.PERFORM_EXPERIMENT, experiments_)
+    perform_tests(config.RUN_TESTS)
 
 
 

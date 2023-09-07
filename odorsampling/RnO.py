@@ -138,12 +138,6 @@ class Ligand:
         """Sets loc equal to value.
         Precondition: Value is a List"""
         # TODO: make tuple everywhere
-<<<<<<< HEAD
-        print(type(value))
-=======
-        print(value)
-        print(list(map(float, value)))
->>>>>>> 195fdf8220ef9d3b987c69f12699743533f68a78
         self._loc = tuple(map(float, value))
     
     @property
@@ -253,10 +247,6 @@ class Ligand:
         """
         # TODO: make sure within bounds
         loc = [utils.RNG.uniform(-1000, 1000) for _ in range(dim)]
-<<<<<<< HEAD
-=======
-        print(f"Generated: {loc}")
->>>>>>> 195fdf8220ef9d3b987c69f12699743533f68a78
         return Ligand(id_, loc, conc)
     
     @classmethod
@@ -628,9 +618,9 @@ class Receptor:
         to how to randomly distribute those values.
         scaleEff is empty unless want to have a diff sd for aff and eff.
         Precondition: qspace must have "dim" dimensions"""
-        print(qspace)
-        print(qspace._size)
-        print(dim)
+        # print(qspace)
+        # print(qspace._size)
+        # print(dim)
         assert len(qspace._size) == dim, f"QSpace dims do not match. (QSpace:{qspace._size}, passed:{dim})"
         mean = _distributeMean(dim, qspace, constMean)
         sdA = _distributeSD(dim, scale)
@@ -745,10 +735,7 @@ class Epithelium:
         """Sets receptors equal to value.
         Precondition: Value is a List"""
         # assert isinstance(value, Sequence), f"Value is not a Sequence! {type(value)}"
-        value = tuple(value)
-        old = getattr(self, "_recs", None)
-        logger.debug("Epithelium receptors changed: [%s->%s]", old, value)
-        self._recs = value
+        self._recs = tuple(value)
     
     def __init__(self, recs):
         """Initializes a epithelium."""
@@ -821,7 +808,6 @@ def modifyLoc(odorant: Ligand, qspace: QSpace, dim: int):
     """Modifies an odorant's location to be within the given qspace of the odorscene
     Precondition: QSpace dimensions are consistent with dim"""
     assert len(qspace.size) == dim, "QSpace dimensions are not consistent with ligand locations"
-<<<<<<< HEAD
     i = 0
     loc = list(odorant.loc)
     while i < dim:
@@ -829,28 +815,16 @@ def modifyLoc(odorant: Ligand, qspace: QSpace, dim: int):
                                 abs(qspace.size[i][1]))) + -1 * abs(qspace.size[i][0])
         i += 1
     odorant.loc = loc
-=======
-    print(f"QSpace: {qspace}")
-    # FIXME: There were issues with this code. This is the original-ish code (converted to list-comp)
-    # odorant.loc = [
-    #     (int(loc + abs(qspace.size[i][0])) % abs(qspace.size[i][0]) + abs(qspace.size[i][1])) - abs(qspace.size[i][0])
-    #      for i, loc in enumerate(odorant.loc)
-    # ]
-    # Added parenthesis seems to have fixed the issue.
-    odorant.loc = [
-        (int(loc + abs(qspace.size[i][0])) % (abs(qspace.size[i][0]) + abs(qspace.size[i][1]))) - abs(qspace.size[i][0])
-         for i, loc in enumerate(odorant.loc)
-    ]
->>>>>>> 195fdf8220ef9d3b987c69f12699743533f68a78
     return odorant
 
 def _distributeMean(dim: int, qspace: QSpace, constMean: bool):
     """Returns a list of means randomly distributed within the qspace based on the Type"""
-    mean = []
-    i = 0
     if constMean:
-        mean = [qspace.size[i][1]/2.0 for i in dim]
+        mean = [qspace.size[i][1]/2.0 for i in range(dim)]
     else:
+        # TODO: Simplify later
+        mean = []
+        i = 0
         while i < dim:
             if config.DIST_TYPE_UNIF:
                 mean.append(utils.RNG.uniform(qspace.size[i][0], qspace.size[i][1]))
@@ -1148,13 +1122,8 @@ def sumOfSquaresVectorized(epithelium: Epithelium, odorscene: Odorscene, dn, rep
         '''
         oi = 0
         for odor in odorscene.odors:
-<<<<<<< HEAD
-            print(counter)
-            print(len(odor._affs), len(odor._effs))
-=======
-            # print(f"odor.aff={odor.aff}\nodor._affs={odor._affs}\ncounter={counter}\n")
-            # logger.debug("odor.aff=%s\nodor._affs=%s\ncounter=%s\n", odor.aff, odor._affs, counter)
->>>>>>> 195fdf8220ef9d3b987c69f12699743533f68a78
+            # print(counter)
+            # print(len(odor._affs), len(odor._effs))
             odor.aff = odor._affs[counter]
             odor.eff = odor._effs[counter]
             
@@ -1401,11 +1370,7 @@ def dPsiBarCalcAnglesOrig(epithelium: Epithelium, odorscene: Odorscene, r, fixed
     return totalDpsi/rep
 
 
-<<<<<<< HEAD
 # HERE
-=======
-
->>>>>>> 195fdf8220ef9d3b987c69f12699743533f68a78
 def dPsiBarCalcAngles(epithelium: Epithelium, odorscene: Odorscene, r, fixed=False, text=None, c=1, gl: layers.GlomLayer = None):
     """Calculates dPsiBar = the average dPsi value of an odorscene that
     changes location by the same amplitude r but "rep" different directions based on
@@ -2381,7 +2346,7 @@ def graphFromExcel(name: str, xaxis: list[int], numRecs: int, labelName: str, ti
 
     text.close()
     
-    print(activ)
+    # print(activ)
     
     plt.plot(xaxis,activ, label=labelName)
     plt.legend()
@@ -2460,7 +2425,7 @@ def dPsiOccActGraphFromExcel(nameDpsi: str, nameAO: str, xaxis: list[int], numRe
     ###extract dPsi info
     with open(nameDpsi) as f:
         dPsi = [float(line[line.find(",")+1:]) for i, line in enumerate(f.readlines()) if i>0]
-    print(dPsi)
+    # print(dPsi)
     ###extract act and occ info
     length = len(xaxis)
     text = open(nameAO)

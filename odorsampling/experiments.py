@@ -12,7 +12,7 @@ import multiprocessing
 import logging
 import math
 from dataclasses import dataclass, field
-
+import inspect
 
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
@@ -26,7 +26,7 @@ from odorsampling.RnO import (
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from typing import Callable, Mapping, Sequence, Any
+    from typing import Callable, Mapping, Sequence, Iterable, Any
 
 logger = logging.Logger(__name__)
 utils.default_log_setup(logger)
@@ -178,7 +178,7 @@ def allGraphsFromExcel(aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, dim
             k += 1
 
 
-def psi_bar_sat_dim(dims, fixed=False, aff_sd=[.5,1.5], eff_sd=[.05,1.0], numRecs=30, c=1, graph=False):
+def psi_bar_saturation_dim(dims, fixed=False, aff_sd=[.5,1.5], eff_sd=[.05,1.0], numRecs=30, c=1, graph=False):
     """Runs 4 simulations of differing dimensions determined by dims all with (0,4) qspace.
     Since each simulation has an added dimension, it wasn't possible
     to make the epithelium identical. Therefore, all means, aff and eff
@@ -294,7 +294,7 @@ def dimAllGraphsFromExcel(numRecs=30, dims=[2,3,4,5], rep=200.0):
 
 
 
-def psi_bar_sat(fixed, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, dim=2, qspaces=[4,10,30], purpose="standard", graph=False):
+def psi_bar_saturation(fixed, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, dim=2, qspaces=[4,10,30], purpose="standard", graph=False):
     """Runs multiple graphs of given qspaces at one time
     Optional - run makeSimilar (line 25), to create 3 epitheliums with equal eff and aff SD's (only rec means differ)
     Otherwise - make sure there are three saved epithelium files with correct names
@@ -358,7 +358,7 @@ def psi_bar_sat(fixed, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, dim
         allGraphsFromExcel(aff_sd, eff_sd, numRecs, c, dim, qspaces, purpose)
 
 
-def occVsLocGraph(affList=[2,1.5,1,.5]):
+def occ_vs_loc(affList=[2,1.5,1,.5]):
     """Takes a Receptor instance in a qspace=(0,4) and outputs
     Occupancy vs Location plot for rec with affSD=affList
     Highest affSD is a solid line on the graph"""
@@ -416,7 +416,7 @@ def occVsLocGraph(affList=[2,1.5,1,.5]):
     #plt.show()
     plt.close()
     
-def effVsLocGraph(effList=[.1,.5,1,2,3]):
+def eff_vs_loc(effList=[.1,.5,1,2,3]):
     """Takes a Receptor instance in a full qspace and outputs
     Efficacy vs Location plot for rec with effSD=effList.
     The highest effSD gives a solid line"""
@@ -471,7 +471,7 @@ def effVsLocGraph(effList=[.1,.5,1,2,3]):
 
 
 #####Histogram to show that model works when varying eff and aff
-def effAnalysis(effSD, affSD=[2,2], qspace=(0,4), fixed=False):
+def eff_analysis(effSD, affSD=[2,2], qspace=(0,4), fixed=False):
     """Goal: Show that our model works - varying eff and aff creates agonists etc.    
     Returns one graph with a histogram of number of locations (there is a ligand at each location)
     that activate a receptor to a specific activation and a line graph
@@ -562,7 +562,22 @@ class Experiment:
     func: Callable
     arg_map: Sequence[Any] = field(default_factory=list)
     kwarg_map: Mapping[str, Any] = field(default_factory=dict)
-    msg: str = "Performing experiment #%s..."
+    msg: str = "Performing experiment `%s`..."
+    description: str = "No description provided."
+    default_args: Sequence[Any] = field(default_factory=list, repr=False, compare=False, kw_only=True)
+    """
+    Deleted after post_init.
+    """
+    default_kwargs: Mapping[str, Any] = field(default_factory=dict, repr=False, compare=False, kw_only=True)
+    """
+    Deleted after post_init.
+    """
+
+
+    def __post_init__(self):
+        self.arg_map = [self.default_args[i] if i < len(self.default_args) else arg for i, arg in enumerate(self.arg_map)]
+        self.kwarg_map = dict(self.default_kwargs, **self.kwarg_map)
+        del self.default_args, self.default_kwargs
 
     def __call__(self):
         print(self.msg % (self.func.__name__))
@@ -574,54 +589,51 @@ class NonExperiment(Experiment):
     """
     msg: str = "Performing cleanup operation #%s..."
 
+def validate_func_map(mapping: Mapping[str, Mapping[str, list|dict[str,Any]]]) -> dict[str, dict[str, list|dict[str, Any]]]:
+    """
+    Raises a ValueError if the mapping contains invalid function names/data.
+    """
+    for name, func_info in mapping.items():
+        if name not in globals():
+            raise ValueError(f"Function '{name}' not found in globals().")
+        func = globals()[name]
+        if not callable(func):
+            raise ValueError(f"Object '{name}' is not callable.")
+        func_sig = inspect.signature(func)
+        arg_co = len(func_info['default_args'])
+        kwarg_names = list(func_info['default_kwargs'].keys())
+        kwarg_co = len(kwarg_names)
 
-
-DEFAULT_EXPERIMENTS = [
-        Experiment("Psi Bar Saturation", psi_bar_sat,
-                   kwarg_map={
-                       "fixed":True,
-                       "aff_sd":[.5,1.5],
-                       "eff_sd":[0.05,1.0],
-                       "numRecs":30,
-                       "c":1,
-                       "purpose":"standard",
-                       "qspaces":[4,10,30],
-                       "dim":2,
-                       "graph": True
-                    }),
-        Experiment("Psi Bar Saturation Dim", psi_bar_sat_dim,
-                   kwarg_map={
-                       "fixed":False,
-                       "aff_sd":[.5,1.5],
-                       "eff_sd":[0.05,1.0],
-                       "numRecs":30,
-                       "c":1,
-                       "purpose":"standard",
-                       "qspaces":[4,10,30],
-                       "dim":2,
-                       "graph": True
-                   }),
-        Experiment("Occupancy vs Location", occVsLocGraph,
-                   kwarg_map={
-                       "affList": [2,1.5,1,.5],
-                   }),
-        Experiment("Efficacy vs Location", effVsLocGraph,
-                   kwarg_map={
-                       "effList": [3,2,1,.5,.1],
-                   }),
-        Experiment("Efficacy Analysis", effAnalysis,
-                   kwarg_map={
-                       "effSD": [.5,1.0],
-                       "affSD": [2,2],
-                       "qspace":(0,4),
-                       "fixed":True
-                   })
-    ]
-EXPERIMENT_MAP = { exp.name: exp for exp in DEFAULT_EXPERIMENTS }
+        if arg_co+kwarg_co > len(func_sig.parameters):
+            raise ValueError(f"Too many arguments for function '{name}'.", f"{arg_co+kwarg_co} > {len(func_sig.parameters)}")
+        if not all(name in func_sig.parameters for name in kwarg_names):
+            raise ValueError(f"Invalid keyword argument(s) for function '{name}'.")
+    # Ensure dict, in case of other Mapping type
+    return {k:dict(v) for k,v in mapping.items()}
+        
+def validate_exp_map(mappings: Iterable[Mapping[str, Any]], default_values: Mapping[str, dict]) -> dict[str, Experiment]:
+    """
+    Raises a ValueError if the mapping contains invalid experiment names/data.
+    """
+    # Second assignment for later checks
+    keys = id_, name_, desc_, func_, args_, kwargs_ = 'id', 'name', 'description', 'function', 'args', 'kwargs'
+    if not all((key in mapping and mapping[func_] in globals() for mapping in mappings) for key in keys):
+        raise ValueError(f"Invalid experiment mapping: {mappings}")
+    return {
+        exp[id_]: Experiment(
+            exp[name_], globals()[exp[func_]], exp[args_], exp[kwargs_], description=exp[desc_], **default_values[exp[func_]]
+            ) for exp in mappings
+    }
+    # {
+    #     exp[id_]: Experiment(
+    #         exp[name_], globals()[exp[func_]], exp[args_] if len(exp[args_]) > len(default_values[exp[func_]]) else default_values[exp[func_]],
+    #         exp[kwargs_], description=exp[desc_]
+    #         ) for exp in mappings
+    # }
 
 
 
-def test(to_test):
+def test(to_test: Iterable[Experiment]):
     
     return [
         experiment() for experiment in to_test
