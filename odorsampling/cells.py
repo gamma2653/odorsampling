@@ -28,9 +28,12 @@ logger = logging.getLogger(__name__)
 utils.default_log_setup(logger)
 
 cell_counter = Counter()
-cell_counter_rw_lock = utils.ReaderWriterSuite()
 """
 Maps cell type to the number of cells of that type that have been created.
+"""
+cell_counter_rw_lock = utils.ReaderWriterSuite()
+"""
+Reader and writer locks for the `cell_counter`. 
 """
 
 # FIXME: Fix `dec`.
@@ -56,8 +59,8 @@ def reset_count(cell_type: Hashable) -> None:
     """
     Resets the counter for the given type.
     """
-    # NOTE: Doesn't require locking as it is an atomic operation
-    del cell_counter[cell_type]
+    with cell_counter_rw_lock.writer():
+        del cell_counter[cell_type]
 
 
 class Cell(ABC):

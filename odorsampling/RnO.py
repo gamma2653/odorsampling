@@ -48,6 +48,9 @@ utils.default_log_setup(logger)
 # SD_NUMBER = 1.5
 # SD_NUMBER = params.RECEPTOR_ELLIPSE_STANDARD_DEVIATION
 
+# TODO: Replace some of the tuples w/ np arrays (acts like vectors)
+#  also sum of squares could be accelerated using (arr**2).sum()
+
 # TODO: Move to params.py
 ###Global Variables when c!=1 (multiple conn between rec and glom)
 # glom_penetrance = .68  # primary glom:rec connection weight if c != 1
@@ -135,7 +138,12 @@ class Ligand:
         """Sets loc equal to value.
         Precondition: Value is a List"""
         # TODO: make tuple everywhere
+<<<<<<< HEAD
         print(type(value))
+=======
+        print(value)
+        print(list(map(float, value)))
+>>>>>>> 195fdf8220ef9d3b987c69f12699743533f68a78
         self._loc = tuple(map(float, value))
     
     @property
@@ -218,15 +226,15 @@ class Ligand:
 
 
     #Initializer
-    def __init__(self, id_, loc, conc):
+    def __init__(self, id_, loc_, conc):
         """
         Initializes ligand
         
         loc is randomly (uniformly) generated point coordinates in QSpace if None.
         """
         self.id = id_
-        self.loc = loc
-        self.dim = len(loc)
+        self.loc = loc_
+        self.dim = len(loc_)
         self.conc = conc
         self.aff = 0.0
         self.eff = 0.0
@@ -245,6 +253,10 @@ class Ligand:
         """
         # TODO: make sure within bounds
         loc = [utils.RNG.uniform(-1000, 1000) for _ in range(dim)]
+<<<<<<< HEAD
+=======
+        print(f"Generated: {loc}")
+>>>>>>> 195fdf8220ef9d3b987c69f12699743533f68a78
         return Ligand(id_, loc, conc)
     
     @classmethod
@@ -376,6 +388,7 @@ class Odorscene:
             ind = 0
             while ind < amt[i]:
                 odor = Ligand.create(dim, conc[i], lig_id)
+                
                 odor = modifyLoc(odor, qspace, dim) 
                 odors.append(odor)
                 ind += 1
@@ -808,6 +821,7 @@ def modifyLoc(odorant: Ligand, qspace: QSpace, dim: int):
     """Modifies an odorant's location to be within the given qspace of the odorscene
     Precondition: QSpace dimensions are consistent with dim"""
     assert len(qspace.size) == dim, "QSpace dimensions are not consistent with ligand locations"
+<<<<<<< HEAD
     i = 0
     loc = list(odorant.loc)
     while i < dim:
@@ -815,6 +829,19 @@ def modifyLoc(odorant: Ligand, qspace: QSpace, dim: int):
                                 abs(qspace.size[i][1]))) + -1 * abs(qspace.size[i][0])
         i += 1
     odorant.loc = loc
+=======
+    print(f"QSpace: {qspace}")
+    # FIXME: There were issues with this code. This is the original-ish code (converted to list-comp)
+    # odorant.loc = [
+    #     (int(loc + abs(qspace.size[i][0])) % abs(qspace.size[i][0]) + abs(qspace.size[i][1])) - abs(qspace.size[i][0])
+    #      for i, loc in enumerate(odorant.loc)
+    # ]
+    # Added parenthesis seems to have fixed the issue.
+    odorant.loc = [
+        (int(loc + abs(qspace.size[i][0])) % (abs(qspace.size[i][0]) + abs(qspace.size[i][1]))) - abs(qspace.size[i][0])
+         for i, loc in enumerate(odorant.loc)
+    ]
+>>>>>>> 195fdf8220ef9d3b987c69f12699743533f68a78
     return odorant
 
 def _distributeMean(dim: int, qspace: QSpace, constMean: bool):
@@ -952,7 +979,7 @@ def sequentialOdorscenes(n: int, amt: int, dim: int, change: int, qspace: QSpace
 ## Maximum dpsi value = # of receptors in epithelium (if the first odorscene
 ## always activates the receptor = 1.0 and the other activates = 0.0)
 
-def sumOfSquares(epithelium: Epithelium, odorscene: Odorscene, dn: list[int], fixed=False, c=1, gl: layers.GlomLayer =[]): 
+def sumOfSquares(epithelium: Epithelium, odorscene: Odorscene, dn: list[int], fixed=False, c=1, gl: layers.GlomLayer = None): 
     """Calculates differentiation between epithelium activation of odorscene before
     and after dn using sum of squares. Returns dpsi of the epithelium.
     If fixed=true, then efficacy will be fixed at 1 (only agonists)
@@ -960,7 +987,7 @@ def sumOfSquares(epithelium: Epithelium, odorscene: Odorscene, dn: list[int], fi
     Precondtion: dn=list in correct dim"""
     assert odorscene.dim== len(dn), "dimension not consistent with dn"
     logger.debug("Performing sumOfSquares.")
-
+    gl = layers.GlomLayer() if gl is None else gl
     dPsi = 0
     recs2 = copy.deepcopy(epithelium.recs)
     gl.clear_activations() #Sets gl activations and recConn back to 0.0
@@ -1121,8 +1148,13 @@ def sumOfSquaresVectorized(epithelium: Epithelium, odorscene: Odorscene, dn, rep
         '''
         oi = 0
         for odor in odorscene.odors:
+<<<<<<< HEAD
             print(counter)
             print(len(odor._affs), len(odor._effs))
+=======
+            # print(f"odor.aff={odor.aff}\nodor._affs={odor._affs}\ncounter={counter}\n")
+            # logger.debug("odor.aff=%s\nodor._affs=%s\ncounter=%s\n", odor.aff, odor._affs, counter)
+>>>>>>> 195fdf8220ef9d3b987c69f12699743533f68a78
             odor.aff = odor._affs[counter]
             odor.eff = odor._effs[counter]
             
@@ -1331,7 +1363,7 @@ def dPsiBarCalcDiag(epithelium: Epithelium, odorscene: Odorscene, r, fixed=False
     
     return totalDpsi/4.0
 
-def dPsiBarCalcAnglesOrig(epithelium: Epithelium, odorscene: Odorscene, r, fixed=False, text=None, c=1, gl: list[cells.Glom]=[]):
+def dPsiBarCalcAnglesOrig(epithelium: Epithelium, odorscene: Odorscene, r, fixed=False, text=None, c=1, gl: layers.GlomLayer=None):
     """Calculates dPsiBar = the average dPsi value of an odorscene that
     changes location by the same amplitude r but "rep" different directions based on
     randomized angles."""
@@ -1369,14 +1401,18 @@ def dPsiBarCalcAnglesOrig(epithelium: Epithelium, odorscene: Odorscene, r, fixed
     return totalDpsi/rep
 
 
+<<<<<<< HEAD
 # HERE
+=======
+
+>>>>>>> 195fdf8220ef9d3b987c69f12699743533f68a78
 def dPsiBarCalcAngles(epithelium: Epithelium, odorscene: Odorscene, r, fixed=False, text=None, c=1, gl: layers.GlomLayer = None):
     """Calculates dPsiBar = the average dPsi value of an odorscene that
     changes location by the same amplitude r but "rep" different directions based on
     randomized angles."""
     gl = layers.GlomLayer() if gl is None else gl
     #print("start of dPsiBarCalcAngles")
-
+    gl = layers.GlomLayer() if gl is None else gl
     
     #rep = 10.0
     rep = config.ANGLES_REP
@@ -2505,7 +2541,7 @@ def recDensityDpsiGraph(r, qspace: QSpace, odorscene: Odorscene, dim: int, name:
     will be adjusted to fit into qspace. Return graph of different dPsi_Bar values
     vs dist between receptors (opp of density).
     r is distance ligands 'move' when calc dPsiBar."""
-    recDist = []     #x_axis
+    recDist: list[float] = []     #x_axis
     dPsiValues = []  #y_axis
     
     #Create a list of receptors
@@ -2522,19 +2558,15 @@ def recDensityDpsiGraph(r, qspace: QSpace, odorscene: Odorscene, dim: int, name:
     text = Text("Receptors, Activ_Lvl, Occ, Num_Odo" + '\n', "exp2")
     
     #Calculate values for graph for each qspace
-    amt = 0
-    for n in receptors:
+    for i, n in enumerate(receptors):
         text._st += str(n) + " recs" + '\n'
         
-        x = recInQspace(n, dim, qspace, sd) #creating uniformly spread receptor field (epi) based on qspace
-        dist = x[1]
-        epi = x[0]
-            
+        epi, dist = recInQspace(n, dim, qspace, sd) #creating uniformly spread receptor field (epi) based on qspace
+        logger.debug("Odorscene affs effs: %s", list(map(lambda lig: (lig._affs, lig._effs), odorscene.odors)))
+        # logger.debug("Generating dPsiBar w/ values epi=%s\nodorscene=%s\nr=%s\nfixed=%s\ntext=%s", epi, odorscene, r, fixed, text)
         dPsibar = dPsiBarCalcAngles(epi, odorscene, r, fixed, text)
         recDist.append(dist)
         dPsiValues.append(dPsibar)
-        # print(amt)
-        amt += 1
     
     #Store data in csv file
     test = open(excelName + ".csv", "w")
@@ -2550,7 +2582,8 @@ def recDensityDpsiGraph(r, qspace: QSpace, odorscene: Odorscene, dim: int, name:
     #plt.show()
     pp = PdfPages(name + '.pdf')
     pp.savefig()
-    
+
+# TODO: Reimplement this
 def recInQspace(n: int, dimen: Real, qspace: QSpace, sd=.5):
     """Given n number of receptors and qspace, returns an epithelium with
     receptors at equally incremented distances from one another and the
@@ -2647,11 +2680,7 @@ def recInQspace(n: int, dimen: Real, qspace: QSpace, sd=.5):
             pos += 1
         recs.append(Receptor(i, loc, aff, aff))
         i += 1
-    
-    #print(coord)
-    #print(avgDist)
-    # TODO: Change to tuple
-    return [Epithelium(recs), avgDist]
+    return Epithelium(recs), avgDist
 
 def recDensityDpsiGraphRandomized(r, qspace: QSpace, odorscene: Odorscene, dim: int, name: str, fixed=False):
     """Returns graph of dPsi vs # of receptors in a given qspace. Values

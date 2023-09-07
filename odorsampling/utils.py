@@ -10,13 +10,17 @@ from odorsampling import config
 
 from typing import TYPE_CHECKING, Protocol
 if TYPE_CHECKING:
-    from typing import Optional, Any, Generator
+    from typing import Optional, Any, Generator, Iterable
 
 
 RNG = np.random.default_rng(config.RANDOM_SEED)
 """
 Instance of `np.random.default_rng`
 """
+
+def set_seed(seed: Iterable[int]|np.random.SeedSequence|np.random.BitGenerator|Generator):
+    global RNG
+    RNG = np.random.default_rng(seed)
 
 # Want selections to fail fast
 class DistributionFunc(Protocol):
@@ -81,7 +85,7 @@ class ReaderWriterSuite:
     Reader Writer lock suite. This implementation prefers writers.
     """
     # Based on wikipedia:
-    #   https://en.wikipedia.org/wiki/Readers%E2%80%93writer_lock
+    #   https://en.wikipedia.org/wiki/Readers%E2%80%93writer_lock#Using_a_condition_variable_and_a_mutex
 
     g = threading.Lock()
     writer_active_con = threading.Condition(g)

@@ -75,15 +75,21 @@ def prep_parser() -> ArgumentParser:
                         help="Used to set which tests to run. Eg) 'layers' and 'RnO' are valid.")
     parser.add_argument('-mplb', '--mpl-backend', action='store', type=str, default='tkAgg',
                         help="Used to set the backend used by matplotlib for the graphs.")
+    parser.add_argument('-rs', '--random-seed', action='store', type=int, nargs='+', default=None,
+                        help="Used to set the RNG's seed value. None/default operating system entropy used if not set."
+                        "Eg) `python -m odorsampling -rs 1865`")
 
     return parser
 
-def _special_init(namespace, name, init_factory):
+def _special_init(namespace, name, init_factory, *args, **kwargs):
+    """
+    Falsey/DNE catch-all initialization
+    """
     try:
         if not getattr(namespace, name):
             raise AttributeError
     except AttributeError:
-        setattr(namespace, name, init_factory())
+        setattr(namespace, name, init_factory(*args, **kwargs))
         
 #     if not getattr(namespace, name, None):
 #         setattr(namespace, name, init_factory())
@@ -117,6 +123,7 @@ def main() -> None:
     _special_init(known_args, 'run_tests', list)
 
     # Matplotlib backend
+    utils.set_seed(known_args.random_seed)
     try:
         matplotlib.use(known_args.mpl_backend)
     except ModuleNotFoundError as e:

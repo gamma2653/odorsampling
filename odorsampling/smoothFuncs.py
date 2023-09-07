@@ -116,10 +116,10 @@ def testdPsiBarSatColorMap(fixed, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=3
         qspace = QSpace(space)
 
 
-        epith = Epithelium.load("1. SavedEpi_" + str(qspace.getSize()[0]) + purp + ".csv")
+        epith = Epithelium.load("1. SavedEpi_" + str(qspace.size[0]) + purp + ".csv")
 
-        labelNames.append(str(qspace.getSize()[0]) + " qspace")
-        excelNames.append("LigandSat with " + str(qspace.getSize()[0]) + " qspace" + purp)
+        labelNames.append(str(qspace.size[0]) + " qspace")
+        excelNames.append("LigandSat with " + str(qspace.size[0]) + " qspace" + purp)
     
         # if i == (len(qspaces) - 1):
         #     end = True
@@ -128,10 +128,10 @@ def testdPsiBarSatColorMap(fixed, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=3
         y = 0
         ID = 0
         odorscenes = []
-        #while x < qspace.getSize()[0][1]:
+        #while x < qspace.size[0][1]:
         while x < qunits*10:
             y = 0
-            #while y < qspace.getSize()[1][1]:
+            #while y < qspace.size[1][1]:
             while y < qunits*10:
                 odorscenes.append(Odorscene(x,[Ligand(ID, [x/float(qunits),y/float(qunits)], .004)]))
                 y += 1
@@ -223,7 +223,7 @@ def test():
     # testdPsiBarSatColorMap(fixed=True, aff_sd=[.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, dim=2, qspaces=[4], purpose="standard", qunits = 4)
 
 
-    allGraphsFromExcel(aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, dim=2, qspaces=[4,10,30], purpose="standard", rep=2)
+    # allGraphsFromExcel(aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, dim=2, qspaces=[4,10,30], purpose="standard", rep=2)
 
     ####testing varying dimensions
     #testdPsiBarSaturationDim(dims=[2,3,4,5], fixed=False, aff_sd=[.5,1.5], eff_sd=[.05,1.0], numRecs=30, c=1)

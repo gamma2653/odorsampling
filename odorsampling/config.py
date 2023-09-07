@@ -15,6 +15,11 @@ LOG_FILE_NAME: str = 'output.log'
 
 
 
+RUN_ALL_TESTS = False
+"""
+Default behavior when specific tests are not specified.
+"""
+
 # Default Arguments
 DEBUG = builtins.__debug__
 LOG_LEVEL = logging.DEBUG if DEBUG else logging.WARNING
