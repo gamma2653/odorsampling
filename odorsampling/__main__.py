@@ -7,7 +7,7 @@ from pprint import pprint
 import yaml
 import matplotlib
 
-from . import config, experiments, testLayers, testRnO
+from . import config, experiments, testLayers, testRnO, utils
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
