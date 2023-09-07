@@ -1,0 +1,123 @@
+# NOTE: DO NOT EDIT THIS FIELD.
+functions:
+  # These are the functions that can be used in the below experiments.
+  #  Default args are used when no args are specified in the experiments.
+  psi_bar_saturation:
+    func_name: psi_bar_saturation
+    default_args: []
+    default_kwargs:
+      fixed: True
+      aff_sd: 
+        - .5
+        - 1.5
+      eff_sd: 
+        - 0.05
+        - 1.0
+      numRecs: 30
+      c: 1
+      purpose: "standard"
+      qspaces: [4,10,30]
+      dim: 2
+      graph: True
+      
+  psi_bar_saturation_dim:
+    func_name: psi_bar_saturation_dim
+    default_args: []
+    default_kwargs:
+      fixed: True
+      aff_sd: 
+        - .5
+        - 1.5
+      eff_sd: 
+        - 0.05
+        - 1.0
+      numRecs: 30
+      c: 1
+      purpose: "standard"
+      qspaces: [4,10,30]
+      dim: 2
+      graph: True
+  occ_vs_loc:
+    func_name: occ_vs_loc
+    default_args: []
+    default_kwargs:
+      affList:
+        - 2
+        - 1.5
+        - 1
+        - .5
+  eff_vs_loc:
+    func_name: eff_vs_loc
+    default_args: []
+    default_kwargs:
+      effList:
+        - 3
+        - 2
+        - 1
+        - .5
+        - .1
+  eff_analysis:
+    func_name: eff_analysis
+    default_args: []
+    default_kwargs:
+      effSD:
+        - .5
+        - 1.0
+      affSD: 
+        - 2
+        - 2
+      qspace:
+        - 0
+        - 4
+      fixed: True
+# END NOTE.
+
+# These modify the default config values for the below experiments.
+# The order of priority for these configurations from lowest to highest is:
+# Default function values < YAML Config values < CMD line values
+parameters:
+  # Remember! Exponential values require a period.
+  odor_concentration: 1.0e-09
+  peak_affinity: null
+  min_affinity: null
+  hill_coefficient: null
+  odor_repetitions: null
+  angle_reps: null
+
+
+experiments:
+  - id: psi_bar_sat_1
+    name: Psi Bar Saturation Test 1
+    description: "Example of how to use this framework to run a simple experiment."
+    function: psi_bar_saturation
+    args: []
+    kwargs: {}
+
+  - id: psi_bar_sat_dim_1
+    name: Psi Bar Saturation Dim Test 1
+    description: "Example of how to use this framework to run a simple experiment."
+    function: psi_bar_saturation_dim
+    args: []
+    kwargs: {}
+  
+  - id: occ_vs_loc_1
+    name: Occ vs Loc Test 1
+    description: "Example of how to use this framework to run a simple experiment."
+    function: occ_vs_loc
+    args: []
+    kwargs: {}
+  
+  - id: eff_vs_loc_1
+    name: Eff vs Loc Test 1
+    description: "Example of how to use this framework to run a simple experiment."
+    function: eff_vs_loc
+    args: []
+    kwargs: {}
+  
+  - id: eff_analysis_1
+    name: Eff Analysis Test 1
+    description: "Example of how to use this framework to run a simple experiment."
+    function: eff_analysis
+    args: []
+    kwargs: {}
+

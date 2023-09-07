@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     
 
 logger = logging.getLogger(__name__)
-config.default_log_setup(logger)
+utils.default_log_setup(logger)
 
 cell_counter = Counter()
 cell_counter_rw_lock = utils.ReaderWriterSuite()

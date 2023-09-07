@@ -42,7 +42,7 @@ if TYPE_CHECKING:
     from odorsampling import cells
 
 logger = logging.getLogger(__name__)
-config.default_log_setup(logger)
+utils.default_log_setup(logger)
 
 
 # SD_NUMBER = 1.5
@@ -135,6 +135,7 @@ class Ligand:
         """Sets loc equal to value.
         Precondition: Value is a List"""
         # TODO: make tuple everywhere
+        print(type(value))
         self._loc = tuple(map(float, value))
     
     @property
@@ -194,6 +195,7 @@ class Ligand:
         assert value >= 0.0 and value <= 1.0, "Occ is not btwn 0 and 1"
         self._occ = float(value)
 
+# Below used in dPsiBarSaturation
     def appendToAffs(self, value: float) -> None:
         """adds aff equal to value.
         Precondition: Value is a float"""
@@ -229,6 +231,7 @@ class Ligand:
         self.aff = 0.0
         self.eff = 0.0
         self.occ = 0.0
+        # Used in sumOfSquaresVectorized
         self._affs: list[float] = []
         self._effs: list[float] = []
         self._odors2 = []
@@ -242,7 +245,7 @@ class Ligand:
         """
         # TODO: make sure within bounds
         loc = [utils.RNG.uniform(-1000, 1000) for _ in range(dim)]
-        return Ligand(id_, conc, loc)
+        return Ligand(id_, loc, conc)
     
     @classmethod
     def load(cls, name: str, helper=False):
@@ -806,10 +809,10 @@ def modifyLoc(odorant: Ligand, qspace: QSpace, dim: int):
     Precondition: QSpace dimensions are consistent with dim"""
     assert len(qspace.size) == dim, "QSpace dimensions are not consistent with ligand locations"
     i = 0
-    loc = odorant.loc
+    loc = list(odorant.loc)
     while i < dim:
-        loc[i] = ((loc[i] + abs(qspace.size[i][0])) % abs(qspace.size[i][0]) +
-                                abs(qspace.size[i][1])) + -1 * abs(qspace.size[i][0])
+        loc[i] = ((loc[i] + (abs(qspace.size[i][0]))) % (abs(qspace.size[i][0]) +
+                                abs(qspace.size[i][1]))) + -1 * abs(qspace.size[i][0])
         i += 1
     odorant.loc = loc
     return odorant
@@ -1118,7 +1121,8 @@ def sumOfSquaresVectorized(epithelium: Epithelium, odorscene: Odorscene, dn, rep
         '''
         oi = 0
         for odor in odorscene.odors:
-
+            print(counter)
+            print(len(odor._affs), len(odor._effs))
             odor.aff = odor._affs[counter]
             odor.eff = odor._effs[counter]
             
@@ -1365,12 +1369,12 @@ def dPsiBarCalcAnglesOrig(epithelium: Epithelium, odorscene: Odorscene, r, fixed
     return totalDpsi/rep
 
 
-
-def dPsiBarCalcAngles(epithelium: Epithelium, odorscene: Odorscene, r, fixed=False, text=None, c=1, gl: list[cells.Glom] = []):
+# HERE
+def dPsiBarCalcAngles(epithelium: Epithelium, odorscene: Odorscene, r, fixed=False, text=None, c=1, gl: layers.GlomLayer = None):
     """Calculates dPsiBar = the average dPsi value of an odorscene that
     changes location by the same amplitude r but "rep" different directions based on
     randomized angles."""
-
+    gl = layers.GlomLayer() if gl is None else gl
     #print("start of dPsiBarCalcAngles")
 
     

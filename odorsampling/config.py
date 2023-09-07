@@ -13,7 +13,7 @@ LOG_MSG_FMT: str = '[%(asctime)s] [%(name)s]: [%(levelname)s] %(message)s'
 LOG_DATE_FMT: str = '%m-%d-%Y %H:%M:%S'
 LOG_FILE_NAME: str = 'output.log'
 
-LOG_FORMATTER = logging.Formatter(LOG_MSG_FMT, LOG_DATE_FMT)
+
 
 # Default Arguments
 DEBUG = builtins.__debug__
@@ -40,25 +40,6 @@ SIG = 12
 
 # DIGIT_PREC: int = 6
 # """Digit precision, numbers are rounded to this value."""
-
-def default_log_setup(logger: logging.Logger, log_level: int = None, stream_handler_level = logging.WARNING, file_handler_level = logging.DEBUG):
-    """
-    Automatically adds LOG_FILE_HANDLER and LOG_STREAM_HANDLER as handlers.
-
-    Parameters
-    ----------
-    logger -
-        The logger to setup with the default configuration.
-    """
-    logger.setLevel(LOG_LEVEL if log_level is None else log_level)
-    file_handler = logging.FileHandler(LOG_FILE_NAME)
-    stream_handler = logging.StreamHandler()
-    file_handler.setFormatter(LOG_FORMATTER)
-    stream_handler.setFormatter(LOG_FORMATTER)
-    file_handler.setLevel(file_handler_level)
-    stream_handler.setLevel(stream_handler_level)
-    logger.addHandler(file_handler)
-    logger.addHandler(stream_handler)
 
 
 GL_EXT = ".gl"
@@ -126,3 +107,8 @@ MOCK_RECEPTOR_SDE2 = [0.760607106742, 0.65383818835]
 
 # HEAT MAP
 PIXEL_PER_Q_UNIT = 20
+
+del logging
+del builtins
+del os
+del pathlib

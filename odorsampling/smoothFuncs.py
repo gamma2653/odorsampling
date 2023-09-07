@@ -7,9 +7,9 @@ import multiprocessing
 
 from odorsampling.RnO import (
     QSpace, Epithelium, Odorscene, Ligand, dPsiBarSaturation, colorMapSumOfSquares,
-    graphFromExcel, dPsiGraphFromExcel, dPsiOccActGraphFromExcel, glom_penetrance
+    graphFromExcel, dPsiGraphFromExcel, dPsiOccActGraphFromExcel
 )
-from odorsampling import config
+from odorsampling import config, utils
 
 
 def testdPsiBarSat(fixed, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, dim=2, qspaces=[4,10,30], purpose="standard"):
@@ -154,198 +154,6 @@ def testdPsiBarSatColorMap(fixed, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=3
         #     job.join()
 
 
-def testdPsiBarSaturationDim(dims, fixed=False, aff_sd=[.5,1.5], eff_sd=[.05,1.0], numRecs=30, c=1):
-    """Runs 4 simulations of differing dimensions determined by dims all with (0,4) qspace.
-    Since each simulation has an added dimension, it wasn't possible
-    to make the epithelium identical. Therefore, all means, aff and eff
-    are randomized between a constant distribution.
-    Returns a dPsiBar graph with dimensions specified in dims. Also returns act and occ graphs
-    and excel docs with details.
-    
-    dims= list of ints that represent dimension.
-    fixed = True if want eff=1
-    
-    Can uncomment loadEpithelium lines if you have saved epi excel docs"""
-    
-    startTime = time.time()
-    
-    pdfName = "LigandSat with varying dimensions"
-    plotTitle = "Saturation of dPsiBar, varying dim"
-    labels = []
-    excels = []
-    end = False
-    index = 0
-    for dim in dims:
-
-        space = []
-        i = 0
-        while i < dim:
-            space.append((0,4))
-            i+=1
-        qspace = QSpace(space)
-        #epith = loadEpithelium("SavedEpi_(0,4)_" + str(dim) + "Dim.csv")
-        epith = Epithelium.create(numRecs, dim, qspace, aff_sd, eff_sd)
-        Epithelium.save(epith, "1. SavedEpi_(0, 4), dim=" + str(dim))
-        
-        labels.append(str(dim) + "D")
-        excels.append("LigandSat with (0, 4) qspace, dim=" + str(dim))
-        
-        if index == (len(dims) - 1):
-            end = True
-
-        dPsiBarSaturation(epith, .01, qspace, pdfName, labels[index], excels[index], fixed, c, plotTitle, end,  ', dim=' + str(dim), False)
-        index += 1
-        
-    
-
-def allGraphsFromExcel(aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, dim=2, qspaces=[4,10,30], purpose="standard", rep=200.0):
-    """Given excel docs in correct directories, this creates a dpsiSaturation graph and act and occ graphs"""
-    
-    purp = purpFunction(purpose, aff_sd, eff_sd, numRecs, c, dim)
-    xaxis = [1,2,3,4,5,7,10,15,20,25,30,35,40,45,50,60,70,80,90,100,120,140,160,200,250,300,350,400] #xaxis for dPsi vs num of ligands
-    
-    ####Creating dPsiSaturation graphs
-    i = 0
-    pdfName = "LigandSat with varying qspaces" + purp
-    titleName = "Saturation of dPsiBar" + purp
-    qspaceList=[]
-    dPsiName=[]
-    end = False
-    while i < len(qspaces):
-        
-        space = []
-        j = 0
-        while j < dim:
-            space.append((0,qspaces[i]))
-            j+=1
-        qspaceList.append(QSpace(space))
-        dPsiName.append("dPsi, qspace=" + str(qspaceList[i].getSize()[0]) + purp + ".csv")
-
-        if i == (len(qspaces)-1):
-            end = True
-            
-        dPsiGraphFromExcel(dPsiName[i], qspaceList[i], titleName, pdfName, end)        
-        i += 1
-
-    ####Creating Occ and Rec Act graphs    
-     
-    for i in range(2):
-        if i == 0:
-            toggle = "Act"
-        else:
-            toggle = "Occ"
-    
-        pdfName = "Rec" + toggle + " vs num of Ligands" + purp
-        titleName = "Rec " + toggle + " vs num of Ligands" + purp
-        
-        k = 0
-        labelNames=[]
-        excelName=[]
-        end = False
-        while k < len(qspaces):
-            labelNames.append(str(qspaceList[k].getSize()[0]) + " qspace")
-            excelName.append("LigandSat with " + str(qspaceList[k].getSize()[0]) + " qspace" + purp)
-            
-            if k == (len(qspaces)-1):
-                end = True
-
-            graphFromExcel(excelName[k] + ".csv", xaxis, numRecs, labelNames[k], titleName, pdfName, toggle, rep, end)
-            k += 1
-            
-    ###Extra dPsi vs occ and act graph
-    k = 0
-    colors = ['b','g','r','c','m']
-    end = False
-    while k < len(qspaces):
-        titleName = "DpsiBar vs Occ and Act" + purp
-        pdfName = "DpsiBar vs Occ and Act" + purp
-        if k == (len(qspaces)-1):
-            end = True
-        dPsiOccActGraphFromExcel(dPsiName[k], excelName[k]+".csv", xaxis, numRecs, labelNames[k], titleName, pdfName, colors[k%5], rep, end)
-        k += 1
-            
-
-    
-    if c!=1:
-        pdfName = "Glom Act vs num of Ligands" + purp
-        titleName = "Glom Act vs num of Ligands" + purp
-        
-        k = 0
-        end = False
-        while k < len(qspaces):
-            if k == (len(qspaces)-1):
-                end = True
-            name = "Glom_act with c=" + str(c) + " with " + str(qspaceList[k].getSize()[0]) + " qspace"
-            graphFromExcel(name + ".csv", xaxis, numRecs, labelNames[k], titleName, pdfName, "Act", rep, end)
-            k += 1
-        
-
-def dimAllGraphsFromExcel(numRecs=30, dims=[2,3,4,5], rep=200.0):
-    """Same as function above, but adjusted slightly to account for different dimensions."""
-    
-    ####Creating dPsiSaturation graphs
-    i = 0
-    pdfName = "LigandSat with varying dim"
-    titleName = "Saturation of dPsiBar, varying dim"
-    dPsiName = []
-    space=[]
-    end = False
-    for dim in dims:
-        space = []
-        k = 0
-        while k < dim:
-            space.append((0,4))
-            k+=1
-        qspace = QSpace(space)
-
-        dPsiName.append("dPsi, qspace=" + str(qspace.getSize()[0]) + ", dim=" + str(dim) + ".csv")
-
-        if i == (len(dims)-1):
-            end = True
-            
-        dPsiGraphFromExcel(dPsiName[i], qspace, titleName, pdfName, end)
-
-        i += 1
-
-    ####Creating Occ and Rec Act graphs    
-    xaxis = [1,2,3,4,5,7,10,15,20,25,30,35,40,45,50,60,70,80,90,100,120,140,160,200,250,300,350,400]
-    excelName=[]
-    labelNames=[]
-    
-    for i in range(2):
-        if i == 0:
-            toggle = "Act"
-        else:
-            toggle = "Occ"
-    
-        pdfName = "Rec" + toggle + " vs num of Ligands, varying dim"
-        titleName = "Rec " + toggle + " vs num of Ligands, varying dim"
-        
-        k = 0
-        end = False
-        while k < len(dims):
-            
-            if k == (len(dims)-1):
-                end = True
-
-            labelNames.append(str(dims[k]) + "D")
-            excelName.append("LigandSat with (0, 4) qspace, dim=" + str(dims[k]))
-
-            graphFromExcel(excelName[k] + ".csv", xaxis, numRecs, labelNames[k], titleName, pdfName, toggle, rep, end)
-            k += 1
-    
-    ###Extra dPsi vs occ and act graph
-    k = 0
-    colors = ['b','g','r','c','m']
-    end = False
-    while k < len(dims):
-        titleName = "DpsiBar vs Occ and Act" + ", dim=" + str(dim)
-        pdfName = "DpsiBar vs Occ and Act" + ", dim=" + str(dim)
-        if k == (len(dims)-1):
-            end = True
-        dPsiOccActGraphFromExcel(dPsiName[k], excelName[k]+".csv", xaxis, numRecs, labelNames[k], titleName, pdfName, colors[k%5], rep, end)
-        k += 1
-
 
 def makeSimilar(numRecs, aff_sd, eff_sd, purpose="eff", qspaces=[4,10,30], dim=2):
     """Creates and saves three epithelium determined by qspaces.
@@ -393,7 +201,7 @@ def purpFunction(purpose, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, 
         else:
             return ", eff_sd=" + str(eff_sd)
     elif purpose == "c":
-        return ", glom_pen=" + str(glom_penetrance)
+        return ", glom_pen=" + str(config.GLOM_PENETRANCE)
     elif purpose == "recs":
         return ", numRecs=" + str(numRecs)
     elif purpose == "redAff":
@@ -415,7 +223,7 @@ def test():
     # testdPsiBarSatColorMap(fixed=True, aff_sd=[.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, dim=2, qspaces=[4], purpose="standard", qunits = 4)
 
 
-    # allGraphsFromExcel(aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, dim=2, qspaces=[4,10,30], purpose="standard", rep=2)
+    allGraphsFromExcel(aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, dim=2, qspaces=[4,10,30], purpose="standard", rep=2)
 
     ####testing varying dimensions
     #testdPsiBarSaturationDim(dims=[2,3,4,5], fixed=False, aff_sd=[.5,1.5], eff_sd=[.05,1.0], numRecs=30, c=1)
