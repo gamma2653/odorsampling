@@ -5,7 +5,7 @@ functions:
   psi_bar_saturation:
     default_args: []
     default_kwargs:
-      fixed: True
+      fixed: False
       aff_sd: 
         - .5
         - 1.5
@@ -65,6 +65,21 @@ functions:
         - 0
         - 4
       fixed: True
+  allGraphsFromExcel:
+    default_args: []
+    default_kwargs:
+      aff_sd: 
+        - .5
+        - 1.5
+      eff_sd:
+        - 0.05
+        - 1.0
+      numRecs: 30
+      c: 1
+      dim: 2
+      qspaces: [4,10,30]
+      purpose: "standard"
+      rep: 2
 # END NOTE.
 
 # These modify the default config values for the below experiments.
@@ -80,40 +95,53 @@ parameters:
   odor_repetitions: null
   angle_reps: null
 
-
+# TODO: Expand experiments to allow multiple functions to be run.
 experiments:
   - id: psi_bar_sat_1
     name: Psi Bar Saturation Test 1
-    description: "Example of how to use this framework to run a simple experiment."
-    function: psi_bar_saturation
-    args: []
-    kwargs: {}
-
+    description: "This experiment mirrors the usage of testPsiBarSat() from the original code, and accepts the same arguments."
+    functions:
+      # - psi_bar_saturation
+      - allGraphsFromExcel
+    args:
+      - []
+      # - []
+    kwargs:
+      - {}
+      # - {}
   - id: psi_bar_sat_dim_1
     name: Psi Bar Saturation Dim Test 1
     description: "Example of how to use this framework to run a simple experiment."
-    function: psi_bar_saturation_dim
-    args: []
-    kwargs: {}
-  
+    functions:
+      - psi_bar_saturation_dim
+    args:
+      - []
+    kwargs: 
+      - {}
   - id: occ_vs_loc_1
     name: Occ vs Loc Test 1
     description: "Example of how to use this framework to run a simple experiment."
-    function: occ_vs_loc
-    args: []
-    kwargs: {}
-  
+    functions:
+      - occ_vs_loc
+    args:
+      - []
+    kwargs:
+      - {}
   - id: eff_vs_loc_1
     name: Eff vs Loc Test 1
     description: "Example of how to use this framework to run a simple experiment."
-    function: eff_vs_loc
-    args: []
-    kwargs: {}
-  
+    functions:
+      - eff_vs_loc
+    args:
+      - []
+    kwargs:
+      - {}
   - id: eff_analysis_1
     name: Eff Analysis Test 1
     description: "Example of how to use this framework to run a simple experiment."
-    function: eff_analysis
-    args: []
-    kwargs: {}
-
+    functions:
+      - eff_analysis
+    args:
+      - []
+    kwargs:
+      - {}

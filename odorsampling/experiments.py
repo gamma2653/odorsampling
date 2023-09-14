@@ -12,6 +12,7 @@ import multiprocessing
 import logging
 import math
 from dataclasses import dataclass, field
+from collections import ChainMap
 import inspect
 
 import matplotlib.pyplot as plt
@@ -32,13 +33,9 @@ logger = logging.Logger(__name__)
 utils.default_log_setup(logger)
 
 
-def purpFunction(purpose, aff_sd=None, eff_sd=None, numRecs=30, c=1, dim=2):
+# TODO: Factor this out
+def purpFunction(purpose, aff_sd: tuple[float,float]=(0.5, 1.5), eff_sd: tuple[float, float]=(0.05, 1.0), numRecs=30, c=1, dim=2):
     """Returns a string that can be used for titles etc."""
-    if aff_sd is None:
-        aff_sd = [0.5,1.5]
-    if eff_sd is None:
-        eff_sd = [0.05,1.0]
-
     
     if purpose == "aff": 
         return ", aff_sd=" + str(aff_sd)
@@ -59,43 +56,32 @@ def purpFunction(purpose, aff_sd=None, eff_sd=None, numRecs=30, c=1, dim=2):
     else: #purpose == "standard"
         return ""
 
-def makeSimilar(numRecs, aff_sd, eff_sd, purpose="eff", qspaces=[4,10,30], dim=2):
+def makeSimilar(numRecs, aff_sd: tuple[float, float], eff_sd: tuple[float, float], purpose="eff", qspaces=[4,10,30], dim=2):
     """Creates and saves three epithelium determined by qspaces.
     It keeps aff and eff SD identical and only changes means."""
     
     purp = purpFunction(purpose, aff_sd, eff_sd, numRecs, 1, dim)
     
-    space = []
-    i = 0
-    while i < dim:
-        space.append((0,qspaces[0]))
-        i+=1
+    space = [(0, qspaces[0]) for _ in range(dim)]
     qspace = QSpace(space)
     epith = Epithelium.create(numRecs, dim, qspace, aff_sd, eff_sd) #amt, dim **amt = len(gl) and dim = dim of odorscene
     epith.save("1. SavedEpi_" + str(qspace.size[0]) + purp)
     
-    i = 1
-    while i < len(qspaces):
+    for qspace_ in qspaces[1:]:
         
-        space=[]
-        k=0
-        while k < dim:
-            space.append((0,qspaces[i]))
-            k+=1
+        space=[(0,qspace_) for _ in range(dim)]
+        
         qspace = QSpace(space)
         epith2 = Epithelium.create(numRecs, dim, qspace, aff_sd, eff_sd)
     
-        k = 0
-        for rec in epith2.recs:
+        for k, rec in enumerate(epith2.recs):
             rec.sdA = epith.recs[k].sdA
             rec.sdE = epith.recs[k].sdE        
-            k += 1
     
         epith2.save("1. SavedEpi_" + str(qspace.size[0]) + purp)
         
-        i += 1
 
-
+@utils.verbose_if_debug
 def allGraphsFromExcel(aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, dim=2, qspaces=[4,10,30], purpose="standard", rep=200.0):
     """Given excel docs in correct directories, this creates a dpsiSaturation graph and act and occ graphs"""
     
@@ -190,8 +176,6 @@ def psi_bar_saturation_dim(dims, fixed=False, aff_sd=[.5,1.5], eff_sd=[.05,1.0],
     fixed = True if want eff=1
     
     Can uncomment loadEpithelium lines if you have saved epi excel docs"""
-    
-    startTime = time.time()
     
     pdfName = "LigandSat with varying dimensions"
     plotTitle = "Saturation of dPsiBar, varying dim"
@@ -293,17 +277,18 @@ def dimAllGraphsFromExcel(numRecs=30, dims=[2,3,4,5], rep=200.0):
         k += 1
 
 
-
-def psi_bar_saturation(fixed, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c=1, dim=2, qspaces=[4,10,30], purpose="standard", graph=False):
+@utils.verbose_if_debug
+def psi_bar_saturation(fixed, aff_sd: tuple[float, float] = (0.5, 1.5), eff_sd: tuple[float, float] = (0.05, 1.0), numRecs = 30,
+                       c = 1, dim = 2, qspaces=[4,10,30], purpose="standard", graph=False):
     """Runs multiple graphs of given qspaces at one time
-    Optional - run makeSimilar (line 25), to create 3 epitheliums with equal eff and aff SD's (only rec means differ)
+    Optional - run makeSimilar, to create epitheliums with equal eff and aff SD's (only rec means differ)
     Otherwise - make sure there are three saved epithelium files with correct names
 
-    Returns a dPsiBar graph with three qspaces, an act and occ graph, and excel docs with details
+    Returns a dPsiBar graph with varying qspaces, an act and occ graph, and excel docs with details
     
     fixed = True if want eff = 1
     c = convergence ratio of recs to glom
-    purpose = reason for running simulation = either "eff", "aff", "c", "recs", "redAff", "dim", or 'standard'"""
+    purpose = reason for running simulation = either "eff", "aff", "c", "recs", "redAff", "dim" or 'standard'"""
     
     #Run this function if don't already have saved epithelium files to use
     makeSimilar(numRecs, aff_sd, eff_sd, purpose, qspaces, dim)
@@ -315,53 +300,74 @@ def psi_bar_saturation(fixed, aff_sd=[0.5,1.5], eff_sd=[0.05,1.0], numRecs=30, c
     pdfName = "LigandSat with varying qspaces" + purp
     plotTitle = "Saturation of dPsiBar" + purp
     
-    #i = 0
+    i = 0
     labelNames = []
     excelNames = []
     end = False
-    
-    jobs: list[multiprocessing.Process] = []
-
-
-    #while i < len(qspaces):
-    for i, qspacesItem in enumerate(qspaces):    
+    while i < len(qspaces):
+        
         space = []
-        #j = 0
-        #while j < dim:
-        for j in range(dim):    
-            space.append((0,qspacesItem))
-            #j+=1
+        j = 0
+        while j < dim:
+            space.append((0,qspaces[i]))
+            j+=1
         qspace = QSpace(space)
         epith = Epithelium.load("1. SavedEpi_" + str(qspace.size[0]) + purp + ".csv")
 
         labelNames.append(str(qspace.size[0]) + " qspace")
         excelNames.append("LigandSat with " + str(qspace.size[0]) + " qspace" + purp)
-    
+        
         if i == (len(qspaces) - 1):
             end = True
-        # TODO: Try to use Pool instead of Process, test speeds
-        p = multiprocessing.Process(target=dPsiBarSaturation, args=(epith, .01, qspace, pdfName, labelNames[i], excelNames[i], fixed ,c, plotTitle, end, purp, False))
-        jobs.append(p)
-        p.start()
-    
-    
+
         #epi, dn, qspace, pdfName, labelName, excelName, fixed eff
-        #dPsiBarSaturation(epith, .01, qspace, pdfName, labelNames[i], excelNames[i], fixed ,c, plotTitle, end, purp, graphIt=False)
-    
-        #i += 1
-    
-    
-    for j, job in enumerate(jobs):
-        job.join()
-    
-    if graph:
-        allGraphsFromExcel(aff_sd, eff_sd, numRecs, c, dim, qspaces, purpose)
+        dPsiBarSaturation(epith, .01, qspace, pdfName, labelNames[i], excelNames[i], fixed ,c, plotTitle, end, purp, True)
+        
+        i += 1
+        pass
 
+    #Creating Occ and Rec Act graphs
+    ###################amt of rep in dPsiSaturation function and xAxis. MUST change if change in function
+    rep = config.ODOR_REPETITIONS
+    xaxis = [1,2,3,4,5,7,10,15,20,25,30,35,40,45,50,60,70,80,90,100,120,140,160,200,250,300,350,400]
+    numRecs = len(epith.recs)
+    
+    for i in range(2):
+        if i == 0:
+            toggle = "Act"
+        else:
+            toggle = "Occ"
+    
+        pdfName = "Rec" + toggle + " vs num of Ligands" + purp
+        titleName = "Rec " + toggle + " vs num of Ligands" + purp
+        
+        k = 0
+        end = False
+        while k < len(qspaces):
+            if k == (len(qspaces)-1):
+                end = True
+            graphFromExcel(excelNames[k] + ".csv", xaxis, numRecs, labelNames[k], titleName, pdfName, toggle, rep, end)
+            k += 1
+    
+    if c!=1:
+        pdfName = "Glom Act vs num of Ligands" + purp
+        titleName = "Glom Act vs num of Ligands" + purp
 
-def occ_vs_loc(affList=[2,1.5,1,.5]):
+        k = 0
+        end = False
+        while k < len(qspaces):
+            if k == (len(qspaces)-1):
+                end = True
+            name = "Glom_act with c=" + str(c) + " with " + str(qspace.size[0]) + " qspace"
+            graphFromExcel(name + ".csv", xaxis, numRecs, labelNames[k], titleName, pdfName, "Act", rep, end)
+            k += 1
+
+def occ_vs_loc(affList=None):
     """Takes a Receptor instance in a qspace=(0,4) and outputs
     Occupancy vs Location plot for rec with affSD=affList
     Highest affSD is a solid line on the graph"""
+    if affList is None:
+        affList = [2,1.5,1,.5]
     dim = 1
     qspace = QSpace([(0,4)])
     # FIXME: THESE ARE NOT ODORSCENES EADJKFJASDJ
@@ -416,10 +422,14 @@ def occ_vs_loc(affList=[2,1.5,1,.5]):
     #plt.show()
     plt.close()
     
-def eff_vs_loc(effList=[.1,.5,1,2,3]):
+def eff_vs_loc(effList=None):
     """Takes a Receptor instance in a full qspace and outputs
     Efficacy vs Location plot for rec with effSD=effList.
     The highest effSD gives a solid line"""
+    
+    if effList is None:
+        effList = [.1,.5,1,2,3]
+
     dim = 1
     qspace = QSpace([(0,4)])
     odorscenes: list[Ligand] = []  #Create 1600 odorscenes (with 1 ligand each) that span qspace from 0 to 3.9
@@ -555,33 +565,40 @@ def eff_analysis(effSD, affSD=[2,2], qspace=(0,4), fixed=False):
     plt.close()
     pp.close()
 
+def graph_all():
+    allGraphsFromExcel()
 
 @dataclass
 class Experiment:
     name: str
-    func: Callable
-    arg_map: Sequence[Any] = field(default_factory=list)
-    kwarg_map: Mapping[str, Any] = field(default_factory=dict)
+    funcs: Sequence[Callable]
+    arg_maps: Sequence[Sequence[Any]] = field(default_factory=list)
+    kwarg_maps: Sequence[Mapping[str, Any]] = field(default_factory=list)
     msg: str = "Performing experiment `%s`..."
     description: str = "No description provided."
-    default_args: Sequence[Any] = field(default_factory=list, repr=False, compare=False, kw_only=True)
+    default_args: Sequence[Sequence[Any]] = field(default_factory=list, repr=False, compare=False, kw_only=True)
     """
-    Deleted after post_init.
+    Deleted in `__post_init__`.
     """
-    default_kwargs: Mapping[str, Any] = field(default_factory=dict, repr=False, compare=False, kw_only=True)
+    default_kwargs: Sequence[Mapping[str, Any]] = field(default_factory=list, repr=False, compare=False, kw_only=True)
     """
-    Deleted after post_init.
+    Deleted in `__post_init__`.
     """
 
 
     def __post_init__(self):
-        self.arg_map = [self.default_args[i] if i < len(self.default_args) else arg for i, arg in enumerate(self.arg_map)]
-        self.kwarg_map = dict(self.default_kwargs, **self.kwarg_map)
+        # Annoying creation of `dict` instances, change if workaround found. Allows for `arg` shadowing.
+        self.arg_maps = [list(ChainMap(dict(enumerate(arg_map)), dict(enumerate(self.default_args[i]))).values()) for i, arg_map in enumerate(self.arg_maps)]
+        self.kwarg_maps = [ChainMap(kwarg_map, self.default_kwargs[i]) for i, kwarg_map in enumerate(self.kwarg_maps)]
         del self.default_args, self.default_kwargs
 
     def __call__(self):
-        print(self.msg % (self.func.__name__))
-        return self.func(*self.arg_map, **self.kwarg_map)
+        print(self.msg % (self.name))
+        results = []
+        for i, func in enumerate(self.funcs):
+            print(f"  Running function `{func.__name__}`...")
+            results.append(func(*self.arg_maps[i], **self.kwarg_maps[i]))
+        return results
 
 class NonExperiment(Experiment):
     """
@@ -594,14 +611,18 @@ def validate_func_map(mapping: Mapping[str, Mapping[str, list|dict[str,Any]]]) -
     Raises a ValueError if the mapping contains invalid function names/data.
     """
     for name, func_info in mapping.items():
-        if name not in globals():
-            raise ValueError(f"Function '{name}' not found in globals().")
-        func = globals()[name]
-        if not callable(func):
-            raise ValueError(f"Object '{name}' is not callable.")
-        func_sig = inspect.signature(func)
-        arg_co = len(func_info['default_args'])
-        kwarg_names = list(func_info['default_kwargs'].keys())
+        try:
+            func = globals()[name]
+            func_sig = inspect.signature(func)
+        except KeyError as e:
+            raise ValueError(f"Function '{name}' not found in globals().") from e
+        except TypeError as e:
+            raise ValueError(f"'Function' '{name}' is not callable.") from e
+        try:
+            arg_co = len(func_info['default_args'])
+            kwarg_names = list(func_info['default_kwargs'].keys())
+        except KeyError as e:
+            raise ValueError(f"Missing key '{e.args[0]}' for function '{name}'.") from e
         kwarg_co = len(kwarg_names)
 
         if arg_co+kwarg_co > len(func_sig.parameters):
@@ -615,30 +636,51 @@ def validate_exp_map(mappings: Iterable[Mapping[str, Any]], default_values: Mapp
     """
     Raises a ValueError if the mapping contains invalid experiment names/data.
     """
-    # Second assignment for later checks
-    keys = id_, name_, desc_, func_, args_, kwargs_ = 'id', 'name', 'description', 'function', 'args', 'kwargs'
-    if not all((key in mapping and mapping[func_] in globals() for mapping in mappings) for key in keys):
-        raise ValueError(f"Invalid experiment mapping: {mappings}")
-    return {
-        exp[id_]: Experiment(
-            exp[name_], globals()[exp[func_]], exp[args_], exp[kwargs_], description=exp[desc_], **default_values[exp[func_]]
-            ) for exp in mappings
-    }
+    # for reference:
+    # mappings
+    # [
+    #   {
+    #       'id': 'name',
+    #       'name': 'name',
+    #       'functions': ['func_name'],
+    #       'args': [
+    #           [1,2,3],
+    #       ],
+    #       'kwargs': [
+    #           {}
+    #       ],
+    #       'description': 'description',
+    #   }
+    # ]
+    # default_values
     # {
-    #     exp[id_]: Experiment(
-    #         exp[name_], globals()[exp[func_]], exp[args_] if len(exp[args_]) > len(default_values[exp[func_]]) else default_values[exp[func_]],
-    #         exp[kwargs_], description=exp[desc_]
-    #         ) for exp in mappings
+        # 'func_name': {
+        #   'default_args': [],
+        #   'default_kwargs': {},
+        # }
     # }
+
+    try:
+        return {
+            exp['id']: Experiment(
+                exp['name'], [globals()[func] for func in exp['functions']], exp['args'], exp['kwargs'], description=exp['description'],
+                default_args=[default_values[func]['default_args'] for func in exp['functions']],
+                default_kwargs=[default_values[func]['default_kwargs'] for func in exp['functions']]
+            ) for exp in mappings
+        }
+    except KeyError as e:
+        raise ValueError(f"Missing key '{e.args[0]}' for experiment mapping: {mappings}") from e
+    
 
 
 
 def test(to_test: Iterable[Experiment]):
-    
+    print(f"Random seed is {utils.RNG.bit_generator.seed_seq}")
     return [
         experiment() for experiment in to_test
     ]
 
 
-if __name__ == "__main__":
-    test()
+# No longer works since requires Experiments to be generate from a map.
+# if __name__ == "__main__":
+#     test()

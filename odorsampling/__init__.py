@@ -10,9 +10,9 @@ def reload(rebuild_cache=True):
     """
     from importlib import import_module, invalidate_caches
     if rebuild_cache:
+        print("Rebuilding modules.")
         invalidate_caches()
-    print("Reloading modules.")
     for module_name in __all__:
         globals()[module_name] = import_module(f'.{module_name}', __package__)
 
-reload()
+reload(rebuild_cache=False)

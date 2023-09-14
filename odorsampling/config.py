@@ -22,7 +22,15 @@ Default behavior when specific tests are not specified.
 
 # Default Arguments
 DEBUG = builtins.__debug__
+# DEBUG = True
 LOG_LEVEL = logging.DEBUG if DEBUG else logging.WARNING
+STREAM_HANDLER_LEVEL = logging.WARNING
+FILE_HANDLER_LEVEL = logging.INFO
+# For testing purposes
+STREAM_HANDLER_LEVEL = logging.INFO
+FILE_HANDLER_LEVEL = logging.DEBUG
+
+# Default Parameters
 ODOR_CONCENTRATION = 1e-8
 PEAK_AFFINITY = -8     # literally 10e-8, not influenced by minimum_affinity value
 MIN_AFFINITY = 2   # asymptotic affinity exponent, negligible

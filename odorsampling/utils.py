@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import sys
 import threading
 from contextlib import contextmanager
 import logging
+import functools
 
 import numpy as np
 
@@ -20,6 +22,7 @@ Instance of `np.random.default_rng`
 
 def set_seed(seed: Iterable[int]|np.random.SeedSequence|np.random.BitGenerator|Generator):
     global RNG
+    print(f"Setting seed to {seed}")
     RNG = np.random.default_rng(seed)
 
 # Want selections to fail fast
@@ -60,7 +63,8 @@ def expovar_activation(lambd, **_):
 
 LOG_FORMATTER = logging.Formatter(config.LOG_MSG_FMT, config.LOG_DATE_FMT)
 
-def default_log_setup(logger: logging.Logger, log_level: int = None, stream_handler_level = logging.WARNING, file_handler_level = logging.DEBUG):
+def default_log_setup(logger: logging.Logger, log_level: int = None, stream_handler_level = config.STREAM_HANDLER_LEVEL,
+                      file_handler_level = config.FILE_HANDLER_LEVEL):
     """
     Automatically adds LOG_FILE_HANDLER and LOG_STREAM_HANDLER as handlers.
 
@@ -69,13 +73,14 @@ def default_log_setup(logger: logging.Logger, log_level: int = None, stream_hand
     logger -
         The logger to setup with the default configuration.
     """
-    logger.setLevel(config.LOG_LEVEL if log_level is None else log_level)
+    logger.setLevel(config.LOG_LEVEL if log_level is None else min(log_level, config.LOG_LEVEL))
     file_handler = logging.FileHandler(config.LOG_FILE_NAME)
-    stream_handler = logging.StreamHandler()
+    stream_handler = logging.StreamHandler(sys.stdout)
     file_handler.setFormatter(LOG_FORMATTER)
     stream_handler.setFormatter(LOG_FORMATTER)
-    file_handler.setLevel(file_handler_level)
-    stream_handler.setLevel(stream_handler_level)
+    file_handler.setLevel(min(file_handler_level, config.FILE_HANDLER_LEVEL))
+    stream_handler.setLevel(min(stream_handler_level, config.STREAM_HANDLER_LEVEL))
+    
     logger.addHandler(file_handler)
     logger.addHandler(stream_handler)
 
@@ -138,3 +143,15 @@ class ReaderWriterSuite:
         with self.g:
             self.writer_active = False
             self.writer_active_con.notify_all()
+
+def verbose_if_debug(f):
+    """
+    Decorator that makes a function verbose if config.DEBUG is True.
+    """
+    @functools.wraps(f)
+    def wrapper(*args, **kwargs):
+        n_ = '\n'
+        if config.DEBUG:
+            print(f"Calling {f.__name__} with args [{n_.join(map(str, enumerate(args)))}] and kwargs {kwargs}")
+        return f(*args, **kwargs)
+    return wrapper

@@ -32,12 +32,11 @@ from odorsampling import layers, config, utils
 
 # Used for asserts
 from numbers import Real
-from typing import Sequence
 
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Union, Optional, Any
+    from typing import Union, Optional, Any, Iterable
     from numbers import Number
     from odorsampling import cells
 
@@ -490,7 +489,7 @@ class Receptor:
         return self._mean
 
     @mean.setter
-    def mean(self, value: Sequence):
+    def mean(self, value: Iterable[float]):
         """Sets id to value
         Precondtion: value is an list"""
         self._mean = tuple(value)
@@ -627,6 +626,7 @@ class Receptor:
         sdE = _distributeSD(dim, scaleEff) if scaleEff is not None else sdA
         return cls(id_, mean, sdA, sdE)
 
+    # TODO: Use pandas to store this data, then use properties to hide/prevent DataFrame access/object leakage
     def save(self, name: str, helper=False):
         """Stores receptor as one row in a CSV file with the following columns:
         A = ID# of receptor
@@ -742,7 +742,7 @@ class Epithelium:
         self.recs = recs
 
     @classmethod
-    def create(cls, n: int, dim: int, qspace: QSpace, scale: tuple[float]=(.5,1.5), scaleEff=[], constMean=False):
+    def create(cls, n: int, dim: int, qspace: QSpace, scale: tuple[float, float]=(.5,1.5), scaleEff: Optional[tuple[float, float]] = None, constMean=False):
         """Returns an epithelium with n receptors by calling createReceptor n times.
         SD of each receptor is a uniformly chosen # btwn scale[0] and scale[1]
         Precondition: n is an int"""
@@ -1670,6 +1670,7 @@ def dPsiBarCalcDns(odorscene: Odorscene, r, rep: int):
 
     return dn
 
+@utils.verbose_if_debug
 def dPsiBarSaturation(epithelium: Epithelium, r, qspace: QSpace, pdfName: str, labelName: str,
                       excelName: str, fixed=False, c=1, plotTitle="", close=False, purp='', graphIt=True):
     """
@@ -2312,6 +2313,7 @@ def drawEllipseGraph(qspace: QSpace, epithelium: Epithelium, odorscenesArray: li
     #Not closing it will add odor locations to it
     plt.close()
     
+@utils.verbose_if_debug
 def graphFromExcel(name: str, xaxis: list[int], numRecs: int, labelName: str, titleName: str, pdfName: str, toggle: str, rep=10.0, close=False):
     """Given a CSV file from dpsiBarSaturation, create a graph of average receptor
     activation vs num of ligands.
@@ -2368,6 +2370,7 @@ def graphFromExcel(name: str, xaxis: list[int], numRecs: int, labelName: str, ti
     if close == True: #No more data to add to the graph
         plt.close()
 
+@utils.verbose_if_debug
 def dPsiGraphFromExcel(name: str, qspace: QSpace, titleName: str, pdfName: str, close=False):
     """Given an excel doc with dPsiBar data (generated in simulation)
     this function returns a valid graph
@@ -2409,6 +2412,7 @@ def dPsiGraphFromExcel(name: str, qspace: QSpace, titleName: str, pdfName: str, 
     if close == True: #No more data to add to the graph
         plt.close()
 
+@utils.verbose_if_debug
 def dPsiOccActGraphFromExcel(nameDpsi: str, nameAO: str, xaxis: list[int], numRecs: int, labelName: str,
                              titleName: str, pdfName: str, color="b", rep=200.0, close=False):
     """Given three excel docs (DpsiBar, Act, Occ) generated from the simulation,

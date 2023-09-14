@@ -112,6 +112,7 @@ CMD_MAP: Mapping[str, tuple[list, dict]] = {
         {
             'action': 'store',
             'type': str,
+            'nargs': '*',
             'metavar': 'EXPERIMENT_NAME',
             'help': "Used to set which experiments to run according to the paper. Can be defined as a single int, range, "
                     "or a list. Eg) '2' and '1-3' and '1,2,3' are all valid. If there are spaces, the argument must be in quotes."
@@ -180,7 +181,6 @@ TESTS = {
 
 def perform_experiments(experiments_to_run: Iterable[str], experiments_: Mapping[str, experiments.Experiment]):
     print(f"Performing experiments... {','.join(map(str, experiments_to_run))}")
-    print(list(experiments_to_run))
 
     experiments.test((experiments_[name] for name in experiments_to_run))
 
@@ -201,7 +201,6 @@ def main() -> None:
     _special_init(known_args, 'perform_experiment', list)
     _special_init(known_args, 'run_tests', list)
 
-    utils.set_seed(known_args.random_seed)
     # Matplotlib backend
     try:
         matplotlib.use(known_args.mpl_backend)
@@ -227,9 +226,10 @@ def main() -> None:
         yaml_config['parameters'].update(((k,v) for k, v in known_args.__dict__.items() if v is not None))
     except (KeyError, AttributeError):
         yaml_config['parameters'] = known_args.__dict__
-
+    
     # Override python file config with YAML/CMD config
     for key, value in yaml_config['parameters'].items():
+        # TODO: Patch LOG_LEVEL when DEBUG is set or find some workaround, maybe property getter setter
         if value is not None and not key.startswith('__'):
             setattr(config, key.upper(), value)
     
@@ -242,12 +242,13 @@ def main() -> None:
         print("Invalid function map in experiment YAML file.")
         print(e, file=sys.stderr)
         sys.exit(1)
-
+    utils.set_seed(config.RANDOM_SEED)
+    
     print("Configuration:")
     pprint({ key: getattr(config, key) for key in dir(config) if not key.startswith('__')})
 
-    perform_experiments(experiments_ if not config.PERFORM_EXPERIMENT else config.PERFORM_EXPERIMENT, experiments_)
     perform_tests(config.RUN_TESTS)
+    perform_experiments(experiments_ if not config.PERFORM_EXPERIMENT else config.PERFORM_EXPERIMENT, experiments_)
 
 
 
